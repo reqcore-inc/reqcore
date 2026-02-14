@@ -12,6 +12,9 @@ export const auth = betterAuth({
     schema,
   }),
   secret: env.BETTER_AUTH_SECRET,
+  emailAndPassword: {
+    enabled: true,
+  },
   plugins: [
     organization(),
   ],

@@ -9,6 +9,8 @@ Applirank is a **Nuxt 4** full-stack application following a monolithic architec
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | Framework | Nuxt 4 (Vue 3 + Nitro) | Full-stack SSR application |
+| Styling | Tailwind CSS v4 (`@tailwindcss/vite`) | Utility-first CSS framework |
+| Icons | `lucide-vue-next` | Tree-shakeable icon library |
 | Database | PostgreSQL 16 | Persistent data storage |
 | ORM | Drizzle ORM + postgres.js | Type-safe database access |
 | Authentication | Better Auth | User management, sessions, OAuth |
@@ -23,6 +25,8 @@ Applirank is a **Nuxt 4** full-stack application following a monolithic architec
 applirank/
 ├── app/                          # Client source (Nuxt 4 srcDir)
 │   ├── app.vue                   # Root component
+│   ├── assets/
+│   │   └── css/main.css           # Tailwind CSS entry point + @theme tokens
 │   ├── components/               # Auto-imported Vue components
 │   ├── composables/              # Auto-imported composables (useXxx)
 │   ├── layouts/                  # Layout components

@@ -12,8 +12,10 @@ Suggest to update these documents if you find any incomplete or conflicting info
 Applirank is a **Nuxt 4** full-stack application using the `app/` directory structure. Key technology choices:
 
 - **Framework**: Nuxt 4 (`app/` is `srcDir`, `server/` stays at project root)
+- **Styling**: Tailwind CSS v4 via `@tailwindcss/vite` plugin (NOT `@nuxtjs/tailwindcss`)
+- **Icons**: `lucide-vue-next` — tree-shakeable, consistent icon library
 - **Database**: PostgreSQL 16 via **Drizzle ORM** + `postgres` (postgres.js) driver
-- **Auth**: **Better Auth** with `@better-auth/nuxt` module
+- **Auth**: **Better Auth** with organization plugin (manual integration via catch-all route)
 - **Object Storage**: MinIO (S3-compatible), accessed via S3 API
 - **Validation**: Zod v4
 - **Infrastructure**: Docker Compose for local Postgres, MinIO, and Adminer
@@ -63,8 +65,9 @@ Import `env` from `server/utils/env.ts` — never use `process.env` directly in 
 
 ### Authentication
 
-- **Better Auth** integrated via `@better-auth/nuxt` module (registered in `nuxt.config.ts`)
+- **Better Auth** integrated manually via catch-all route (`server/api/auth/[...all].ts`)
 - Auth config lives in `server/utils/auth.ts` (Nuxt auto-imports server utils)
+- Client-side auth via `app/utils/auth-client.ts` (not a Nuxt module)
 
 ### Nuxt 4 Conventions
 
@@ -91,6 +94,41 @@ Local services:
 - **App**: http://localhost:3000
 - **Adminer** (DB GUI): http://localhost:8080
 - **MinIO Console**: http://localhost:9001 | S3 API: http://localhost:9000
+
+## Icons
+
+Use **`lucide-vue-next`** for all icons. Import individual icons by name — they are tree-shakeable:
+
+```vue
+<script setup lang="ts">
+import { ArrowRight, Database, ShieldCheck } from 'lucide-vue-next'
+</script>
+
+<template>
+  <ArrowRight class="size-5" />
+</template>
+```
+
+- Browse available icons: https://lucide.dev/icons
+- Use `class="size-N"` for sizing (Tailwind `size-4`, `size-5`, `size-6`)
+- For brand logos (Nuxt, PostgreSQL, etc.) use inline SVG — Lucide doesn't include brand icons
+
+## Design System — Landing Page Dark Theme
+
+The public landing page (`app/pages/index.vue`) uses a dark aesthetic inspired by Linear/Resend/Raycast:
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| Background | `bg-[#09090b]` | Page body and sections |
+| Glass borders | `border-white/[0.06]` | Cards, nav, dividers |
+| Muted text | `text-white/60` | Descriptions, secondary text |
+| Glow effects | `bg-indigo-500/20 blur-3xl` | Decorative blobs behind sections |
+| Grid pattern | Background SVG with `white/[0.03]` lines | Subtle texture overlay |
+
+### Key patterns
+- **Body override**: When a dark page is embedded in a light-mode layout, use `useHead({ bodyAttrs: { style: 'background-color: #09090b;' } })` to prevent light body bleed
+- **Overflow containment**: When decorative elements use `translate-y-*`, wrap the section in `overflow-hidden` to prevent extra scroll space
+- **Auth-aware rendering**: Use `authClient.useSession(useFetch)` to conditionally show Dashboard vs Sign In links
 
 ## Package Manager
 
@@ -130,3 +168,10 @@ Use **npm** (lockfile is `package-lock.json`).
 - Don't use `@/` alias — use `~/` (resolves to `app/`)
 - Don't use `router.push()` — use `navigateTo()`
 - Don't use `<a>` tags for internal links — use `<NuxtLink>`
+- Don't use `@nuxtjs/tailwindcss` module — use `@tailwindcss/vite` plugin
+- Don't create `tailwind.config.js` — use `@theme` in `app/assets/css/main.css`
+- Don't use `@tailwind base/components/utilities` directives — use `@import "tailwindcss"` (v4)
+- Don't use `<style scoped>` for layout/spacing/colors — use Tailwind utility classes
+- Don't interpolate class names (`bg-${color}-500`) — Tailwind can't detect them
+- Don't use emoji or inline SVG paths for icons — use `lucide-vue-next` components
+- Don't use Heroicons, Font Awesome, or other icon libraries — standardize on Lucide

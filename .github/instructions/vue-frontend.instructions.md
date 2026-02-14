@@ -424,7 +424,7 @@ export function useSidebar() {
 
 ```
 app/pages/
-├── index.vue               → /
+├── index.vue               → /           (public landing page — dark theme, no auth required)
 ├── login.vue               → /login
 ├── register.vue            → /register
 ├── dashboard/
@@ -898,4 +898,123 @@ export function useCurrentOrg() {
     isAuthenticated,
   }
 }
+```
+
+---
+
+## 16. Styling — Tailwind CSS v4
+
+All component styling uses **Tailwind CSS v4 utility classes** applied directly in templates.
+For full conventions, see the dedicated [Tailwind CSS instructions](tailwindcss.instructions.md).
+
+### Quick rules
+
+| Rule | Details |
+|------|---------|
+| Use utility classes in templates | `class="flex items-center gap-2 px-4 py-2 text-sm"` |
+| Avoid `<style scoped>` | Only for complex animations or third-party overrides |
+| Custom theme tokens in `@theme` | Defined in `app/assets/css/main.css` — NOT `tailwind.config.js` |
+| No string interpolation for classes | `bg-${color}-500` won't work — use object maps instead |
+| Dark mode via `dark:` variant | `class="bg-white dark:bg-gray-900"` |
+| Responsive via breakpoint prefixes | `class="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"` |
+
+```vue
+<!-- ✅ Correct Tailwind styling -->
+<template>
+  <div class="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+    <div class="w-full max-w-md rounded-lg bg-white p-8 shadow-sm">
+      <h1 class="text-xl font-bold text-gray-900">Title</h1>
+    </div>
+  </div>
+</template>
+
+<!-- ❌ Don't do this — use Tailwind utilities instead -->
+<template>
+  <div class="layout-auth">...</div>
+</template>
+<style scoped>
+.layout-auth { min-height: 100vh; display: flex; }
+</style>
+```
+
+---
+
+## 17. Icons — `lucide-vue-next`
+
+Use **`lucide-vue-next`** for all icons. Import individual icons by name — they are tree-shakeable.
+
+```vue
+<script setup lang="ts">
+import { ArrowRight, Database, ShieldCheck } from 'lucide-vue-next'
+</script>
+
+<template>
+  <ArrowRight class="size-5" />
+  <Database class="size-6 text-brand-500" />
+</template>
+```
+
+### Rules
+
+| Rule | Details |
+|------|---------|
+| Import from `lucide-vue-next` | Always import individual icons — tree-shakeable |
+| Size with Tailwind | `class="size-4"`, `class="size-5"`, `class="size-6"` |
+| Color with Tailwind | `class="text-white"`, `class="text-brand-500"` |
+| Browse icons | https://lucide.dev/icons |
+| Brand logos | Use inline SVG — Lucide doesn't include brand icons (Nuxt, PostgreSQL, etc.) |
+
+### What NOT to do
+
+| Anti-pattern | Why |
+|---|---|
+| Heroicons, Font Awesome, etc. | Standardize on Lucide for consistency |
+| Inline SVG paths for generic icons | Lucide has 1400+ icons — check there first |
+| Emoji for UI indicators | Use Lucide icons for professional appearance |
+| `<i class="fa-...">` | Font-based icons are bloated — Lucide is tree-shakeable |
+
+---
+
+## 18. Landing Page Patterns
+
+The public landing page (`app/pages/index.vue`) is a standalone dark-mode marketing page. These patterns apply when building similar public pages.
+
+### Dark page in a light-mode app
+
+When a page has a dark background but the app's base CSS uses a light body color, override the body:
+
+```ts
+// Prevents light body background from showing below the page content
+useHead({
+  bodyAttrs: {
+    style: 'background-color: #09090b;',
+  },
+})
+```
+
+### Auth-aware rendering
+
+Show different CTAs based on authentication status:
+
+```ts
+const { data: session } = await authClient.useSession(useFetch)
+```
+
+```vue
+<template>
+  <NuxtLink v-if="session" to="/dashboard">Dashboard</NuxtLink>
+  <NuxtLink v-else to="/auth/sign-in">Sign In</NuxtLink>
+</template>
+```
+
+### Overflow containment for decorative elements
+
+When using decorative glow blobs or elements with `translate-y-*`, wrap the container in `overflow-hidden`:
+
+```vue
+<!-- ✅ Prevents glow blob from adding extra scroll space -->
+<section class="relative overflow-hidden py-24">
+  <div class="absolute -bottom-32 left-1/2 h-64 w-96 -translate-x-1/2 translate-y-1/2 rounded-full bg-indigo-500/20 blur-3xl" />
+  <!-- section content -->
+</section>
 ```

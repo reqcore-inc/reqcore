@@ -6,10 +6,39 @@ Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Add
 
 ---
 
+## 2026-02-15
+
+### Added
+
+- **Public landing page** (`app/pages/index.vue`) — dark-mode marketing page with Hero, Value Props, How It Works, Tech Stack, CTA, and Footer sections
+- `lucide-vue-next` icon library — high-quality, tree-shakeable icons for the entire frontend
+- Dark landing page design system: `#09090b` background, `white/[0.06]` glass borders, subtle glow effects, grid pattern overlay (Linear/Resend/Raycast aesthetic)
+- SEO meta tags on landing page via `useSeoMeta` (title, description, OpenGraph)
+- Auth-aware navbar on landing page — shows Dashboard link for authenticated users, Sign In / Get Started for guests
+- Brand SVGs for tech stack section (Nuxt, PostgreSQL)
+
+### Changed
+
+- `app/pages/index.vue` — replaced auth redirect with full public landing page
+- Disabled Nuxt DevTools in `nuxt.config.ts` (`devtools: { enabled: false }`)
+
+### Fixed
+
+- White bar at bottom of landing page — added `useHead({ bodyAttrs: { style: 'background-color: #09090b;' } })` to override light body background from `main.css`
+- Extra scroll space at bottom — added `overflow-hidden` to CTA section to contain decorative glow blob using `translate-y-1/2`
+
+---
+
 ## 2026-02-14
 
 ### Added
 
+- Tailwind CSS v4 integration via `@tailwindcss/vite` plugin
+- Global CSS entry point at `app/assets/css/main.css` with `@theme` brand color tokens
+- Semantic color palette: brand (indigo), accent (teal), surface (slate), success (emerald), warning (amber), danger (rose), info (sky)
+- Class-based dark mode support via `@custom-variant dark`
+- Base layer with antialiased rendering and dark mode body defaults
+- Tailwind CSS context engineering: instruction file, skill file, copilot-instructions updates
 - Nuxt 4 project scaffold with `app/` directory structure
 - Docker Compose infrastructure: PostgreSQL 16, MinIO (S3), Adminer
 - Drizzle ORM setup with postgres.js driver (`server/utils/db.ts`)

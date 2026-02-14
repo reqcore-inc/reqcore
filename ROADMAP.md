@@ -9,7 +9,7 @@
 
 ## 🎯 Current Focus
 
-**Phase 1, Milestone 2: Auth UI & Navigation** — Build the first usable screens so users can sign up, sign in, and see an app shell.
+**Phase 1, Milestone 4: Candidate Management** — Build full CRUD for candidates with deduplication.
 
 ---
 
@@ -33,33 +33,54 @@ Infrastructure, auth, database schema — the base everything else builds on.
 - [x] Relations between all domain tables
 - [x] Context engineering setup (copilot-instructions, agents, prompts, domain instructions)
 
-### Milestone 2: Auth UI & Navigation (not started)
+### Milestone 2: Auth UI & Navigation ✅
 
 Users can sign up, sign in, create/switch orgs, and see an app shell.
 
-- [ ] Sign-up page (`app/pages/auth/sign-up.vue`)
-- [ ] Sign-in page (`app/pages/auth/sign-in.vue`)
-- [ ] Auth middleware — redirect unauthenticated users (`app/middleware/auth.ts`)
-- [ ] Organization creation flow (post-signup)
-- [ ] Organization switcher component
-- [ ] App layout with sidebar navigation (`app/layouts/dashboard.vue`)
-- [ ] Root page redirects to dashboard (`app/pages/index.vue`)
+- [x] Sign-up page (`app/pages/auth/sign-up.vue`)
+- [x] Sign-in page (`app/pages/auth/sign-in.vue`)
+- [x] Auth middleware — redirect unauthenticated users (`app/middleware/auth.ts`)
+- [x] Guest middleware — redirect authenticated users from auth pages (`app/middleware/guest.ts`)
+- [x] Require-org middleware — redirect to org creation (`app/middleware/require-org.ts`)
+- [x] Organization creation flow (post-signup) (`app/pages/onboarding/create-org.vue`)
+- [x] Organization switcher component (`app/components/OrgSwitcher.vue`)
+- [x] App layout with sidebar navigation (`app/layouts/dashboard.vue`)
+- [x] Auth layout for sign-in/sign-up forms (`app/layouts/auth.vue`)
+- [x] Sidebar component with nav and sign-out (`app/components/AppSidebar.vue`)
+- [x] Current org composable (`app/composables/useCurrentOrg.ts`)
+- [x] Server-side auth guard utility (`server/utils/requireAuth.ts`)
+- [x] Root page placeholder (`app/pages/index.vue`) — later replaced by landing page (Milestone 2.5)
+- [x] Dashboard placeholder page (`app/pages/dashboard/index.vue`)
 
-### Milestone 3: Job Management (not started)
+### Milestone 2.5: Public Landing Page ✅
+
+Dark-mode marketing page communicating the product vision to visitors.
+
+- [x] Public landing page with Hero, Value Props, How It Works, Tech Stack, CTA, Footer (`app/pages/index.vue`)
+- [x] Dark design aesthetic: `#09090b` bg, glass-like borders, subtle glow effects, grid pattern (Linear/Resend/Raycast style)
+- [x] `lucide-vue-next` icon library for high-quality, tree-shakeable icons
+- [x] Brand SVGs for tech stack section (Nuxt, PostgreSQL)
+- [x] Auth-aware navbar — Dashboard link for authenticated users, Sign In/Get Started for guests
+- [x] SEO meta tags via `useSeoMeta` (title, description, OpenGraph)
+- [x] `useHead` body background override to prevent light-mode bleed on dark page
+
+### Milestone 3: Job Management ✅
 
 Full CRUD for jobs with status workflow.
 
-- [ ] API: `GET /api/jobs` — list jobs (org-scoped)
-- [ ] API: `POST /api/jobs` — create job
-- [ ] API: `GET /api/jobs/:id` — job detail
-- [ ] API: `PATCH /api/jobs/:id` — update job
-- [ ] API: `DELETE /api/jobs/:id` — delete/archive job
-- [ ] Composable: `useJobs()` — list + mutations
-- [ ] Composable: `useJob(id)` — single job + mutations
-- [ ] Page: Jobs list (`app/pages/jobs/index.vue`)
-- [ ] Page: Job detail/edit (`app/pages/jobs/[id].vue`)
-- [ ] Page: Job creation form (`app/pages/jobs/new.vue`)
-- [ ] Job status transitions UI (draft → open → closed → archived)
+- [x] API: `GET /api/jobs` — list jobs (org-scoped)
+- [x] API: `POST /api/jobs` — create job
+- [x] API: `GET /api/jobs/:id` — job detail
+- [x] API: `PATCH /api/jobs/:id` — update job
+- [x] API: `DELETE /api/jobs/:id` — delete/archive job
+- [x] Composable: `useJobs()` — list + mutations
+- [x] Composable: `useJob(id)` — single job + mutations
+- [x] Page: Jobs list (`app/pages/dashboard/jobs/index.vue`)
+- [x] Page: Job detail/edit (`app/pages/dashboard/jobs/[id].vue`)
+- [x] Page: Job creation form (`app/pages/dashboard/jobs/new.vue`)
+- [x] Job status transitions UI (draft → open → closed → archived)
+- [x] Shared Zod validation schemas (`server/utils/schemas/job.ts`)
+- [x] Sidebar Jobs link enabled
 
 ### Milestone 4: Candidate Management (not started)
 
@@ -171,6 +192,9 @@ Goal: Ready for real teams to self-host in production.
 | Milestone | Completed |
 |-----------|-----------|
 | 1. Foundation | 2026-02-14 |
+| 2. Auth UI & Navigation | 2026-02-14 |
+| 2.5. Public Landing Page | 2026-02-14 |
+| 3. Job Management | 2026-02-14 |
 
 ---
 
