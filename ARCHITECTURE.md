@@ -43,7 +43,9 @@ applirank/
 │   │   │   └── [id]/questions/   # Custom question management
 │   │   └── public/jobs/          # Unauthenticated public job board
 │   │       ├── index.get.ts      # GET /api/public/jobs (list open jobs)
-│   │       └── [id].get.ts       # GET /api/public/jobs/:id
+│   │       ├── [slug].get.ts     # GET /api/public/jobs/:slug
+│   │       └── [slug]/
+│   │           └── apply.post.ts # POST /api/public/jobs/:slug/apply
 │   ├── database/
 │   │   ├── schema/               # Drizzle ORM table definitions
 │   │   │   ├── app.ts            # Domain tables (job, candidate, etc.)
@@ -56,7 +58,8 @@ applirank/
 │   └── utils/                    # Auto-imported server utilities
 │       ├── auth.ts               # Better Auth instance
 │       ├── db.ts                 # Drizzle client + connection pool
-│       └── env.ts                # Zod-validated environment variables
+│       ├── env.ts                # Zod-validated environment variables
+│       └── slugify.ts            # URL slug generation for public job pages
 ├── public/                       # Static assets
 ├── docker-compose.yml            # Postgres + MinIO + Adminer
 ├── drizzle.config.ts             # Drizzle Kit configuration
@@ -117,13 +120,14 @@ Request → Auth Guard → Extract orgId from session → Scope all queries by o
 
 ### 2. Auto-Imported Server Utilities
 
-Nitro auto-imports everything from `server/utils/`. The three core utilities are always available without imports:
+Nitro auto-imports everything from `server/utils/`. The core utilities are always available without imports:
 
 | Utility | Purpose |
 |---------|---------|
 | `db` | Drizzle ORM client with schema |
 | `auth` | Better Auth instance |
 | `env` | Zod-validated environment variables |
+| `generateJobSlug` | URL slug generation for public job pages |
 
 ### 3. Environment Validation
 

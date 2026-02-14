@@ -42,6 +42,7 @@ app/              # Client-side source (components, pages, composables, etc.)
 server/           # Nitro server code (api/, routes/, utils/, middleware/)
   api/public/     # Unauthenticated endpoints (public job board, apply)
   utils/env.ts    # Runtime env validation — all env vars validated with Zod
+  utils/slugify.ts # URL slug generation for public job pages
 public/           # Static assets
 docker-compose.yml
 ```
@@ -49,9 +50,18 @@ docker-compose.yml
 ### Public vs Authenticated Routes
 
 - **Authenticated API**: `server/api/jobs/`, `server/api/candidates/` — require `requireAuth(event)`
-- **Public API**: `server/api/public/jobs/` — no auth, only exposes open jobs
+- **Public API**: `server/api/public/jobs/` — no auth, only exposes open jobs, uses slug-based URLs
 - **Public pages**: `app/pages/jobs/` — job board, job detail, application form (uses `public` layout)
 - **Dashboard pages**: `app/pages/dashboard/` — recruiter UI (uses `dashboard` layout, requires auth)
+
+### URL Slugs (Public Job Pages)
+
+- Public job URLs use human-readable slugs: `/jobs/senior-engineer-a1b2c3d4`
+- Slugs are auto-generated from `title + short UUID` via `generateJobSlug()` (auto-imported)
+- Recruiters can optionally provide a custom slug when creating/editing a job
+- The `slug` column on the `job` table has a unique constraint
+- Public API routes use `[slug]` param: `GET /api/public/jobs/:slug`, `POST /api/public/jobs/:slug/apply`
+- Dashboard (internal) routes still use UUID `[id]` param
 
 ## Critical Patterns
 

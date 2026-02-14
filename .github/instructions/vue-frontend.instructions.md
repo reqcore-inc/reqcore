@@ -436,10 +436,10 @@ app/pages/
 │       └── [id].vue        → /dashboard/jobs/:id
 ├── jobs/                                     (public job board — no auth, `public` layout)
 │   ├── index.vue           → /jobs           (browse open positions)
-│   └── [id]/
-│       ├── index.vue       → /jobs/:id       (job detail)
-│       ├── apply.vue       → /jobs/:id/apply (application form)
-│       └── confirmation.vue→ /jobs/:id/confirmation
+│   └── [slug]/
+│       ├── index.vue       → /jobs/:slug       (job detail)
+│       ├── apply.vue       → /jobs/:slug/apply (application form)
+│       └── confirmation.vue→ /jobs/:slug/confirmation
 ├── onboarding/
 │   └── create-org.vue      → /onboarding/create-org
 └── [...slug].vue           → catch-all 404

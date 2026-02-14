@@ -36,9 +36,9 @@ server/
 │   ├── public/              # Unauthenticated endpoints (no requireAuth)
 │   │   └── jobs/
 │   │       ├── index.get.ts  # GET /api/public/jobs (list open jobs)
-│   │       ├── [id].get.ts   # GET /api/public/jobs/:id
-│   │       └── [id]/
-│   │           └── apply.post.ts # POST /api/public/jobs/:id/apply
+│   │       ├── [slug].get.ts # GET /api/public/jobs/:slug
+│   │       └── [slug]/
+│   │           └── apply.post.ts # POST /api/public/jobs/:slug/apply
 │   └── candidates/
 │       └── ...
 ├── routes/                  # Non-API routes (no /api/ prefix)
@@ -84,6 +84,7 @@ Everything in `server/utils/` is auto-imported by Nitro. These are available in 
 | `db` | `server/utils/db.ts` | Drizzle ORM client with schema |
 | `auth` | `server/utils/auth.ts` | Better Auth instance |
 | `env` | `server/utils/env.ts` | Zod-validated environment variables |
+| `generateJobSlug` | `server/utils/slugify.ts` | URL slug generation for public job pages |
 
 h3 utilities (`defineEventHandler`, `readBody`, `getQuery`, `createError`, etc.) are also auto-imported.
 
