@@ -3,24 +3,12 @@ const { data: session } = await authClient.useSession(useFetch)
 </script>
 
 <template>
-  <div class="layout-dashboard">
+  <div class="flex min-h-screen">
     <AppSidebar />
-    <main class="dashboard-main">
-      <slot />
+    <main class="flex-1 overflow-y-auto bg-surface-50 px-6 py-8">
+      <div class="mx-auto max-w-4xl">
+        <slot />
+      </div>
     </main>
   </div>
 </template>
-
-<style scoped>
-.layout-dashboard {
-  display: flex;
-  min-height: 100vh;
-}
-
-.dashboard-main {
-  flex: 1;
-  overflow-y: auto;
-  padding: 2rem;
-  background-color: #f9fafb;
-}
-</style>
