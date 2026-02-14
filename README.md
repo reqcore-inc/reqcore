@@ -131,4 +131,4 @@ Applirank is in early development and contributions are welcome. Check the [Road
 
 ## License
 
-[MIT](LICENSE)
+[Elastic License 2.0](LICENSE) — free to use, self-host, and modify. You may not offer Applirank as a managed service to third parties. See [LICENSE](LICENSE) for full terms.
