@@ -16,6 +16,10 @@ import {
   Container,
   ChevronRight,
   Star,
+  Map,
+  Check,
+  Hammer,
+  Telescope,
 } from 'lucide-vue-next'
 
 useSeoMeta({
@@ -54,6 +58,12 @@ useHead({
             class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
           >
             Open Positions
+          </NuxtLink>
+          <NuxtLink
+            to="/roadmap"
+            class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
+          >
+            Roadmap
           </NuxtLink>
           <a
             href="https://github.com/applirank/applirank"
@@ -337,6 +347,94 @@ useHead({
       </div>
     </section>
 
+    <!-- ─── Roadmap ─────────────────────────────────────── -->
+    <section class="relative overflow-hidden border-t border-white/[0.06] py-24 sm:py-32">
+      <!-- Glow -->
+      <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div class="absolute top-1/2 left-1/4 h-[500px] w-[600px] -translate-y-1/2 rounded-full bg-success-500/[0.04] blur-[150px]" />
+        <div class="absolute top-1/2 right-1/4 h-[400px] w-[500px] -translate-y-1/2 rounded-full bg-purple-500/[0.04] blur-[130px]" />
+      </div>
+
+      <div class="relative mx-auto max-w-6xl px-6">
+        <div class="mx-auto max-w-2xl text-center">
+          <p class="text-sm font-semibold tracking-[0.2em] text-brand-400 uppercase">Product Roadmap</p>
+          <h2 class="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Built in the open
+          </h2>
+          <p class="mt-4 text-base leading-relaxed text-surface-400 sm:text-lg">
+            Every feature is planned publicly. See what we've shipped,
+            what we're building, and where the product is headed.
+          </p>
+        </div>
+
+        <!-- Mini timeline preview -->
+        <div class="mt-16 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 sm:p-10">
+          <!-- Timeline stages -->
+          <div class="flex items-center justify-between gap-4">
+            <!-- Shipped -->
+            <div class="flex flex-1 flex-col items-center gap-3 text-center">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-success-400/10 ring-1 ring-inset ring-success-400/20">
+                <Check class="h-5 w-5 text-success-400" :stroke-width="2.5" />
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-white">9</div>
+                <div class="text-[13px] font-medium text-success-400">Shipped</div>
+              </div>
+              <p class="hidden text-xs leading-relaxed text-surface-500 sm:block">
+                Foundation, Auth, Jobs, Candidates, Pipeline, Documents, Job Board, Forms, Landing
+              </p>
+            </div>
+
+            <!-- Connector -->
+            <div class="hidden h-px flex-1 bg-gradient-to-r from-success-400/40 to-brand-400/40 sm:block" />
+
+            <!-- Building -->
+            <div class="flex flex-1 flex-col items-center gap-3 text-center">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-400/10 ring-1 ring-inset ring-brand-400/20">
+                <Hammer class="h-5 w-5 text-brand-400" :stroke-width="2" />
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-white">1</div>
+                <div class="text-[13px] font-medium text-brand-400">Building</div>
+              </div>
+              <p class="hidden text-xs leading-relaxed text-surface-500 sm:block">
+                Recruiter Dashboard with live stats
+              </p>
+            </div>
+
+            <!-- Connector -->
+            <div class="hidden h-px flex-1 bg-gradient-to-r from-brand-400/40 to-purple-400/40 sm:block" />
+
+            <!-- Vision -->
+            <div class="flex flex-1 flex-col items-center gap-3 text-center">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-400/10 ring-1 ring-inset ring-purple-400/20">
+                <Telescope class="h-5 w-5 text-purple-400" :stroke-width="2" />
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-white">5</div>
+                <div class="text-[13px] font-medium text-purple-400">The Vision</div>
+              </div>
+              <p class="hidden text-xs leading-relaxed text-surface-500 sm:block">
+                AI Ranking, Resume Parsing, Collaboration, Comms, Hardening
+              </p>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="mt-10 flex justify-center">
+            <NuxtLink
+              to="/roadmap"
+              class="group inline-flex items-center gap-2.5 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
+            >
+              <Map class="h-4 w-4" />
+              Explore the Full Roadmap
+              <ArrowRight class="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ─── CTA ────────────────────────────────────────── -->
     <section class="relative overflow-hidden border-t border-white/[0.06] py-24 sm:py-32">
       <!-- Glow -->
@@ -381,6 +479,9 @@ useHead({
           &copy; {{ new Date().getFullYear() }} Applirank. Open source under AGPL-3.0.
         </div>
         <div class="flex gap-6 text-[13px] text-surface-500">
+          <NuxtLink to="/roadmap" class="transition hover:text-white">
+            Roadmap
+          </NuxtLink>
           <a
             href="https://github.com/applirank/applirank"
             target="_blank"
