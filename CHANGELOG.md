@@ -6,6 +6,39 @@ Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Add
 
 ---
 
+## 2026-02-15
+
+### Added
+
+- **IP-based rate limiting** — reusable `createRateLimiter()` utility (`server/utils/rateLimit.ts`) using a sliding window algorithm with automatic stale entry pruning; applied to public application endpoint (5 requests per IP per 15 minutes); returns standard `X-RateLimit-*` headers and `429 Too Many Requests` when exceeded
+- **Candidates table view per job** — new `/dashboard/jobs/:id/candidates` page showing all applicants in a Supabase-style data table with columns for name, email, status, score, and applied date; includes status filter dropdown
+- **Candidate detail sidebar** — clicking a row in the candidates table opens a slide-over panel (`CandidateDetailSidebar.vue`) with full application details: status transitions, candidate info, notes (editable inline), question responses, and links to full candidate/application pages
+- **Sidebar "Candidates" tab** — job context sub-nav now includes a "Candidates" tab (with `Table2` icon) between Pipeline and Application Form
+- **File upload question type** — recruiters can add `file_upload` fields to custom application forms, letting applicants upload resumes, cover letters, or other documents (PDF, DOC, DOCX — max 10 MB)
+- **Multipart form support on public apply endpoint** — `POST /api/public/jobs/:slug/apply` now supports `multipart/form-data` when file uploads are present, with full security: magic byte MIME validation via `file-type`, server-generated S3 storage keys, per-file size limits
+- **DynamicField file input** — `DynamicField.vue` renders drag-and-drop style file selector for `file_upload` questions with clear/remove support
+- **Automatic document type detection** — uploaded files are auto-classified as `resume`, `cover_letter`, or `other` based on question label heuristics
+- **Document records from public submissions** — files uploaded via the public apply form create `document` records linked to the candidate, visible on the recruiter's candidate detail page
+- **Inline PDF preview** — recruiters can preview PDF documents directly in the candidate detail sidebar and candidate page without downloading; uses a same-origin server-proxied streaming endpoint (`GET /api/documents/:id/preview`) that pipes S3 bytes through the Nitro server
+- **Document security hardening** — comprehensive security audit and fixes:
+  - Private S3 bucket policy enforcement on startup (explicit deny-all-anonymous-access)
+  - Filename sanitization utility (`sanitizeFilename`) preventing path traversal, XSS, and filesystem exploits
+  - Per-candidate document limit (max 20) enforced on public apply endpoint
+  - `storageKey` filtered from API responses (never exposed to clients)
+  - Global security headers via Nitro route rules: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `X-XSS-Protection`, `Permissions-Policy`
+  - Docker Compose ports bound to `127.0.0.1` (Postgres, MinIO, Adminer)
+
+### Changed
+
+- **Document downloads now server-proxied** — `GET /api/documents/:id/download` no longer returns a presigned S3 URL; instead streams file bytes directly through the authenticated server endpoint, eliminating the risk of URL sharing/leakage
+- **Document preview now server-proxied** — `GET /api/documents/:id/preview` streams actual PDF bytes through the server instead of returning a presigned URL; iframe loads from same origin, eliminating cross-origin issues
+- **Document cache headers hardened** — both download and preview endpoints now use `Cache-Control: private, no-store` instead of `private, max-age=300`, preventing browser/proxy caching of sensitive candidate documents on shared computers
+- **`useDocuments` composable** — `downloadDocument()` now opens the server-proxied endpoint URL directly instead of fetching and redirecting to a presigned URL; `getPreviewUrl()` is now synchronous, returning the API endpoint path directly
+- **`X-Frame-Options` route override** — global `DENY` policy with `SAMEORIGIN` exception for `/api/documents/*/preview` to allow inline PDF iframe rendering
+- **Public apply form** — now uses `FormData` instead of JSON when the application form includes file upload questions; falls back to JSON for forms without files
+- **QuestionForm type selector** — added "File Upload" option to the question type dropdown
+- **JobQuestions type labels** — added `file_upload: 'File Upload'` to display labels
+
 ## 2026-02-14
 
 ### Added

@@ -1,30 +1,133 @@
 import { eq, and, asc } from 'drizzle-orm'
-import { job, candidate, application, jobQuestion, questionResponse } from '../../../../database/schema'
+import { fileTypeFromBuffer } from 'file-type'
+import { job, candidate, application, jobQuestion, questionResponse, document } from '../../../../database/schema'
 import { publicApplicationSchema, publicJobSlugSchema } from '../../../../utils/schemas/publicApplication'
+import {
+  ALLOWED_MIME_TYPES,
+  MAX_FILE_SIZE,
+  MAX_DOCUMENTS_PER_CANDIDATE,
+  MIME_TO_EXTENSION,
+  sanitizeFilename,
+} from '../../../../utils/schemas/document'
+
+/** Rate limit: max 5 applications per IP per 15 minutes */
+const applyRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many applications submitted. Please try again later.',
+})
 
 /**
  * POST /api/public/jobs/:slug/apply
  * Public application submission endpoint. No auth required.
  *
+ * Supports two content types:
+ *   - `application/json` — standard form submission (no files)
+ *   - `multipart/form-data` — form with file uploads
+ *
+ * Security:
+ *   - IP-based rate limiting (5 requests per 15 minutes)
+ *   - Honeypot field for basic bot detection
+ *
  * Flow:
- * 1. Validate the job exists and is open (resolve by slug)
- * 2. Validate all required custom questions are answered
- * 3. Upsert candidate (deduplicate by email within the org)
- * 4. Create application linking candidate → job
- * 5. Store question responses
+ * 1. Enforce rate limit
+ * 2. Validate the job exists and is open (resolve by slug)
+ * 3. Parse request body (JSON or multipart)
+ * 4. Validate all required custom questions are answered
+ * 5. Upsert candidate (deduplicate by email within the org)
+ * 6. Create application linking candidate → job
+ * 7. Store question responses
+ * 8. Upload files to S3 and create document records
  */
 export default defineEventHandler(async (event) => {
+  // Enforce rate limit before any processing
+  await applyRateLimit(event)
+
   const { slug } = await getValidatedRouterParams(event, publicJobSlugSchema.parse)
-  const body = await readValidatedBody(event, publicApplicationSchema.parse)
+
+  // ─────────────────────────────────────────────
+  // 1. Detect content type and parse request
+  // ─────────────────────────────────────────────
+
+  const contentType = getHeader(event, 'content-type') ?? ''
+  const isMultipart = contentType.includes('multipart/form-data')
+
+  let firstName: string
+  let lastName: string
+  let email: string
+  let phone: string | undefined
+  let website: string | undefined
+  let responseArray: { questionId: string; value: string | string[] | number | boolean }[] = []
+  const uploadedFiles: Map<string, { data: Buffer; filename: string; type?: string }> = new Map()
+
+  if (isMultipart) {
+    // Parse multipart form data
+    const formData = await readMultipartFormData(event)
+    if (!formData) {
+      throw createError({ statusCode: 400, statusMessage: 'No form data received' })
+    }
+
+    const fields: Record<string, string> = {}
+
+    for (const part of formData) {
+      if (!part.name) continue
+
+      if (part.name.startsWith('file:')) {
+        // File field: "file:<questionId>"
+        const questionId = part.name.slice(5)
+        if (part.data && part.filename) {
+          uploadedFiles.set(questionId, {
+            data: Buffer.from(part.data),
+            filename: part.filename,
+            type: part.type,
+          })
+        }
+      } else {
+        // Text field
+        fields[part.name] = part.data.toString()
+      }
+    }
+
+    // Validate required text fields
+    firstName = fields.firstName?.trim() ?? ''
+    lastName = fields.lastName?.trim() ?? ''
+    email = fields.email?.trim() ?? ''
+    phone = fields.phone?.trim() || undefined
+    website = fields.website || undefined
+
+    if (!firstName) throw createError({ statusCode: 400, statusMessage: 'First name is required' })
+    if (!lastName) throw createError({ statusCode: 400, statusMessage: 'Last name is required' })
+    if (!email) throw createError({ statusCode: 400, statusMessage: 'Email is required' })
+
+    // Parse responses from JSON string
+    if (fields.responses) {
+      try {
+        responseArray = JSON.parse(fields.responses)
+      } catch {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid responses format' })
+      }
+    }
+  } else {
+    // Standard JSON body
+    const body = await readValidatedBody(event, publicApplicationSchema.parse)
+    firstName = body.firstName
+    lastName = body.lastName
+    email = body.email
+    phone = body.phone
+    website = body.website
+    responseArray = body.responses
+  }
 
   // Honeypot check — if the hidden `website` field is filled, silently reject
-  if (body.website) {
-    // Return 200 to not tip off bots, but don't create anything
+  if (website) {
     setResponseStatus(event, 200)
     return { success: true }
   }
 
-  // 1. Fetch the job by slug and verify it's open
+  // ─────────────────────────────────────────────
+  // 2. Fetch the job by slug and verify it's open
+  // ─────────────────────────────────────────────
+
   const existingJob = await db.query.job.findFirst({
     where: and(eq(job.slug, slug), eq(job.status, 'open')),
     columns: { id: true, organizationId: true },
@@ -37,7 +140,10 @@ export default defineEventHandler(async (event) => {
   const orgId = existingJob.organizationId
   const jobId = existingJob.id
 
-  // 2. Fetch required questions and validate responses
+  // ─────────────────────────────────────────────
+  // 3. Fetch questions and validate responses
+  // ─────────────────────────────────────────────
+
   const questions = await db.query.jobQuestion.findMany({
     where: and(eq(jobQuestion.jobId, jobId), eq(jobQuestion.organizationId, orgId)),
     orderBy: [asc(jobQuestion.displayOrder)],
@@ -47,9 +153,19 @@ export default defineEventHandler(async (event) => {
     .filter((q) => q.required)
     .map((q) => q.id)
 
-  const answeredIds = new Set(body.responses.map((r) => r.questionId))
+  // Check required non-file questions are answered
+  const answeredIds = new Set(responseArray.map((r) => r.questionId))
 
-  const unanswered = requiredQuestionIds.filter((id) => !answeredIds.has(id))
+  // For file_upload questions, check if files were provided
+  const fileQuestions = questions.filter((q) => q.type === 'file_upload')
+  const fileQuestionIds = new Set(fileQuestions.map((q) => q.id))
+
+  const unanswered = requiredQuestionIds.filter((id) => {
+    if (fileQuestionIds.has(id)) {
+      return !uploadedFiles.has(id)
+    }
+    return !answeredIds.has(id)
+  })
 
   if (unanswered.length > 0) {
     const unansweredLabels = questions
@@ -64,13 +180,50 @@ export default defineEventHandler(async (event) => {
 
   // Filter out responses for questions that don't belong to this job
   const validQuestionIds = new Set(questions.map((q) => q.id))
-  const validResponses = body.responses.filter((r) => validQuestionIds.has(r.questionId))
+  const validResponses = responseArray.filter((r) => validQuestionIds.has(r.questionId))
 
-  // 3. Upsert candidate — deduplicate by email within this org
+  // ─────────────────────────────────────────────
+  // 4. Validate uploaded files (MIME via magic bytes, size)
+  // ─────────────────────────────────────────────
+
+  for (const [questionId, file] of uploadedFiles) {
+    // Only accept files for valid file_upload questions
+    if (!fileQuestionIds.has(questionId)) {
+      uploadedFiles.delete(questionId)
+      continue
+    }
+
+    // Check file size
+    if (file.data.length > MAX_FILE_SIZE) {
+      throw createError({
+        statusCode: 413,
+        statusMessage: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024} MB`,
+      })
+    }
+
+    // Validate MIME from magic bytes (not Content-Type header)
+    const detectedType = await fileTypeFromBuffer(file.data)
+    const mimeType = detectedType?.mime ?? file.type
+
+    if (!mimeType || !ALLOWED_MIME_TYPES.includes(mimeType as typeof ALLOWED_MIME_TYPES[number])) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid file type. Allowed: PDF, DOC, DOCX',
+      })
+    }
+
+    // Store the validated MIME type back on the file object
+    file.type = mimeType
+  }
+
+  // ─────────────────────────────────────────────
+  // 5. Upsert candidate — deduplicate by email within this org
+  // ─────────────────────────────────────────────
+
   let existingCandidate = await db.query.candidate.findFirst({
     where: and(
       eq(candidate.organizationId, orgId),
-      eq(candidate.email, body.email.toLowerCase()),
+      eq(candidate.email, email.toLowerCase()),
     ),
     columns: { id: true, firstName: true, lastName: true, phone: true },
   })
@@ -78,12 +231,10 @@ export default defineEventHandler(async (event) => {
   let candidateId: string
 
   if (existingCandidate) {
-    // Only backfill name/phone if the existing values are empty.
-    // This prevents a malicious re-application from overwriting recruiter-curated data.
     const updates: Record<string, unknown> = { updatedAt: new Date() }
-    if (!existingCandidate.firstName) updates.firstName = body.firstName
-    if (!existingCandidate.lastName) updates.lastName = body.lastName
-    if (!existingCandidate.phone && body.phone) updates.phone = body.phone
+    if (!existingCandidate.firstName) updates.firstName = firstName
+    if (!existingCandidate.lastName) updates.lastName = lastName
+    if (!existingCandidate.phone && phone) updates.phone = phone
 
     const [updated] = await db.update(candidate)
       .set(updates)
@@ -94,16 +245,19 @@ export default defineEventHandler(async (event) => {
   } else {
     const [created] = await db.insert(candidate).values({
       organizationId: orgId,
-      firstName: body.firstName,
-      lastName: body.lastName,
-      email: body.email.toLowerCase(),
-      phone: body.phone,
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      phone,
     }).returning({ id: candidate.id })
 
     candidateId = created!.id
   }
 
-  // 4. Check for duplicate application (same candidate + same job)
+  // ─────────────────────────────────────────────
+  // 6. Check for duplicate application
+  // ─────────────────────────────────────────────
+
   const existingApplication = await db.query.application.findFirst({
     where: and(
       eq(application.organizationId, orgId),
@@ -120,7 +274,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 5. Create application
+  // ─────────────────────────────────────────────
+  // 7. Create application
+  // ─────────────────────────────────────────────
+
   const [newApplication] = await db.insert(application).values({
     organizationId: orgId,
     candidateId,
@@ -128,7 +285,10 @@ export default defineEventHandler(async (event) => {
     status: 'new',
   }).returning({ id: application.id })
 
-  // 6. Store question responses
+  // ─────────────────────────────────────────────
+  // 8. Store question responses
+  // ─────────────────────────────────────────────
+
   if (validResponses.length > 0) {
     await db.insert(questionResponse).values(
       validResponses.map((r) => ({
@@ -138,6 +298,81 @@ export default defineEventHandler(async (event) => {
         value: r.value,
       })),
     )
+  }
+
+  // ─────────────────────────────────────────────
+  // 9. Upload files to S3 and create document records
+  // ─────────────────────────────────────────────
+
+  // Enforce per-candidate document limit (same as authenticated upload)
+  if (uploadedFiles.size > 0) {
+    const existingDocCount = await db.$count(
+      document,
+      and(
+        eq(document.candidateId, candidateId),
+        eq(document.organizationId, orgId),
+      ),
+    )
+
+    if (existingDocCount + uploadedFiles.size > MAX_DOCUMENTS_PER_CANDIDATE) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: `Document limit reached. Maximum ${MAX_DOCUMENTS_PER_CANDIDATE} documents per candidate`,
+      })
+    }
+  }
+
+  const uploadedDocIds: string[] = []
+
+  for (const [questionId, file] of uploadedFiles) {
+    const docId = crypto.randomUUID()
+    const mimeType = file.type!
+    const extension = MIME_TO_EXTENSION[mimeType] ?? 'bin'
+    const storageKey = `${orgId}/${candidateId}/${docId}.${extension}`
+
+    // Determine document type from question label heuristics
+    const question = questions.find((q) => q.id === questionId)
+    const label = question?.label?.toLowerCase() ?? ''
+    let docType: 'resume' | 'cover_letter' | 'other' = 'other'
+    if (label.includes('resume') || label.includes('cv')) {
+      docType = 'resume'
+    } else if (label.includes('cover letter')) {
+      docType = 'cover_letter'
+    }
+
+    try {
+      await uploadToS3(storageKey, file.data, mimeType)
+
+      const [created] = await db.insert(document).values({
+        id: docId,
+        organizationId: orgId,
+        candidateId,
+        type: docType,
+        storageKey,
+        originalFilename: sanitizeFilename(file.filename),
+        mimeType,
+        sizeBytes: file.data.length,
+      }).returning({ id: document.id })
+
+      uploadedDocIds.push(created!.id)
+
+      // Store a response linking the file_upload question to the document ID
+      await db.insert(questionResponse).values({
+        organizationId: orgId,
+        applicationId: newApplication!.id,
+        questionId,
+        value: docId,
+      })
+    } catch (uploadError) {
+      // Clean up orphaned S3 object on DB failure
+      try {
+        await deleteFromS3(storageKey)
+      } catch (cleanupError) {
+        console.error('[Applirank] Failed to clean up orphaned S3 object:', storageKey, cleanupError)
+      }
+      console.error('[Applirank] File upload failed during application:', uploadError)
+      // Continue processing — don't fail the entire application for a file upload error
+    }
   }
 
   setResponseStatus(event, 201)

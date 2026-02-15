@@ -34,9 +34,29 @@ const form = ref({
 // Dynamic question responses: questionId → value
 const responses = ref<Record<string, string | string[] | number | boolean>>({})
 
+// File uploads: questionId → File object
+const fileUploads = ref<Record<string, File>>({})
+
 const isSubmitting = ref(false)
 const errors = ref<Record<string, string>>({})
 const submitError = ref<string | null>(null)
+
+/** Whether the form has any file_upload type questions */
+const hasFileQuestions = computed(() =>
+  job.value?.questions?.some((q: { type: string }) => q.type === 'file_upload') ?? false,
+)
+
+/**
+ * Handle file selection from DynamicField.
+ * Stores the File object separately from the model value.
+ */
+function handleFileSelected(questionId: string, file: File | null) {
+  if (file) {
+    fileUploads.value[questionId] = file
+  } else {
+    delete fileUploads.value[questionId]
+  }
+}
 
 function validate(): boolean {
   errors.value = {}
@@ -53,14 +73,29 @@ function validate(): boolean {
   if (job.value?.questions) {
     for (const q of job.value.questions) {
       if (q.required) {
-        const val = responses.value[q.id]
-        const isEmpty = val === undefined || val === null || val === '' ||
-          (Array.isArray(val) && val.length === 0)
+        if (q.type === 'file_upload') {
+          // For file uploads, check if a File was selected
+          if (!fileUploads.value[q.id]) {
+            errors.value[`q-${q.id}`] = 'This field is required'
+          }
+        } else {
+          const val = responses.value[q.id]
+          const isEmpty = val === undefined || val === null || val === '' ||
+            (Array.isArray(val) && val.length === 0)
 
-        if (isEmpty) {
-          errors.value[`q-${q.id}`] = 'This field is required'
+          if (isEmpty) {
+            errors.value[`q-${q.id}`] = 'This field is required'
+          }
         }
       }
+    }
+  }
+
+  // Validate file sizes (10 MB max)
+  const maxSize = 10 * 1024 * 1024
+  for (const [questionId, file] of Object.entries(fileUploads.value)) {
+    if (file.size > maxSize) {
+      errors.value[`q-${questionId}`] = 'File too large. Maximum 10 MB.'
     }
   }
 
@@ -73,26 +108,61 @@ async function handleSubmit() {
 
   isSubmitting.value = true
   try {
-    // Build responses array from the map
+    // Build responses array from the map (exclude file_upload questions — those go as files)
+    const fileQuestionIds = new Set(
+      job.value?.questions
+        ?.filter((q: { type: string }) => q.type === 'file_upload')
+        .map((q: { id: string }) => q.id) ?? [],
+    )
+
     const responseArray = Object.entries(responses.value)
-      .filter(([_, value]) => {
+      .filter(([questionId, value]) => {
+        if (fileQuestionIds.has(questionId)) return false
         if (value === undefined || value === null || value === '') return false
         if (Array.isArray(value) && value.length === 0) return false
         return true
       })
       .map(([questionId, value]) => ({ questionId, value }))
 
-    await $fetch(`/api/public/jobs/${jobSlug}/apply`, {
-      method: 'POST',
-      body: {
-        firstName: form.value.firstName.trim(),
-        lastName: form.value.lastName.trim(),
-        email: form.value.email.trim(),
-        phone: form.value.phone.trim() || undefined,
-        website: form.value.website, // honeypot
-        responses: responseArray,
-      },
-    })
+    if (hasFileQuestions.value && Object.keys(fileUploads.value).length > 0) {
+      // Use FormData when files are present
+      const formData = new FormData()
+      formData.append('firstName', form.value.firstName.trim())
+      formData.append('lastName', form.value.lastName.trim())
+      formData.append('email', form.value.email.trim())
+      if (form.value.phone.trim()) {
+        formData.append('phone', form.value.phone.trim())
+      }
+      if (form.value.website) {
+        formData.append('website', form.value.website)
+      }
+
+      // Serialize non-file responses as JSON
+      formData.append('responses', JSON.stringify(responseArray))
+
+      // Append each file with its question ID as key
+      for (const [questionId, file] of Object.entries(fileUploads.value)) {
+        formData.append(`file:${questionId}`, file)
+      }
+
+      await $fetch(`/api/public/jobs/${jobSlug}/apply`, {
+        method: 'POST',
+        body: formData,
+      })
+    } else {
+      // No files — use JSON as before
+      await $fetch(`/api/public/jobs/${jobSlug}/apply`, {
+        method: 'POST',
+        body: {
+          firstName: form.value.firstName.trim(),
+          lastName: form.value.lastName.trim(),
+          email: form.value.email.trim(),
+          phone: form.value.phone.trim() || undefined,
+          website: form.value.website, // honeypot
+          responses: responseArray,
+        },
+      })
+    }
 
     await navigateTo(`/jobs/${jobSlug}/confirmation`)
   } catch (err: any) {
@@ -256,6 +326,7 @@ const typeLabels: Record<string, string> = {
             v-model="responses[q.id]"
             :question="q"
             :error="errors[`q-${q.id}`]"
+            @file-selected="handleFileSelected"
           />
         </template>
 

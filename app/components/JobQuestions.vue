@@ -123,6 +123,7 @@ const typeLabels: Record<string, string> = {
   date: 'Date',
   url: 'URL',
   checkbox: 'Checkbox',
+  file_upload: 'File Upload',
 }
 </script>
 

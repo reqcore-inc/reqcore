@@ -24,7 +24,7 @@ export const applicationStatusEnum = pgEnum('application_status', [
 export const documentTypeEnum = pgEnum('document_type', ['resume', 'cover_letter', 'other'])
 export const questionTypeEnum = pgEnum('question_type', [
   'short_text', 'long_text', 'single_select', 'multi_select',
-  'number', 'date', 'url', 'checkbox',
+  'number', 'date', 'url', 'checkbox', 'file_upload',
 ])
 
 // ─────────────────────────────────────────────

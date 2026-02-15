@@ -14,9 +14,12 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.990.0",
+    "@aws-sdk/s3-request-presigner": "^3.990.0",
     "@tailwindcss/vite": "^4.1.18",
     "better-auth": "^1.4.18",
     "drizzle-orm": "^0.45.1",
+    "file-type": "^21.3.0",
     "lucide-vue-next": "^0.564.0",
     "nuxt": "^4.3.1",
     "postgres": "^3.4.8",

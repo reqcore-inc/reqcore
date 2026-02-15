@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   LayoutDashboard, Briefcase, Users, Inbox,
-  ChevronLeft, Eye, Kanban, FileText, LogOut,
+  ChevronLeft, Eye, Kanban, FileText, LogOut, Table2,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -40,6 +40,7 @@ const jobTabs = computed(() => {
   return [
     { label: 'Overview', to: base, icon: Eye, exact: true },
     { label: 'Pipeline', to: `${base}/pipeline`, icon: Kanban, exact: true },
+    { label: 'Candidates', to: `${base}/candidates`, icon: Table2, exact: true },
     { label: 'Application Form', to: `${base}/application-form`, icon: FileText, exact: true },
   ]
 })

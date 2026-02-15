@@ -41,8 +41,13 @@ Applirank is a lean, open-source ATS designed to return power to the employer. W
 app/              # Client-side source (components, pages, composables, etc.)
 server/           # Nitro server code (api/, routes/, utils/, middleware/)
   api/public/     # Unauthenticated endpoints (public job board, apply)
+  api/documents/  # Document download/preview (server-proxied streaming)
   utils/env.ts    # Runtime env validation — all env vars validated with Zod
   utils/slugify.ts # URL slug generation for public job pages
+  utils/rateLimit.ts # IP-based sliding window rate limiter
+  utils/s3.ts      # MinIO/S3 client and file operations
+  utils/requireAuth.ts # Auth guard utility (throws 401/403)
+  utils/schemas/   # Shared Zod validation schemas (document, job, candidate, etc.)
 public/           # Static assets
 docker-compose.yml
 ```
@@ -187,6 +192,15 @@ Use **npm** (lockfile is `package-lock.json`).
 - `organizationId` MUST come from `session.session.activeOrganizationId` — NEVER from request body, query params, or path params
 - Detail endpoints: filter by BOTH `id` AND `organizationId`
 - This is the #1 source of security bugs — verify it in every handler
+
+### Security — Document Storage
+- Document access is **always server-proxied** — presigned S3 URLs are NEVER exposed to clients
+- Download: `GET /api/documents/:id/download` streams bytes with `Content-Disposition: attachment`
+- Preview: `GET /api/documents/:id/preview` streams PDF bytes with `Content-Disposition: inline` (PDF only, 415 for other types)
+- Filename sanitization: always use `sanitizeFilename()` from `server/utils/schemas/document.ts` on user-provided filenames
+- Global security headers are set via Nitro route rules in `nuxt.config.ts` (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, etc.)
+- The preview endpoint overrides `X-Frame-Options` to `SAMEORIGIN` to allow same-origin iframe embedding
+- `storageKey` (the internal S3 path) is NEVER included in API responses
 
 ### Documentation
 - Use JSDoc `/** */` comments for exported functions and complex types

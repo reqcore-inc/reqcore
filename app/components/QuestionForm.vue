@@ -33,6 +33,7 @@ const questionTypes = [
   { value: 'date', label: 'Date' },
   { value: 'url', label: 'URL' },
   { value: 'checkbox', label: 'Checkbox (Yes/No)' },
+  { value: 'file_upload', label: 'File Upload' },
 ]
 
 const form = ref({

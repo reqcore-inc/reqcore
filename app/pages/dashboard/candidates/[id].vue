@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Pencil, Trash2, Mail, Phone, Calendar, Clock, Briefcase, FileText, Plus } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Trash2, Mail, Phone, Calendar, Clock, Briefcase, FileText, Plus, Upload, Download, Eye, X, AlertTriangle } from 'lucide-vue-next'
 import { z } from 'zod'
 
 definePageMeta({
@@ -143,6 +143,112 @@ const showApplyModal = ref(false)
 function handleApplied() {
   showApplyModal.value = false
   refresh()
+}
+
+// ─────────────────────────────────────────────
+// Documents — upload, download, delete
+// ─────────────────────────────────────────────
+
+const { uploadDocument, downloadDocument, getPreviewUrl, deleteDocument } = useDocuments()
+
+const fileInput = ref<HTMLInputElement | null>(null)
+const selectedDocType = ref<'resume' | 'cover_letter' | 'other'>('resume')
+const isUploading = ref(false)
+const uploadError = ref<string | null>(null)
+const showDocDeleteConfirm = ref<string | null>(null)
+const isDeletingDoc = ref(false)
+
+// Preview state
+const showPreview = ref(false)
+const previewUrl = ref<string | null>(null)
+const previewFilename = ref('')
+const previewMimeType = ref('')
+const previewDocId = ref<string | null>(null)
+const isLoadingPreview = ref(false)
+const previewError = ref<string | null>(null)
+
+/** Whether the current preview file is a PDF (renderable in iframe) */
+const isPdfPreview = computed(() => previewMimeType.value === 'application/pdf')
+
+async function handlePreview(docId: string, mimeType?: string) {
+  // Only PDFs can be previewed inline — for DOC/DOCX, download directly
+  if (mimeType && mimeType !== 'application/pdf') {
+    await handleDownload(docId)
+    return
+  }
+
+  previewError.value = null
+  showPreview.value = true
+  previewDocId.value = docId
+
+  // Find the document name from the candidate data
+  const doc = candidate.value?.documents?.find((d: any) => d.id === docId)
+  previewFilename.value = doc?.originalFilename ?? 'Document'
+  previewMimeType.value = doc?.mimeType ?? 'application/pdf'
+
+  // Use the API endpoint URL directly — server streams the PDF (same-origin)
+  previewUrl.value = getPreviewUrl(docId)
+}
+
+function closePreview() {
+  showPreview.value = false
+  previewUrl.value = null
+  previewFilename.value = ''
+  previewMimeType.value = ''
+  previewDocId.value = null
+  previewError.value = null
+}
+
+function triggerFileSelect() {
+  fileInput.value?.click()
+}
+
+async function handleFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadError.value = null
+  isUploading.value = true
+
+  try {
+    await uploadDocument(candidateId, file, selectedDocType.value)
+  } catch (err: any) {
+    const msg = err.data?.statusMessage ?? err.statusMessage ?? 'Upload failed'
+    uploadError.value = msg
+  } finally {
+    isUploading.value = false
+    // Reset input so the same file can be re-selected
+    input.value = ''
+  }
+}
+
+async function handleDownload(docId: string) {
+  try {
+    await downloadDocument(docId)
+  } catch {
+    alert('Failed to download document')
+  }
+}
+
+async function handleDeleteDoc(docId: string) {
+  isDeletingDoc.value = true
+  try {
+    await deleteDocument(docId, candidateId)
+    showDocDeleteConfirm.value = null
+  } catch (err: any) {
+    alert(err.data?.statusMessage ?? 'Failed to delete document')
+  } finally {
+    isDeletingDoc.value = false
+  }
+}
+
+/** Format bytes into a human-readable string */
+function formatFileSize(bytes: number | null | undefined): string {
+  if (!bytes) return '—'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 </script>
 
@@ -326,35 +432,194 @@ function handleApplied() {
 
         <!-- Documents tab -->
         <div v-if="activeTab === 'documents'">
-          <div
-            v-if="!candidate.documents?.length"
-            class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-8 text-center"
-          >
-            <FileText class="size-8 text-surface-300 dark:text-surface-600 mx-auto mb-2" />
-            <p class="text-sm text-surface-500 dark:text-surface-400">No documents yet.</p>
-            <p class="text-xs text-surface-400 mt-1">Document upload coming in a future update.</p>
-          </div>
+          <!-- Hidden file input -->
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".pdf,.doc,.docx"
+            class="hidden"
+            @change="handleFileSelected"
+          />
 
-          <div v-else class="space-y-2">
+          <!-- ── Inline PDF preview (replaces document list when active) ── -->
+          <template v-if="showPreview">
+            <!-- Preview toolbar -->
+            <div class="flex items-center justify-between mb-3">
+              <button
+                class="inline-flex items-center gap-1.5 text-sm font-medium text-surface-600 dark:text-surface-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                @click="closePreview"
+              >
+                <ArrowLeft class="size-3.5" />
+                Back to documents
+              </button>
+              <div class="flex items-center gap-1">
+                <button
+                  v-if="previewDocId"
+                  class="rounded-lg p-1.5 text-surface-400 hover:text-brand-600 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                  title="Download"
+                  @click="handleDownload(previewDocId!)"
+                >
+                  <Download class="size-4" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Filename -->
+            <div v-if="previewFilename" class="flex items-center gap-2 mb-3">
+              <FileText class="size-4 text-surface-400 shrink-0" />
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-200 truncate">
+                {{ previewFilename }}
+              </span>
+            </div>
+
+            <!-- Error state -->
             <div
-              v-for="doc in candidate.documents"
-              :key="doc.id"
-              class="flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-3"
+              v-if="previewError"
+              class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950 p-6 text-center"
             >
-              <div class="flex items-center gap-3 min-w-0">
-                <FileText class="size-4 text-surface-400 shrink-0" />
-                <div class="min-w-0">
-                  <p class="text-sm font-medium text-surface-700 dark:text-surface-200 truncate">
-                    {{ doc.originalFilename }}
-                  </p>
-                  <span class="text-xs text-surface-400">
-                    {{ documentTypeLabels[doc.type] ?? doc.type }}
-                    · {{ new Date(doc.createdAt).toLocaleDateString() }}
-                  </span>
+              <AlertTriangle class="size-8 text-danger-400 mx-auto mb-2" />
+              <p class="text-sm text-danger-700 dark:text-danger-400">{{ previewError }}</p>
+              <button
+                class="mt-3 text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium"
+                @click="closePreview"
+              >
+                Go back
+              </button>
+            </div>
+
+            <!-- PDF iframe — same-origin, server streams the bytes -->
+            <iframe
+              v-else-if="previewUrl && isPdfPreview"
+              :src="previewUrl"
+              class="w-full rounded-lg border border-surface-200 dark:border-surface-800"
+              style="height: 70vh;"
+              title="Document preview"
+            />
+          </template>
+
+          <!-- ── Document list (normal state) ── -->
+          <template v-else>
+            <!-- Upload controls -->
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <select
+                  v-model="selectedDocType"
+                  class="rounded-lg border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 px-2.5 py-1.5 text-sm text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="resume">Resume</option>
+                  <option value="cover_letter">Cover Letter</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <button
+                :disabled="isUploading"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-surface-300 dark:border-surface-600 px-3 py-1.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                @click="triggerFileSelect"
+              >
+                <Upload class="size-3.5" />
+                {{ isUploading ? 'Uploading…' : 'Upload Document' }}
+              </button>
+            </div>
+
+            <!-- Upload error -->
+            <div
+              v-if="uploadError"
+              class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950 p-3 text-sm text-danger-700 dark:text-danger-400 mb-3"
+            >
+              {{ uploadError }}
+              <button class="underline ml-1" @click="uploadError = null">Dismiss</button>
+            </div>
+
+            <!-- Empty state -->
+            <div
+              v-if="!candidate.documents?.length"
+              class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-8 text-center"
+            >
+              <FileText class="size-8 text-surface-300 dark:text-surface-600 mx-auto mb-2" />
+              <p class="text-sm text-surface-500 dark:text-surface-400">No documents yet.</p>
+              <p class="text-xs text-surface-400 mt-1">
+                Upload a resume, cover letter, or other document (PDF, DOC, DOCX — max 10 MB).
+              </p>
+            </div>
+
+            <!-- Document list -->
+            <div v-else class="space-y-2">
+              <div
+                v-for="doc in candidate.documents"
+                :key="doc.id"
+                class="group flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-3 transition-colors"
+                :class="doc.mimeType === 'application/pdf' ? 'cursor-pointer hover:border-brand-300 dark:hover:border-brand-700 hover:bg-brand-50/50 dark:hover:bg-brand-950/30' : ''"
+                @click="doc.mimeType === 'application/pdf' ? handlePreview(doc.id, doc.mimeType) : undefined"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <FileText class="size-4 shrink-0" :class="doc.mimeType === 'application/pdf' ? 'text-danger-500 dark:text-danger-400' : 'text-surface-400'" />
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-surface-700 dark:text-surface-200 truncate">
+                      {{ doc.originalFilename }}
+                    </p>
+                    <span class="text-xs text-surface-400">
+                      {{ documentTypeLabels[doc.type] ?? doc.type }}
+                      · {{ new Date(doc.createdAt).toLocaleDateString() }}
+                      <template v-if="doc.mimeType === 'application/pdf'"> · <span class="text-brand-500 dark:text-brand-400">Click to preview</span></template>
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0" @click.stop>
+                  <button
+                    v-if="doc.mimeType === 'application/pdf'"
+                    class="rounded-lg p-1.5 text-surface-400 hover:text-brand-600 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                    title="Preview PDF"
+                    @click="handlePreview(doc.id, doc.mimeType)"
+                  >
+                    <Eye class="size-4" />
+                  </button>
+                  <button
+                    class="rounded-lg p-1.5 text-surface-400 hover:text-brand-600 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                    title="Download"
+                    @click="handleDownload(doc.id)"
+                  >
+                    <Download class="size-4" />
+                  </button>
+                  <button
+                    class="rounded-lg p-1.5 text-surface-400 hover:text-danger-600 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                    title="Delete"
+                    @click="showDocDeleteConfirm = doc.id"
+                  >
+                    <Trash2 class="size-4" />
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
+
+          <!-- Document delete confirmation dialog -->
+          <Teleport to="body">
+            <div v-if="showDocDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
+              <div class="absolute inset-0 bg-black/50" @click="showDocDeleteConfirm = null" />
+              <div class="relative bg-white dark:bg-surface-900 rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+                <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-2">Delete Document</h3>
+                <p class="text-sm text-surface-600 dark:text-surface-400 mb-4">
+                  Are you sure you want to delete this document? This action cannot be undone.
+                </p>
+                <div class="flex justify-end gap-2">
+                  <button
+                    :disabled="isDeletingDoc"
+                    class="rounded-lg border border-surface-300 dark:border-surface-600 px-3 py-1.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
+                    @click="showDocDeleteConfirm = null"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    :disabled="isDeletingDoc"
+                    class="rounded-lg bg-danger-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-danger-700 disabled:opacity-50 transition-colors"
+                    @click="handleDeleteDoc(showDocDeleteConfirm!)"
+                  >
+                    {{ isDeletingDoc ? 'Deleting…' : 'Delete' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Teleport>
         </div>
       </div>
 

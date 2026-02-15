@@ -1,6 +1,6 @@
 # Applirank — Roadmap
 
-> Last updated: 2026-02-14
+> Last updated: 2026-02-15 (security hardening + inline preview)
 >
 > This is the single source of truth for what's built, what's in progress, and what's planned.
 > For product vision see [PRODUCT.md](PRODUCT.md). For architecture see [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -9,9 +9,9 @@
 
 ## 🎯 Current Focus
 
-**Phase 1, Milestone 6: Document Storage** — Upload and manage resumes/cover letters via MinIO.
+**Phase 1, Milestone 8: Dashboard** — At-a-glance overview for recruiters.
 
-> **Recently completed**: Milestone 5 (Applications & Pipeline) — Full application CRUD, pipeline/Kanban view per job, status transition validation, and apply-candidate-to-job flow.
+> **Recently completed**: Security hardening & inline PDF preview — Document storage system audited and hardened with private bucket policy enforcement, filename sanitization, global security headers, Docker port binding, and server-proxied PDF streaming for inline preview in the candidate detail sidebar.
 
 ---
 
@@ -120,17 +120,29 @@ Link candidates to jobs, track through hiring stages.
 - [x] Sidebar Applications link enabled
 - [x] Public apply endpoint duplicate application check
 - [x] Job detail page restructured to `[id]/index.vue` for nested pipeline route
+- [x] Candidates table view per job (`app/pages/dashboard/jobs/[id]/candidates.vue`) — Supabase-style data table with click-to-open detail sidebar
+- [x] Candidate detail sidebar component (`app/components/CandidateDetailSidebar.vue`) — slide-over panel with status transitions, notes, question responses
+- [x] Sidebar "Candidates" tab in job context sub-nav
 
-### Milestone 6: Document Storage (not started)
+### Milestone 6: Document Storage ✅
 
 Upload and manage resumes/cover letters via MinIO.
 
-- [ ] MinIO S3 client utility (`server/utils/s3.ts`)
-- [ ] API: `POST /api/documents` — upload (multipart/form-data → MinIO)
-- [ ] API: `GET /api/documents/:id/download` — download (presigned URL)
-- [ ] API: `DELETE /api/documents/:id` — delete (MinIO + DB)
-- [ ] Resume upload component on candidate detail page
-- [ ] Document list on candidate detail page
+- [x] MinIO S3 client utility (`server/utils/s3.ts`)
+- [x] API: `POST /api/candidates/:id/documents` — upload (multipart/form-data → MinIO)
+- [x] API: `GET /api/documents/:id/download` — download (server-proxied streaming)
+- [x] API: `GET /api/documents/:id/preview` — inline PDF preview (server-proxied streaming, same-origin iframe)
+- [x] API: `DELETE /api/documents/:id` — delete (MinIO + DB)
+- [x] Resume upload component on candidate detail page
+- [x] Document list on candidate detail page
+- [x] Inline PDF preview in candidate detail sidebar and candidate page
+- [x] Composable: `useDocuments()` — upload, download, preview URL, delete
+- [x] Security: private S3 bucket policy enforced on startup
+- [x] Security: filename sanitization (`sanitizeFilename`) for all uploads
+- [x] Security: per-candidate document limit (20) enforced on public apply
+- [x] Security: `storageKey` filtered from all API responses
+- [x] Security: global security headers via Nitro route rules (`X-Frame-Options`, `X-Content-Type-Options`, etc.)
+- [x] Security: Docker Compose ports bound to `127.0.0.1`
 
 ### Milestone 7: Public Job Board & Application Form (in progress)
 
@@ -154,7 +166,7 @@ Recruiters can configure custom questions per job. Applicants can apply through 
 - [x] Composable: `useJobQuestions()` — CRUD for questions
 - [x] Component: `QuestionForm.vue` — create/edit question form
 - [x] Component: `JobQuestions.vue` — question list manager with reorder
-- [x] Component: `DynamicField.vue` — renders questions as form fields (8 types)
+- [x] Component: `DynamicField.vue` — renders questions as form fields (9 types incl. file upload)
 - [x] Integration: Application Form section on job detail page
 - [x] Shareable application link (shown when job status is `open`)
 - [x] Page: Public application form (`app/pages/jobs/[slug]/apply.vue`)
@@ -164,6 +176,8 @@ Recruiters can configure custom questions per job. Applicants can apply through 
 - [x] Zod validation schemas for questions and public applications
 - [x] Application Form tab page (`app/pages/dashboard/jobs/[id]/application-form.vue`) — dedicated page for questions + shareable link
 - [x] Dynamic sidebar tabs for job sub-pages (Overview, Pipeline, Application Form)
+- [x] `file_upload` question type — recruiters can add file upload fields to application forms
+- [x] Public apply endpoint: multipart/form-data support with S3 upload and magic byte MIME validation
 
 #### Sub-milestone 7b: Public Job Board ✅
 
@@ -173,8 +187,8 @@ Recruiters can configure custom questions per job. Applicants can apply through 
 - [x] SEO-friendly slug-based URLs for public job pages (e.g. `/jobs/senior-engineer-a1b2c3d4`)
 - [x] Custom slug support — recruiters can set a custom slug, defaults to job title
 - [x] Slug auto-generated from title + short UUID on job creation, regenerated on title/slug update
-- [ ] Resume file upload to MinIO during submission (depends on Milestone 6)
-- [ ] Rate limiting on public submission endpoint (tracked in Milestone 13)
+- [x] Resume file upload to MinIO during submission (depends on Milestone 6)
+- [x] IP-based rate limiting on public submission endpoint (`server/utils/rateLimit.ts`)
 
 ### Milestone 8: Dashboard (not started)
 
@@ -236,7 +250,12 @@ Goal: Ready for real teams to self-host in production.
 - [ ] Production Docker Compose / deployment guide
 - [ ] HTTPS/TLS configuration
 - [ ] Backup & restore (Postgres + MinIO)
-- [ ] Rate limiting
+- [x] Rate limiting — in-memory sliding window (`server/utils/rateLimit.ts`), applied to public apply endpoint
+- [x] Global security headers — `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `X-XSS-Protection`, `Permissions-Policy` via Nitro route rules
+- [x] Private S3 bucket policy enforcement on startup (deny anonymous access)
+- [x] Filename sanitization for all document uploads
+- [x] Docker Compose ports bound to `127.0.0.1` (not exposed to network)
+- [x] Server-proxied document access (no presigned URLs exposed to clients)
 - [ ] GDPR data export & deletion
 - [ ] Test suite (API + E2E)
 - [ ] CI/CD pipeline
@@ -256,6 +275,7 @@ Goal: Ready for real teams to self-host in production.
 | 7b. Public Job Board | 2026-02-14 |
 | 4. Candidate Management | 2026-02-14 |
 | 5. Applications & Pipeline | 2026-02-14 |
+| 6. Document Storage | 2026-02-15 |
 
 ---
 

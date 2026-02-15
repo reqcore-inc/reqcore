@@ -84,7 +84,22 @@ Everything in `server/utils/` is auto-imported by Nitro. These are available in 
 | `db` | `server/utils/db.ts` | Drizzle ORM client with schema |
 | `auth` | `server/utils/auth.ts` | Better Auth instance |
 | `env` | `server/utils/env.ts` | Zod-validated environment variables |
+| `requireAuth` | `server/utils/requireAuth.ts` | Auth guard — throws 401/403 |
 | `generateJobSlug` | `server/utils/slugify.ts` | URL slug generation for public job pages |
+| `createRateLimiter` | `server/utils/rateLimit.ts` | IP-based sliding window rate limiter |
+| `uploadToS3`, `deleteFromS3`, `s3Client`, `S3_BUCKET` | `server/utils/s3.ts` | MinIO/S3 file operations and client |
+| `getPresignedDownloadUrl`, `ensureBucketExists` | `server/utils/s3.ts` | Presigned URL generation (internal only) and bucket initialization |
+
+Shared validation schemas in `server/utils/schemas/`:
+
+| Schema file | Key exports |
+|-------------|-------------|
+| `document.ts` | `ALLOWED_MIME_TYPES`, `MAX_FILE_SIZE`, `MAX_DOCUMENTS_PER_CANDIDATE`, `sanitizeFilename()`, `documentTypeSchema` |
+| `job.ts` | `createJobSchema`, `updateJobSchema` |
+| `candidate.ts` | Candidate validation schemas |
+| `application.ts` | Application validation schemas |
+| `publicApplication.ts` | Public apply form schemas |
+| `jobQuestion.ts` | Job question schemas |
 
 h3 utilities (`defineEventHandler`, `readBody`, `getQuery`, `createError`, etc.) are also auto-imported.
 
@@ -583,7 +598,65 @@ export default defineEventHandler(async (event) => {
 
 ---
 
-## 9. Server Middleware vs Server Utils
+## 9. Document Streaming & File Security
+
+### Server-proxied document access
+
+Documents are **never** served via presigned URLs to clients. Both download and preview endpoints stream S3 bytes through the authenticated server:
+
+```ts
+// server/api/documents/[id]/preview.get.ts — streams PDF for inline preview
+import { GetObjectCommand } from '@aws-sdk/client-s3'
+
+export default defineEventHandler(async (event) => {
+  const session = await requireAuth(event)
+  const orgId = session.session.activeOrganizationId!
+  const documentId = getRouterParam(event, 'id')
+
+  // Query scoped by BOTH id AND organizationId
+  const doc = await db.query.document.findFirst({
+    where: and(eq(document.id, documentId!), eq(document.organizationId, orgId)),
+    columns: { storageKey: true, originalFilename: true, mimeType: true },
+  })
+
+  if (!doc) throw createError({ statusCode: 404, statusMessage: 'Document not found' })
+
+  // Only PDFs for inline preview (DOC/DOCX can contain macros)
+  if (doc.mimeType !== 'application/pdf') {
+    throw createError({ statusCode: 415, statusMessage: 'Inline preview is only available for PDF files' })
+  }
+
+  const s3Response = await s3Client.send(
+    new GetObjectCommand({ Bucket: S3_BUCKET, Key: doc.storageKey }),
+  )
+
+  setResponseHeaders(event, {
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `inline; filename="${encodeURIComponent(doc.originalFilename)}"`,
+    'Cache-Control': 'private, max-age=300',
+    'X-Frame-Options': 'SAMEORIGIN', // Override global DENY for iframe preview
+    'X-Content-Type-Options': 'nosniff',
+  })
+
+  return s3Response.Body!.transformToWebStream()
+})
+```
+
+### Key security rules for document endpoints
+
+| Rule | Details |
+|------|---------|
+| **Always server-proxy** | Stream S3 bytes through the server — never return presigned URLs to clients |
+| **Sanitize filenames** | Use `sanitizeFilename()` from `server/utils/schemas/document.ts` on all user-provided filenames |
+| **Filter `storageKey`** | Never include `storageKey` in API responses — it's the internal S3 path |
+| **PDF-only preview** | Only allow `application/pdf` for inline preview; DOC/DOCX can contain macros |
+| **MIME validation** | Validate uploads using magic bytes (`file-type` package), not just `Content-Type` header |
+| **Per-candidate limits** | Enforce `MAX_DOCUMENTS_PER_CANDIDATE` on upload endpoints |
+| **X-Frame-Options override** | Preview endpoint must set `X-Frame-Options: SAMEORIGIN` to override global `DENY` |
+
+---
+
+## 10. Server Middleware vs Server Utils
 
 ### Use server utils for route-specific logic (PREFERRED)
 
@@ -618,7 +691,7 @@ export default defineEventHandler((event) => {
 
 ---
 
-## 10. Server Plugins
+## 11. Server Plugins
 
 Plugins live in `server/plugins/` and run once on server startup:
 
@@ -634,7 +707,7 @@ Use for: database migrations, connection pool setup, one-time initialization, sc
 
 ---
 
-## 11. Environment Variables
+## 12. Environment Variables
 
 All env vars are validated in `server/utils/env.ts` with Zod:
 
@@ -663,7 +736,7 @@ export const env = envSchema.parse(process.env)
 
 ---
 
-## 12. The Better Auth Catch-All Handler
+## 13. The Better Auth Catch-All Handler
 
 ```ts
 // server/api/auth/[...all].ts
@@ -679,7 +752,7 @@ export default defineEventHandler((event) => {
 
 ---
 
-## 13. h3 Utility Quick Reference
+## 14. h3 Utility Quick Reference
 
 ### Request utilities (auto-imported)
 
@@ -720,7 +793,7 @@ const { session, orgId } = event.context
 
 ---
 
-## 14. NEVER Do These
+## 15. NEVER Do These
 
 | Anti-pattern | Why | Do this instead |
 |-------------|-----|-----------------|
@@ -740,3 +813,7 @@ const { session, orgId } = event.context
 | Create handler without method suffix in filename | Handler receives ALL HTTP methods — ambiguous | Use `.get.ts`, `.post.ts`, `.patch.ts`, `.delete.ts` |
 | Use different param names for sibling files and dirs (`[id].get.ts` + `[jobId]/`) | Nitro creates competing dynamic segments → 404 | Use the same param name: `[id].get.ts` + `[id]/` |
 | Set `updatedAt` to `new Date()` in `.values()` on insert | `defaultNow()` handles insert; `.set()` needs explicit update | Only set `updatedAt: new Date()` in `.set()` (update) |
+| Return presigned S3 URLs to clients | URL can be shared/leaked, bypasses auth on subsequent access | Stream file bytes through the server endpoint |
+| Include `storageKey` in API responses | Exposes internal S3 paths | Select specific columns, exclude `storageKey` from `.returning()` |
+| Use raw user-provided filenames | Path traversal, XSS, filesystem exploits | Use `sanitizeFilename()` from `server/utils/schemas/document.ts` |
+| Allow inline preview for non-PDF files | DOC/DOCX can contain macros — security risk | Return 415 for non-PDF in preview endpoint |

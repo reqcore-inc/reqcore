@@ -41,6 +41,7 @@ applirank/
 │   │   │       └── [id]/
 │   │   │           ├── index.vue          # Job overview
 │   │   │           ├── pipeline.vue       # Kanban board (full width)
+│   │   │           ├── candidates.vue     # Data table with detail sidebar
 │   │   │           └── application-form.vue # Questions + shareable link
 │   ├── plugins/                  # Client-side Nuxt plugins
 │   └── utils/                    # Auto-imported utilities
@@ -51,6 +52,11 @@ applirank/
 │   │   ├── jobs/                 # Authenticated job CRUD + questions
 │   │   │   ├── [id].get.ts       # GET /api/jobs/:id
 │   │   │   └── [id]/questions/   # Custom question management
+│   │   ├── documents/                # Document access endpoints
+│   │   │   ├── [id].delete.ts        # DELETE /api/documents/:id
+│   │   │   └── [id]/
+│   │   │       ├── download.get.ts    # GET /api/documents/:id/download (server-proxied)
+│   │   │       └── preview.get.ts     # GET /api/documents/:id/preview (PDF streaming)
 │   │   └── public/jobs/          # Unauthenticated public job board
 │   │       ├── index.get.ts      # GET /api/public/jobs (list open jobs)
 │   │       ├── [slug].get.ts     # GET /api/public/jobs/:slug
@@ -64,12 +70,21 @@ applirank/
 │   │   └── migrations/           # Generated SQL migrations
 │   ├── middleware/                # Global server middleware
 │   ├── plugins/
-│   │   └── migrations.ts         # Auto-apply migrations on startup
+│   │   ├── migrations.ts         # Auto-apply migrations on startup
+│   │   └── s3-bucket.ts          # Ensure S3 bucket exists + enforce private policy
 │   └── utils/                    # Auto-imported server utilities
 │       ├── auth.ts               # Better Auth instance
 │       ├── db.ts                 # Drizzle client + connection pool
 │       ├── env.ts                # Zod-validated environment variables
-│       └── slugify.ts            # URL slug generation for public job pages
+│       ├── requireAuth.ts        # Auth guard (throws 401/403)
+│       ├── s3.ts                 # S3/MinIO client, upload, delete, presigned URLs
+│       ├── slugify.ts            # URL slug generation for public job pages
+│       ├── rateLimit.ts          # IP-based sliding window rate limiter
+│       └── schemas/              # Shared Zod validation schemas
+│           ├── document.ts       # MIME types, file limits, sanitizeFilename()
+│           ├── job.ts            # Job create/update schemas
+│           ├── candidate.ts      # Candidate schemas
+│           └── application.ts    # Application schemas
 ├── public/                       # Static assets
 ├── docker-compose.yml            # Postgres + MinIO + Adminer
 ├── drizzle.config.ts             # Drizzle Kit configuration
@@ -138,6 +153,8 @@ Nitro auto-imports everything from `server/utils/`. The core utilities are alway
 | `auth` | Better Auth instance |
 | `env` | Zod-validated environment variables |
 | `generateJobSlug` | URL slug generation for public job pages |
+| `createRateLimiter` | IP-based sliding window rate limiter |
+| `uploadToS3`, `deleteFromS3` | S3/MinIO file operations |
 
 ### 3. Environment Validation
 
@@ -151,9 +168,21 @@ The `server/plugins/migrations.ts` plugin runs Drizzle migrations automatically 
 
 During server-side rendering, browser cookies are not automatically forwarded to internal API calls. All authenticated `useFetch` calls must include `headers: useRequestHeaders(['cookie'])` to forward the session cookie.
 
-### 6. File Storage
+### 6. File Storage & Document Security
 
 Documents (resumes, cover letters) are stored in MinIO, an S3-compatible object store. Each document record in Postgres stores a `storageKey` (the S3 object key) while the actual file binary lives in MinIO. This separates metadata from blob storage.
+
+Document access is **always server-proxied** — both download and preview endpoints stream file bytes through the authenticated Nitro server. Presigned S3 URLs are never exposed to clients, preventing URL sharing or leakage of sensitive candidate data.
+
+Key security measures:
+- **Private bucket policy**: An explicit deny-all-anonymous-access policy is enforced on every startup (`server/plugins/s3-bucket.ts`)
+- **Filename sanitization**: All user-provided filenames are sanitized via `sanitizeFilename()` before storage, preventing path traversal, XSS, and filesystem exploits
+- **MIME validation**: Upload endpoints validate file types using magic bytes (`file-type` package), not just the `Content-Type` header
+- **Per-candidate document limits**: Max 20 documents per candidate, enforced on public apply endpoint
+- **`storageKey` never exposed**: API responses filter out the internal S3 key
+- **Preview restricted to PDF**: Only `application/pdf` files can be previewed inline; DOC/DOCX (which can contain macros) must be downloaded
+- **Cache headers**: `Cache-Control: private, max-age=300` on preview, `private, no-store` on download
+- **X-Frame-Options**: Global `DENY` with `SAMEORIGIN` override for the preview endpoint only
 
 ## Data Model
 
@@ -188,6 +217,10 @@ Public-facing endpoints live under `server/api/public/` and require no authentic
 | Organization membership | Better Auth org plugin — users can only access orgs they belong to |
 | Tenant data isolation | Every query includes `eq(table.organizationId, orgId)` |
 | Input validation | Zod v4 schemas via `readValidatedBody` / `getValidatedQuery` |
+| Rate limiting | `createRateLimiter()` on public endpoints (sliding window by IP) |
+| Document access | Server-proxied streaming — no presigned URLs exposed to clients |
+| Document upload | MIME validation via magic bytes, filename sanitization, per-candidate limits |
+| Security headers | Global Nitro route rules: `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `X-XSS-Protection`, `Permissions-Policy` |
 | Environment secrets | Validated at startup, never exposed to client |
 
 ## Local Development Services

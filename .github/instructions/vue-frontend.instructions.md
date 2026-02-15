@@ -395,6 +395,45 @@ export function useJobs(options?: { status?: string }) {
 | Composables must be called in `<script setup>` | Cannot be called in event handlers or callbacks (Vue restriction) |
 | Accept reactive inputs | Use `toValue()` inside `watchEffect()` if inputs may be ref/getter |
 
+### Action-only composable (no SSR fetch)
+
+For composables that only provide user-triggered actions (no page data loading):
+
+```ts
+// app/composables/useDocuments.ts — action-only, no useFetch
+export function useDocuments() {
+  async function uploadDocument(candidateId: string, file: File, type: string) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', type)
+    const result = await $fetch(`/api/candidates/${candidateId}/documents`, {
+      method: 'POST', body: formData,
+    })
+    await refreshNuxtData(`candidate-${candidateId}`)
+    return result
+  }
+
+  async function downloadDocument(documentId: string) {
+    const { url } = await $fetch(`/api/documents/${documentId}/download`)
+    window.open(url, '_blank')
+  }
+
+  // Synchronous — returns the API endpoint URL (server streams the PDF)
+  function getPreviewUrl(documentId: string): string {
+    return `/api/documents/${documentId}/preview`
+  }
+
+  async function deleteDocument(documentId: string, candidateId: string) {
+    await $fetch(`/api/documents/${documentId}`, { method: 'DELETE' })
+    await refreshNuxtData(`candidate-${candidateId}`)
+  }
+
+  return { uploadDocument, downloadDocument, getPreviewUrl, deleteDocument }
+}
+```
+
+**Key pattern**: `getPreviewUrl()` is synchronous — it returns the API endpoint path directly. The server streams the PDF bytes, so the iframe `src` points to a same-origin URL. No presigned URLs are involved on the client.
+
 ### `useState` for SSR-safe shared state
 
 ```ts
@@ -821,6 +860,8 @@ function handleClear() {
 | Mutate nested `shallowRef` data expecting reactivity | `useFetch` returns `shallowRef` in Nuxt 4 | Replace entire value or use `deep: true` |
 | Trust org ID from URL params for authorization | Tenant spoofing — security vulnerability | Get org ID from session: `session.value.session.activeOrganizationId` |
 | Create pages without `definePageMeta` for protected routes | No auth protection | Always add `middleware: ['auth']` on protected pages |
+| Use presigned S3 URLs as iframe `src` | Cross-origin blocking, URL leakage | Use same-origin server-proxied endpoint as iframe `src` |
+| Add `sandbox` attribute to PDF preview iframes | Browser PDF viewer needs scripts to render | Omit `sandbox` — trust same-origin server-proxied content |
 
 ---
 

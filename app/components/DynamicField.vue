@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import { Upload, X } from 'lucide-vue-next'
+
 /**
  * Renders a custom question as the appropriate form field based on its type.
  * Used on the public application form to display recruiter-configured questions.
+ *
+ * For `file_upload` type questions, emits `file-selected` with the File object.
+ * The model value will be set to `"pending:<filename>"` to track selection state.
  */
 const props = defineProps<{
   question: {
@@ -13,6 +18,10 @@ const props = defineProps<{
     options?: string[] | null
   }
   error?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'file-selected', questionId: string, file: File | null): void
 }>()
 
 const model = defineModel<string | string[] | number | boolean | undefined>()
@@ -56,6 +65,45 @@ function toggleMultiOption(option: string) {
 
 function isOptionSelected(option: string): boolean {
   return Array.isArray(model.value) && model.value.includes(option)
+}
+
+// ─────────────────────────────────────────────
+// File upload handling
+// ─────────────────────────────────────────────
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const selectedFileName = ref<string | null>(null)
+
+/** Accepted file types for file_upload questions */
+const acceptedFileTypes = '.pdf,.doc,.docx'
+
+function handleFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+
+  if (file) {
+    selectedFileName.value = file.name
+    // Store a marker in the model so required-field validation knows a file is selected
+    model.value = `pending:${file.name}`
+    emit('file-selected', props.question.id, file)
+  } else {
+    clearFile()
+  }
+}
+
+function clearFile() {
+  selectedFileName.value = null
+  model.value = undefined
+  emit('file-selected', props.question.id, null)
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 const inputClasses = 'w-full rounded-lg border px-3 py-2 text-sm text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors'
@@ -162,6 +210,45 @@ const normalBorderClass = 'border-surface-300'
       />
       <span class="text-sm text-surface-700">Yes</span>
     </label>
+
+    <!-- File Upload -->
+    <div v-else-if="question.type === 'file_upload'" class="mt-1">
+      <input
+        ref="fileInputRef"
+        type="file"
+        :accept="acceptedFileTypes"
+        class="hidden"
+        @change="handleFileChange"
+      />
+
+      <!-- No file selected -->
+      <button
+        v-if="!selectedFileName"
+        type="button"
+        class="flex items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm transition-colors w-full justify-center"
+        :class="error ? 'border-danger-300 text-danger-600' : 'border-surface-300 text-surface-500 hover:border-brand-400 hover:text-brand-600'"
+        @click="fileInputRef?.click()"
+      >
+        <Upload class="size-4" />
+        Choose file (PDF, DOC, DOCX — max 10 MB)
+      </button>
+
+      <!-- File selected -->
+      <div
+        v-else
+        class="flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm"
+        :class="error ? 'border-danger-300' : 'border-surface-300'"
+      >
+        <span class="text-surface-700 truncate mr-2">{{ selectedFileName }}</span>
+        <button
+          type="button"
+          class="shrink-0 rounded p-0.5 text-surface-400 hover:text-danger-600 transition-colors"
+          @click="clearFile"
+        >
+          <X class="size-4" />
+        </button>
+      </div>
+    </div>
 
     <!-- Help text -->
     <p v-if="question.description" class="mt-1 text-xs text-surface-400">

@@ -25,6 +25,7 @@ app/
 │   ├── useJobs.ts           # Jobs CRUD
 │   ├── useCandidates.ts     # Candidates CRUD
 │   ├── useApplications.ts   # Applications CRUD
+│   ├── useDocuments.ts      # Document upload, download, preview, delete (action-only)
 │   ├── usePagination.ts     # Pagination state
 │   └── useFormValidation.ts # Form validation helpers
 └── utils/                   # Auto-imported utility functions
@@ -282,6 +283,49 @@ export function useJob(id: MaybeRefOrGetter<string>) {
 | **Forward cookies for SSR** | Always include `headers: useRequestHeaders(['cookie'])` in data-fetching composables |
 | **Mutations use `$fetch`** | CREATE, UPDATE, DELETE are user-triggered → use `$fetch`, then `await refresh()` |
 | **Invalidate after mutation** | Call `refresh()` on the composable, or `refreshNuxtData('key')` from outside it |
+
+### Pattern: Action-only composable (no SSR fetch)
+
+For composables that only provide user-triggered actions with no page-level data fetching:
+
+```ts
+// app/composables/useDocuments.ts
+export function useDocuments() {
+  async function uploadDocument(candidateId: string, file: File, type: string) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', type)
+    const result = await $fetch(`/api/candidates/${candidateId}/documents`, {
+      method: 'POST', body: formData,
+    })
+    await refreshNuxtData(`candidate-${candidateId}`)
+    return result
+  }
+
+  async function downloadDocument(documentId: string) {
+    const { url } = await $fetch<{ url: string }>(`/api/documents/${documentId}/download`)
+    window.open(url, '_blank')
+  }
+
+  // Synchronous — returns the server-proxied API endpoint URL
+  // Server streams PDF bytes, so iframe src = same-origin (no CORS issues)
+  function getPreviewUrl(documentId: string): string {
+    return `/api/documents/${documentId}/preview`
+  }
+
+  async function deleteDocument(documentId: string, candidateId: string) {
+    await $fetch(`/api/documents/${documentId}`, { method: 'DELETE' })
+    await refreshNuxtData(`candidate-${candidateId}`)
+  }
+
+  return { uploadDocument, downloadDocument, getPreviewUrl, deleteDocument }
+}
+```
+
+**Key points**:
+- No `useFetch` — all actions are user-triggered (`$fetch`)
+- `getPreviewUrl()` is synchronous — returns the API path directly, not a presigned URL
+- Cache invalidation uses `refreshNuxtData('key')` to refresh the parent composable's data
 
 ---
 
@@ -928,6 +972,8 @@ Nuxt auto-generates types from server route return values. `useFetch('/api/jobs'
 | Create composable file without `use` prefix | Nuxt auto-import won't recognize it | Name file and function `useXxx` |
 | Put composables in `server/utils/` | Server auto-imports are separate from client | Client composables go in `app/composables/` |
 | Trust org ID from URL params | Tenant spoofing — security vulnerability | Get org ID from `useCurrentOrg().orgId` (from session) |
+| Fetch presigned URL then set as iframe `src` | Cross-origin blocking (MinIO vs app origin) | Use server-proxied endpoint path directly (`/api/documents/:id/preview`) |
+| Make `getPreviewUrl()` async when server streams bytes | Unnecessary complexity — URL is known synchronously | Return the API path string directly, no `$fetch` needed |
 
 ---
 

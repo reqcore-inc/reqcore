@@ -4,7 +4,7 @@ import { z } from 'zod'
 // Job question validation schemas
 // ─────────────────────────────────────────────
 
-const questionTypes = ['short_text', 'long_text', 'single_select', 'multi_select', 'number', 'date', 'url', 'checkbox'] as const
+const questionTypes = ['short_text', 'long_text', 'single_select', 'multi_select', 'number', 'date', 'url', 'checkbox', 'file_upload'] as const
 
 /** Schema for creating a new custom question */
 export const createQuestionSchema = z.object({
