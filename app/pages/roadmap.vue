@@ -351,6 +351,9 @@ const statusConfig = {
     glow: 'from-transparent via-purple-500/30 to-transparent',
   },
 } as const
+
+const shippedItems = computed(() => items.filter(item => item.status === 'shipped'))
+const upcomingItems = computed(() => items.filter(item => item.status !== 'shipped'))
 </script>
 
 <template>
@@ -457,6 +460,110 @@ const statusConfig = {
         <!-- Left spacer -->
         <div class="w-24 shrink-0" />
 
+        <!-- ─── Shipped cards (left of intro) ────────── -->
+        <div
+          v-for="(item, i) in shippedItems"
+          :key="'shipped-' + i"
+          :data-card-index="i"
+          class="relative mr-24 flex shrink-0 flex-col items-center"
+        >
+          <!-- Card -->
+          <div
+            class="group relative flex h-[500px] w-[500px] flex-col overflow-hidden rounded-2xl border bg-white/[0.025] backdrop-blur-xl transition-all duration-300 hover:bg-white/[0.05]"
+            :class="[
+              item.status === 'vision'
+                ? 'border-white/[0.06] hover:border-white/[0.12]'
+                : 'border-white/[0.08] hover:border-white/[0.18]',
+            ]"
+          >
+            <!-- Top edge glow on hover -->
+            <div
+              class="absolute inset-x-0 top-0 h-px bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              :class="statusConfig[item.status].glow"
+            />
+
+            <!-- Corner number badge -->
+            <div class="absolute top-6 right-6 flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03] text-xs font-medium text-surface-500">
+              {{ String(i + 1).padStart(2, '0') }}
+            </div>
+
+            <!-- Card content -->
+            <div class="flex flex-1 flex-col p-10">
+              <!-- Feature icon -->
+              <div
+                class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border"
+                :class="[statusConfig[item.status].bg, statusConfig[item.status].border]"
+              >
+                <component :is="item.icon" class="h-5 w-5" :class="statusConfig[item.status].color" :stroke-width="1.75" />
+              </div>
+
+              <!-- Status badge -->
+              <div class="mb-5 flex items-center gap-2.5">
+                <span class="h-2 w-2 rounded-full" :class="statusConfig[item.status].dot" />
+                <span
+                  class="text-[11px] font-semibold tracking-widest uppercase"
+                  :class="statusConfig[item.status].color"
+                >
+                  {{ statusConfig[item.status].label }}
+                </span>
+              </div>
+
+              <!-- Title & description -->
+              <h3 class="text-xl font-semibold tracking-tight text-white">{{ item.title }}</h3>
+              <p class="mt-3 text-[14px] leading-relaxed text-surface-400">
+                {{ item.description }}
+              </p>
+
+              <!-- Highlights list -->
+              <ul class="mt-auto space-y-2.5 border-t border-white/[0.06] pt-6">
+                <li
+                  v-for="(highlight, j) in item.highlights"
+                  :key="j"
+                  class="flex items-start gap-2.5 text-[13px] leading-snug"
+                >
+                  <Check
+                    v-if="item.status === 'shipped'"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0"
+                    :class="statusConfig[item.status].color"
+                    :stroke-width="2.5"
+                  />
+                  <Hammer
+                    v-else-if="item.status === 'building'"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0"
+                    :class="statusConfig[item.status].color"
+                    :stroke-width="2"
+                  />
+                  <span
+                    v-else
+                    class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
+                    :class="statusConfig[item.status].dot"
+                  />
+                  <span class="text-surface-300">{{ highlight }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Bottom decorative gradient bar -->
+            <div
+              class="h-[2px] w-full bg-gradient-to-r opacity-40"
+              :class="statusConfig[item.status].glow"
+            />
+          </div>
+
+          <!-- Vertical connector -->
+          <div class="flex flex-col items-center">
+            <div
+              class="h-8 w-px"
+              :class="statusConfig[item.status].line"
+            />
+            <!-- Dot on the timeline -->
+            <div
+              class="h-3 w-3 rounded-full"
+              :class="statusConfig[item.status].dot"
+            />
+          </div>
+        </div>
+
         <!-- ─── Roadmap intro card ───────────────────── -->
         <div ref="introCard" class="relative mr-24 flex shrink-0 flex-col items-center">
           <div
@@ -515,11 +622,11 @@ const statusConfig = {
           </div>
         </div>
 
-        <!-- ─── Feature cards ────────────────────────── -->
+        <!-- ─── Upcoming cards (right of intro) ──────── -->
         <div
-          v-for="(item, i) in items"
-          :key="i"
-          :data-card-index="i"
+          v-for="(item, i) in upcomingItems"
+          :key="'upcoming-' + i"
+          :data-card-index="shippedItems.length + i"
           class="relative mr-24 flex shrink-0 flex-col items-center last:mr-0"
         >
           <!-- Card -->
@@ -539,7 +646,7 @@ const statusConfig = {
 
             <!-- Corner number badge -->
             <div class="absolute top-6 right-6 flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03] text-xs font-medium text-surface-500">
-              {{ String(i + 1).padStart(2, '0') }}
+              {{ String(shippedItems.length + i + 1).padStart(2, '0') }}
             </div>
 
             <!-- Card content -->

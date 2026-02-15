@@ -9,9 +9,9 @@
 
 ## 🎯 Current Focus
 
-**Phase 1, Milestone 8: Dashboard** — At-a-glance overview for recruiters.
+**Phase 2, Milestone 9: Resume Parsing** — Extract structured data from uploaded resumes.
 
-> **Recently completed**: Security hardening & inline PDF preview — Document storage system audited and hardened with private bucket policy enforcement, filename sanitization, global security headers, Docker port binding, and server-proxied PDF streaming for inline preview in the candidate detail sidebar.
+> **Recently completed**: Dashboard — At-a-glance overview for recruiters with stat cards, pipeline breakdown, recent applications, top active jobs, and quick actions.
 
 ---
 
@@ -206,13 +206,21 @@ Recruiters can configure custom questions per job. Applicants can apply through 
 - [x] Resume file upload to MinIO during submission (depends on Milestone 6)
 - [x] IP-based rate limiting on public submission endpoint (`server/utils/rateLimit.ts`)
 
-### Milestone 8: Dashboard (not started)
+### Milestone 8: Dashboard ✅
 
 At-a-glance overview for recruiters.
 
-- [ ] Dashboard API: aggregated stats (open jobs, recent apps, pipeline breakdown)
-- [ ] Dashboard page with widgets (counts, recent activity, quick actions)
-- [ ] "Create job" and "Add candidate" quick actions
+- [x] Dashboard API: `GET /api/dashboard/stats` — aggregated stats (open jobs, candidates, apps, unreviewed), pipeline breakdown, jobs by status, recent applications, top active jobs — all org-scoped
+- [x] Composable: `useDashboard()` — wraps stats endpoint with computed unwrappers
+- [x] Dashboard page with stat cards (Open Jobs, Candidates, Applications, Unreviewed) — clickable, navigate to filtered list views
+- [x] Pipeline overview widget — stacked bar chart with color-coded status segments and legend
+- [x] Jobs by status widget — counts per status (draft, open, closed, archived)
+- [x] Recent applications widget — last 10 with candidate name, job title, status badge, relative time
+- [x] Top active jobs widget — top 5 open jobs by application count with new/unreviewed badges
+- [x] "Create Job" and "Add Candidate" quick actions in header
+- [x] Welcome empty state for new orgs with CTA to create first job
+- [x] Loading skeleton states for all widgets
+- [x] Responsive layout (1-col mobile → 4-col desktop)
 
 ---
 
@@ -293,6 +301,7 @@ Goal: Ready for real teams to self-host in production.
 | 4. Candidate Management | 2026-02-14 |
 | 5. Applications & Pipeline | 2026-02-14 |
 | 6. Document Storage | 2026-02-15 |
+| 8. Dashboard | 2026-02-15 |
 
 ---
 
