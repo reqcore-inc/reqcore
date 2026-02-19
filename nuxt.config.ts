@@ -32,6 +32,13 @@ export default defineNuxtConfig({
       meta: [
         { name: 'theme-color', content: '#09090b' },
       ],
+      script: [
+        {
+          defer: true,
+          'data-domain': 'applirank.com',
+          src: 'https://test-plausible.kjadfu.easypanel.host/js/script.js',
+        },
+      ],
     },
   },
 
