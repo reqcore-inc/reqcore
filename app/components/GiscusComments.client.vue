@@ -1,20 +1,48 @@
 <script setup lang="ts">
+import Giscus from '@giscus/vue'
+import type { BooleanString, InputPosition, Mapping, Repo } from '@giscus/vue'
+
 const route = useRoute()
 const runtimeConfig = useRuntimeConfig()
 
-const containerRef = useTemplateRef<HTMLDivElement>('container')
-const loadError = ref('')
+const widgetKey = ref(0)
+
+function cleanupGiscusCallbackQuery() {
+  const currentUrl = new URL(window.location.href)
+  if (!currentUrl.searchParams.has('giscus')) {
+    return
+  }
+
+  currentUrl.searchParams.delete('giscus')
+  const nextQuery = currentUrl.searchParams.toString()
+  const nextUrl = `${currentUrl.pathname}${nextQuery ? `?${nextQuery}` : ''}${currentUrl.hash}`
+
+  window.history.replaceState(window.history.state, '', nextUrl)
+}
+
+function toBooleanString(value: string | undefined, fallback: BooleanString): BooleanString {
+  return value === '0' || value === '1' ? value : fallback
+}
+
+function toMapping(value: string | undefined): Mapping {
+  const allowed: Mapping[] = ['url', 'title', 'og:title', 'specific', 'number', 'pathname']
+  return allowed.includes(value as Mapping) ? (value as Mapping) : 'pathname'
+}
+
+function toInputPosition(value: string | undefined): InputPosition {
+  return value === 'top' || value === 'bottom' ? value : 'top'
+}
 
 const giscusConfig = computed(() => ({
-  repo: runtimeConfig.public.giscusRepo,
+  repo: (runtimeConfig.public.giscusRepo as Repo),
   repoId: runtimeConfig.public.giscusRepoId,
   category: runtimeConfig.public.giscusCategory,
   categoryId: runtimeConfig.public.giscusCategoryId,
-  mapping: runtimeConfig.public.giscusMapping || 'pathname',
-  strict: runtimeConfig.public.giscusStrict || '1',
-  reactionsEnabled: runtimeConfig.public.giscusReactionsEnabled || '1',
-  emitMetadata: runtimeConfig.public.giscusEmitMetadata || '0',
-  inputPosition: runtimeConfig.public.giscusInputPosition || 'top',
+  mapping: toMapping(runtimeConfig.public.giscusMapping),
+  strict: toBooleanString(runtimeConfig.public.giscusStrict, '1'),
+  reactionsEnabled: toBooleanString(runtimeConfig.public.giscusReactionsEnabled, '1'),
+  emitMetadata: toBooleanString(runtimeConfig.public.giscusEmitMetadata, '0'),
+  inputPosition: toInputPosition(runtimeConfig.public.giscusInputPosition),
   theme: runtimeConfig.public.giscusTheme || 'dark',
   lang: runtimeConfig.public.giscusLang || 'en',
 }))
@@ -26,55 +54,13 @@ const isConfigured = computed(() => (
   && !!giscusConfig.value.categoryId
 ))
 
-function renderGiscus() {
-  const container = containerRef.value
-  if (!container) return
-
-  loadError.value = ''
-  container.innerHTML = ''
-
-  if (!isConfigured.value) return
-
-  const script = document.createElement('script')
-  script.src = 'https://giscus.app/client.js'
-  script.async = true
-  script.crossOrigin = 'anonymous'
-
-  script.setAttribute('data-repo', giscusConfig.value.repo)
-  script.setAttribute('data-repo-id', giscusConfig.value.repoId)
-  script.setAttribute('data-category', giscusConfig.value.category)
-  script.setAttribute('data-category-id', giscusConfig.value.categoryId)
-  script.setAttribute('data-mapping', giscusConfig.value.mapping)
-  script.setAttribute('data-strict', giscusConfig.value.strict)
-  script.setAttribute('data-reactions-enabled', giscusConfig.value.reactionsEnabled)
-  script.setAttribute('data-emit-metadata', giscusConfig.value.emitMetadata)
-  script.setAttribute('data-input-position', giscusConfig.value.inputPosition)
-  script.setAttribute('data-theme', giscusConfig.value.theme)
-  script.setAttribute('data-lang', giscusConfig.value.lang)
-  script.setAttribute('data-loading', 'lazy')
-
-  script.addEventListener('error', () => {
-    loadError.value = 'Could not load giscus.app. Check network/ad blockers and try again.'
-  })
-
-  script.addEventListener('load', () => {
-    window.setTimeout(() => {
-      const hasIframe = !!container.querySelector('iframe')
-      if (!hasIframe) {
-        loadError.value = 'Giscus loaded but did not render. Verify repo/category IDs and restart the dev server after env changes.'
-      }
-    }, 1500)
-  })
-
-  container.appendChild(script)
-}
-
 onMounted(() => {
-  renderGiscus()
+  cleanupGiscusCallbackQuery()
+  widgetKey.value += 1
 })
 
-watch(() => route.fullPath, () => {
-  renderGiscus()
+watch(() => route.path, () => {
+  widgetKey.value += 1
 })
 </script>
 
@@ -92,13 +78,21 @@ watch(() => route.fullPath, () => {
       Configure Giscus env vars to enable page comments.
     </div>
 
-    <div
-      v-else-if="loadError"
-      class="rounded-lg border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200/90"
-    >
-      {{ loadError }}
-    </div>
-
-    <div ref="container" />
+    <Giscus
+      v-else
+      :key="widgetKey"
+      :repo="giscusConfig.repo"
+      :repo-id="giscusConfig.repoId"
+      :category="giscusConfig.category"
+      :category-id="giscusConfig.categoryId"
+      :mapping="giscusConfig.mapping"
+      :strict="giscusConfig.strict"
+      :reactions-enabled="giscusConfig.reactionsEnabled"
+      :emit-metadata="giscusConfig.emitMetadata"
+      :input-position="giscusConfig.inputPosition"
+      :theme="giscusConfig.theme"
+      :lang="giscusConfig.lang"
+      loading="lazy"
+    />
   </section>
 </template>

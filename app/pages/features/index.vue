@@ -135,19 +135,30 @@ const tree = computed<FeatureNode[]>(() => {
             GitHub
           </a>
 
-          <template v-if="session">
-            <NuxtLink to="/dashboard" class="rounded-md bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-white/15">
-              Dashboard
-            </NuxtLink>
-          </template>
-          <template v-else>
-            <NuxtLink to="/auth/sign-in" class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white">
-              Sign In
-            </NuxtLink>
-            <NuxtLink to="/auth/sign-up" class="rounded-md bg-white text-[13px] font-semibold text-black px-3 py-1.5 transition hover:bg-white/90">
-              Get Started
-            </NuxtLink>
-          </template>
+          <ClientOnly>
+            <template v-if="session">
+              <NuxtLink to="/dashboard" class="rounded-md bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-white/15">
+                Dashboard
+              </NuxtLink>
+            </template>
+            <template v-else>
+              <NuxtLink :to="{ path: '/auth/sign-in', query: { redirect: $route.path } }" class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white">
+                Sign In
+              </NuxtLink>
+              <NuxtLink to="/auth/sign-up" class="rounded-md bg-white text-[13px] font-semibold text-black px-3 py-1.5 transition hover:bg-white/90">
+                Get Started
+              </NuxtLink>
+            </template>
+
+            <template #fallback>
+              <NuxtLink to="/auth/sign-in" class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white">
+                Sign In
+              </NuxtLink>
+              <NuxtLink to="/auth/sign-up" class="rounded-md bg-white text-[13px] font-semibold text-black px-3 py-1.5 transition hover:bg-white/90">
+                Get Started
+              </NuxtLink>
+            </template>
+          </ClientOnly>
         </div>
       </div>
     </nav>

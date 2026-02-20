@@ -14,6 +14,22 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 const isLoading = ref(false)
+const route = useRoute()
+
+function getSafeRedirectTarget(): string {
+  const rawRedirect = route.query.redirect
+  const redirect = typeof rawRedirect === 'string' ? rawRedirect : ''
+
+  if (!redirect.startsWith('/')) {
+    return '/dashboard'
+  }
+
+  if (redirect.startsWith('/auth/')) {
+    return '/dashboard'
+  }
+
+  return redirect
+}
 
 async function handleSignIn() {
   error.value = ''
@@ -36,7 +52,7 @@ async function handleSignIn() {
     return
   }
 
-  await navigateTo('/dashboard')
+  await navigateTo(getSafeRedirectTarget())
 }
 </script>
 
