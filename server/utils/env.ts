@@ -23,8 +23,11 @@ export function isRailwayPreviewEnvironment(environmentName?: string): boolean {
   if (name === 'production' || name === 'prod') return false
 
   return (
+    name.startsWith('pr')
+    ||
     /^pr(?:-|\d)/.test(name)
     || name.includes('pr-')
+    || name.includes('pr ')
     || name.includes('pull request')
     || name.includes('pull-request')
     || name.includes('preview')
