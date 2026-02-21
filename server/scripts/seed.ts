@@ -33,7 +33,7 @@ if (!DATABASE_URL) {
 }
 
 const DEMO_EMAIL = 'demo@applirank.com'
-const DEMO_PASSWORD = 'demo1234'
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? 'demo1234'
 const DEMO_ORG_NAME = 'Applirank Demo'
 const DEMO_ORG_SLUG = 'applirank-demo'
 
@@ -58,8 +58,12 @@ function daysAgo(n: number): Date {
   return d
 }
 
-function randomItem<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
+function getArrayItemOrThrow<T>(arr: readonly T[], index: number, context: string): T {
+  const value = arr[index]
+  if (value === undefined) {
+    throw new Error(`Missing ${context} at index ${index}`)
+  }
+  return value
 }
 
 function generateSlug(title: string, uuid: string): string {
@@ -246,6 +250,11 @@ const JOB_APPLICATIONS = [JOB_0_APPS, JOB_1_APPS, JOB_2_APPS, JOB_3_APPS, []]
 
 // Sample responses for questions
 function generateResponses(jobIndex: number, candidateIndex: number): Record<string, string | string[] | boolean> {
+  const candidate = CANDIDATES_DATA[candidateIndex]
+  if (!candidate) {
+    return {}
+  }
+
   if (jobIndex === 0) {
     const years = ['3', '4', '5', '6', '7', '8+']
     const frameworks = ['Vue', 'React', 'Svelte', 'Vue', 'React', 'Vue']
@@ -259,12 +268,16 @@ function generateResponses(jobIndex: number, candidateIndex: number): Record<str
       'Created a type-safe API client generator from OpenAPI specs that eliminated an entire class of runtime errors.',
     ]
     const i = candidateIndex % years.length
+    const year = getArrayItemOrThrow(years, i, 'TypeScript years response')
+    const framework = getArrayItemOrThrow(frameworks, i, 'framework response')
+    const problem = getArrayItemOrThrow(problems, i, 'problem response')
+    const start = getArrayItemOrThrow(starts, i, 'start date response')
     return {
-      'Years of TypeScript experience': years[i],
-      'Preferred frontend framework': frameworks[i],
-      'Describe a challenging technical problem you solved recently': problems[i],
-      'Link to your GitHub profile or portfolio': `https://github.com/${CANDIDATES_DATA[candidateIndex].firstName.toLowerCase()}${CANDIDATES_DATA[candidateIndex].lastName.toLowerCase().replace(/['\s]/g, '')}`,
-      'When can you start?': starts[i],
+      'Years of TypeScript experience': year,
+      'Preferred frontend framework': framework,
+      'Describe a challenging technical problem you solved recently': problem,
+      'Link to your GitHub profile or portfolio': `https://github.com/${candidate.firstName.toLowerCase()}${candidate.lastName.toLowerCase().replace(/['\s]/g, '')}`,
+      'When can you start?': start,
     }
   }
   if (jobIndex === 1) {
@@ -276,10 +289,12 @@ function generateResponses(jobIndex: number, candidateIndex: number): Record<str
       'I believe in rapid prototyping. Quick sketches → Figma prototypes → guerrilla testing → iteration. Speed of learning beats perfection.',
     ]
     const i = candidateIndex % tools.length
+    const tool = getArrayItemOrThrow(tools, i, 'design tool response')
+    const process = getArrayItemOrThrow(processes, i, 'design process response')
     return {
-      'Link to your portfolio': `https://dribbble.com/${CANDIDATES_DATA[candidateIndex].firstName.toLowerCase()}${CANDIDATES_DATA[candidateIndex].lastName.toLowerCase().charAt(0)}`,
-      'Primary design tool': tools[i],
-      'Walk us through your design process for a recent project': processes[i],
+      'Link to your portfolio': `https://dribbble.com/${candidate.firstName.toLowerCase()}${candidate.lastName.toLowerCase().charAt(0)}`,
+      'Primary design tool': tool,
+      'Walk us through your design process for a recent project': process,
       'I have experience with design systems': candidateIndex % 2 === 0,
     }
   }
@@ -288,10 +303,13 @@ function generateResponses(jobIndex: number, candidateIndex: number): Record<str
     const ciPlatforms = ['GitHub Actions', 'GitLab CI', 'GitHub Actions', 'Jenkins', 'GitHub Actions', 'CircleCI']
     const dockerYears = ['3', '4', '5', '6', '2', '7']
     const i = candidateIndex % platforms.length
+    const platformList = getArrayItemOrThrow(platforms, i, 'cloud platform response')
+    const ciPlatform = getArrayItemOrThrow(ciPlatforms, i, 'CI/CD platform response')
+    const dockerYear = getArrayItemOrThrow(dockerYears, i, 'docker years response')
     return {
-      'Which cloud platforms have you worked with?': platforms[i],
-      'Years of Docker experience': dockerYears[i],
-      'Preferred CI/CD platform': ciPlatforms[i],
+      'Which cloud platforms have you worked with?': platformList,
+      'Years of Docker experience': dockerYear,
+      'Preferred CI/CD platform': ciPlatform,
     }
   }
   return {}
@@ -418,17 +436,26 @@ async function seed() {
 
   for (let jobIndex = 0; jobIndex < questionSets.length; jobIndex++) {
     const questions = questionSets[jobIndex]
+    const jobId = jobIds[jobIndex]
+    if (!questions || !jobId) {
+      throw new Error(`Invalid seed configuration for questions at job index ${jobIndex}`)
+    }
+
     const questionIds: { questionId: string; label: string }[] = []
 
     for (let qi = 0; qi < questions.length; qi++) {
       const q = questions[qi]
+      if (!q) {
+        continue
+      }
+
       const questionId = id()
       questionIds.push({ questionId, label: q.label })
 
       await db.insert(schema.jobQuestion).values({
         id: questionId,
         organizationId: orgId,
-        jobId: jobIds[jobIndex],
+        jobId,
         type: q.type,
         label: q.label,
         required: q.required,
@@ -449,16 +476,25 @@ async function seed() {
 
   for (let jobIndex = 0; jobIndex < JOB_APPLICATIONS.length; jobIndex++) {
     const apps = JOB_APPLICATIONS[jobIndex]
+    const jobId = jobIds[jobIndex]
+    if (!apps || !jobId) {
+      throw new Error(`Invalid seed configuration for applications at job index ${jobIndex}`)
+    }
 
     for (const app of apps) {
+      const candidateId = candidateIds[app.candidateIndex]
+      if (!candidateId) {
+        throw new Error(`Missing candidate ID for candidate index ${app.candidateIndex}`)
+      }
+
       const applicationId = id()
       const createdDaysAgo = 1 + Math.floor(Math.random() * 15)
 
       await db.insert(schema.application).values({
         id: applicationId,
         organizationId: orgId,
-        candidateId: candidateIds[app.candidateIndex],
-        jobId: jobIds[jobIndex],
+        candidateId,
+        jobId,
         status: app.status,
         score: app.score ?? null,
         notes: app.notes ?? null,
