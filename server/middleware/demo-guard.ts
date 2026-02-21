@@ -43,19 +43,19 @@ async function getDemoOrgId(): Promise<string | null> {
 const WRITE_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE'])
 
 export default defineEventHandler(async (event) => {
+  const path = getRequestURL(event).pathname
+
+  // Only guard API routes
+  if (!path.startsWith('/api/')) return
+
+  // Always allow auth routes (sign-in, sign-out, session, org switch)
+  if (path.startsWith('/api/auth/')) return
+
   // Skip if no demo slug configured
   if (!env.DEMO_ORG_SLUG) return
 
   // Only guard write operations
   if (!WRITE_METHODS.has(event.method)) return
-
-  const path = getRequestURL(event).pathname
-
-  // Always allow auth routes (sign-in, sign-out, session, org switch)
-  if (path.startsWith('/api/auth/')) return
-
-  // Only guard API routes
-  if (!path.startsWith('/api/')) return
 
   const guardedOrgId = await getDemoOrgId()
   if (!guardedOrgId) return
