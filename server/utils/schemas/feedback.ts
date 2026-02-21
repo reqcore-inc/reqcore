@@ -7,10 +7,12 @@ import { z } from 'zod'
 /** Allowed feedback types — maps to GitHub issue labels. */
 export const feedbackTypeSchema = z.enum(['bug', 'feature'])
 
+const MAX_SCREENSHOT_DATA_URL_CHARS = 45000
+
 const screenshotDataUrlSchema = z
   .string()
   .regex(/^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/, 'Screenshot must be a valid image data URL')
-  .max(300000, 'Screenshot is too large')
+  .max(MAX_SCREENSHOT_DATA_URL_CHARS, 'Screenshot is too large for GitHub issue body')
 
 const diagnosticsSchema = z.object({
   userAgent: z.string().max(1000).optional(),
@@ -38,7 +40,7 @@ export const createFeedbackSchema = z.object({
   type: feedbackTypeSchema,
   title: z.string().min(5, 'Title must be at least 5 characters').max(200, 'Title must be at most 200 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters').max(5000, 'Description must be at most 5000 characters'),
-  currentUrl: z.string().max(2000).optional(),
+  currentUrl: z.url('Current URL must be a valid URL').max(2000).optional(),
   includeReporterContext: z.boolean().default(false),
   includeEmail: z.boolean().default(false),
   includeScreenshot: z.boolean().default(false),

@@ -29,6 +29,17 @@ const LABEL_MAP = {
   feature: ['enhancement', 'source:in-app'],
 } as const
 
+const MAX_GITHUB_ISSUE_BODY_CHARS = 60000
+
+function normalizeSingleLine(value: string): string {
+  return value.replace(/[\r\n]+/g, ' ').trim()
+}
+
+function escapeMarkdownTableValue(value: string): string {
+  return normalizeSingleLine(value)
+    .replace(/\|/g, '\\|')
+}
+
 /**
  * POST /api/feedback
  *
@@ -79,20 +90,20 @@ export default defineEventHandler(async (event) => {
   const typeLabel = body.type === 'bug' ? 'Bug Report' : 'Feature Request'
 
   const reporterRows = [
-    ...(body.includeReporterContext ? [`| **Reporter** | ${userName} |`] : []),
-    ...(body.includeEmail ? [`| **Email** | ${userEmail} |`] : []),
-    ...(body.includeReporterContext && body.currentUrl ? [`| **Page** | ${body.currentUrl} |`] : []),
+    ...(body.includeReporterContext ? [`| **Reporter** | ${escapeMarkdownTableValue(userName)} |`] : []),
+    ...(body.includeEmail ? [`| **Email** | ${escapeMarkdownTableValue(userEmail)} |`] : []),
+    ...(body.includeReporterContext && body.currentUrl ? [`| **Page** | ${escapeMarkdownTableValue(body.currentUrl)} |`] : []),
     `| **Submitted** | ${new Date().toISOString()} |`,
   ]
 
   const diagnosticsRows = body.diagnostics
     ? [
-        `| **User Agent** | ${body.diagnostics.userAgent ?? 'Not shared'} |`,
-        `| **Language** | ${body.diagnostics.language ?? 'Not shared'} |`,
-        `| **Platform** | ${body.diagnostics.platform ?? 'Not shared'} |`,
-        `| **Timezone** | ${body.diagnostics.timezone ?? 'Not shared'} |`,
-        `| **Viewport** | ${body.diagnostics.viewport ?? 'Not shared'} |`,
-        `| **Screen** | ${body.diagnostics.screen ?? 'Not shared'} |`,
+        `| **User Agent** | ${escapeMarkdownTableValue(body.diagnostics.userAgent ?? 'Not shared')} |`,
+        `| **Language** | ${escapeMarkdownTableValue(body.diagnostics.language ?? 'Not shared')} |`,
+        `| **Platform** | ${escapeMarkdownTableValue(body.diagnostics.platform ?? 'Not shared')} |`,
+        `| **Timezone** | ${escapeMarkdownTableValue(body.diagnostics.timezone ?? 'Not shared')} |`,
+        `| **Viewport** | ${escapeMarkdownTableValue(body.diagnostics.viewport ?? 'Not shared')} |`,
+        `| **Screen** | ${escapeMarkdownTableValue(body.diagnostics.screen ?? 'Not shared')} |`,
       ]
     : []
 
@@ -101,7 +112,7 @@ export default defineEventHandler(async (event) => {
       ? [
           '### Screenshot Context',
           '',
-          `Filename: ${body.screenshotFileName ?? 'screenshot.jpg'}`,
+          `Filename: ${escapeMarkdownTableValue(body.screenshotFileName ?? 'screenshot.jpg')}`,
           '',
           '<details>',
           '<summary>Screenshot data URL (base64)</summary>',
@@ -159,6 +170,13 @@ export default defineEventHandler(async (event) => {
     '',
     '_Submitted via in-app feedback_',
   ].join('\n')
+
+  if (issueBody.length > MAX_GITHUB_ISSUE_BODY_CHARS) {
+    throw createError({
+      statusCode: 413,
+      statusMessage: 'Feedback payload is too large for GitHub issue body. Please reduce screenshot size or context.',
+    })
+  }
 
   // ── Create GitHub Issue ─────────────────────
   const [owner, repo] = env.GITHUB_FEEDBACK_REPO.split('/')

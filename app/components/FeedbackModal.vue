@@ -23,6 +23,7 @@ const bugStepsToReproduce = ref('')
 const bugExpectedResult = ref('')
 const bugActualResult = ref('')
 const showOptionalContext = ref(false)
+const MAX_SCREENSHOT_DATA_URL_CHARS = 45000
 
 // ── Submission state ──────────────────────────
 const isSubmitting = ref(false)
@@ -134,8 +135,8 @@ async function handleScreenshotSelect(event: Event) {
     const sourceDataUrl = await fileToDataUrl(file)
     const compressedDataUrl = await compressImageDataUrl(sourceDataUrl)
 
-    if (compressedDataUrl.length > 300000) {
-      submitError.value = 'Screenshot is too large. Please use a smaller image.'
+    if (compressedDataUrl.length > MAX_SCREENSHOT_DATA_URL_CHARS) {
+      submitError.value = 'Screenshot is too large for GitHub issue body. Please use a smaller image.'
       resetScreenshot()
       return
     }
