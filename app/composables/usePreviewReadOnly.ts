@@ -8,14 +8,34 @@ type PreviewReadOnlyErrorData = {
 type PreviewReadOnlyError = {
   status?: number
   statusCode?: number
-  data?: PreviewReadOnlyErrorData
+  statusMessage?: string
+  data?: PreviewReadOnlyErrorData & {
+    data?: PreviewReadOnlyErrorData
+    statusMessage?: string
+  }
 }
 
 function isPreviewReadOnlyError(error: unknown): error is PreviewReadOnlyError {
   if (!error || typeof error !== 'object') return false
 
   const maybeError = error as PreviewReadOnlyError
-  return maybeError.data?.code === 'PREVIEW_READ_ONLY'
+  const code = maybeError.data?.code ?? maybeError.data?.data?.code
+  const message =
+    maybeError.data?.message
+    ?? maybeError.data?.data?.message
+    ?? maybeError.data?.statusMessage
+    ?? maybeError.statusMessage
+
+  return code === 'PREVIEW_READ_ONLY' || message?.includes('Preview mode') === true
+}
+
+function getPreviewReadOnlyMessage(error: PreviewReadOnlyError): string | undefined {
+  return (
+    error.data?.message
+    ?? error.data?.data?.message
+    ?? error.data?.statusMessage
+    ?? error.statusMessage
+  )
 }
 
 export function usePreviewReadOnly() {
@@ -34,7 +54,7 @@ export function usePreviewReadOnly() {
   function handlePreviewReadOnlyError(error: unknown): boolean {
     if (!isPreviewReadOnlyError(error)) return false
 
-    openUpsell(error.data?.message)
+    openUpsell(getPreviewReadOnlyMessage(error))
     return true
   }
 
