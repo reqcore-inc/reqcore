@@ -11,9 +11,11 @@ import { createPreviewReadOnlyError } from '../utils/previewReadOnly'
  */
 
 // ─────────────────────────────────────────────
-// Cache the demo org ID to avoid a DB lookup on every request
+// Cache the demo org ID to avoid a DB lookup on every request.
+// We only cache successful resolutions to avoid sticky null-state if
+// the org is created after server startup.
 // ─────────────────────────────────────────────
-let demoOrgId: string | null | undefined // undefined = not yet resolved
+let demoOrgId: string | null = null
 
 const PUBLIC_APPLY_PATH_REGEX = /^\/api\/public\/jobs\/([^/]+)\/apply\/?$/
 
@@ -22,11 +24,10 @@ function throwDemoReadOnlyError(): never {
 }
 
 async function getDemoOrgId(): Promise<string | null> {
-  if (demoOrgId !== undefined) return demoOrgId
+  if (demoOrgId) return demoOrgId
 
   const slug = env.DEMO_ORG_SLUG
   if (!slug) {
-    demoOrgId = null
     return null
   }
 
@@ -36,7 +37,11 @@ async function getDemoOrgId(): Promise<string | null> {
     .where(eq(schema.organization.slug, slug))
     .limit(1)
 
-  demoOrgId = org?.id ?? null
+  if (!org?.id) {
+    return null
+  }
+
+  demoOrgId = org.id
   return demoOrgId
 }
 
@@ -58,7 +63,18 @@ export default defineEventHandler(async (event) => {
   if (!WRITE_METHODS.has(event.method)) return
 
   const guardedOrgId = await getDemoOrgId()
-  if (!guardedOrgId) return
+  if (!guardedOrgId) {
+    if (import.meta.dev) return
+
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Demo mode is misconfigured. Please contact support.',
+      data: {
+        code: 'DEMO_GUARD_MISCONFIGURED',
+        message: 'DEMO_ORG_SLUG is set but could not be resolved to an organization.',
+      },
+    })
+  }
 
   // Public apply route has no session context, so resolve org by job slug.
   const publicApplyMatch = path.match(PUBLIC_APPLY_PATH_REGEX)

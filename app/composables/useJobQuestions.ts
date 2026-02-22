@@ -5,6 +5,7 @@ import type { MaybeRefOrGetter } from 'vue'
  * Wraps the question CRUD endpoints for the recruiter dashboard.
  */
 export function useJobQuestions(jobId: MaybeRefOrGetter<string>) {
+  const { withPreviewReadOnly } = usePreviewReadOnly()
   const id = computed(() => toValue(jobId))
 
   const { data: questions, status, error, refresh } = useFetch(
@@ -25,10 +26,12 @@ export function useJobQuestions(jobId: MaybeRefOrGetter<string>) {
     options?: string[]
     displayOrder?: number
   }) {
-    const created = await $fetch(`/api/jobs/${id.value}/questions`, {
-      method: 'POST',
-      body: payload,
-    })
+    const created = await withPreviewReadOnly(() =>
+      $fetch(`/api/jobs/${id.value}/questions`, {
+        method: 'POST',
+        body: payload,
+      }),
+    )
     await refresh()
     return created
   }
@@ -42,28 +45,34 @@ export function useJobQuestions(jobId: MaybeRefOrGetter<string>) {
     options?: string[] | null
     displayOrder?: number
   }) {
-    const updated = await $fetch(`/api/jobs/${id.value}/questions/${questionId}`, {
-      method: 'PATCH',
-      body: payload,
-    })
+    const updated = await withPreviewReadOnly(() =>
+      $fetch(`/api/jobs/${id.value}/questions/${questionId}`, {
+        method: 'PATCH',
+        body: payload,
+      }),
+    )
     await refresh()
     return updated
   }
 
   /** Delete a question by ID */
   async function deleteQuestion(questionId: string) {
-    await $fetch(`/api/jobs/${id.value}/questions/${questionId}`, {
-      method: 'DELETE',
-    })
+    await withPreviewReadOnly(() =>
+      $fetch(`/api/jobs/${id.value}/questions/${questionId}`, {
+        method: 'DELETE',
+      }),
+    )
     await refresh()
   }
 
   /** Bulk reorder questions */
   async function reorderQuestions(order: { id: string; displayOrder: number }[]) {
-    await $fetch(`/api/jobs/${id.value}/questions/reorder`, {
-      method: 'PUT',
-      body: { order },
-    })
+    await withPreviewReadOnly(() =>
+      $fetch(`/api/jobs/${id.value}/questions/reorder`, {
+        method: 'PUT',
+        body: { order },
+      }),
+    )
     await refresh()
   }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Kanban } from 'lucide-vue-next'
+import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 
 definePageMeta({
   layout: 'dashboard',
@@ -72,16 +73,20 @@ const columnHeaderClasses: Record<string, string> = {
 // ─────────────────────────────────────────────
 
 const transitioningId = ref<string | null>(null)
+const { withPreviewReadOnly, handlePreviewReadOnlyError } = usePreviewReadOnly()
 
 async function handleTransition(appId: string, newStatus: string) {
   transitioningId.value = appId
   try {
-    await $fetch(`/api/applications/${appId}`, {
-      method: 'PATCH',
-      body: { status: newStatus },
-    })
+    await withPreviewReadOnly(() =>
+      $fetch(`/api/applications/${appId}`, {
+        method: 'PATCH',
+        body: { status: newStatus },
+      }),
+    )
     await refreshApps()
   } catch (err: any) {
+    if (handlePreviewReadOnlyError(err)) return
     alert(err.data?.statusMessage ?? 'Failed to update status')
   } finally {
     transitioningId.value = null

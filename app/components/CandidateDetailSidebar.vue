@@ -4,6 +4,7 @@ import {
   ExternalLink, Mail, Phone, Upload, Download, Eye, Trash2,
   ArrowLeft, AlertTriangle,
 } from 'lucide-vue-next'
+import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 
 const props = defineProps<{
   applicationId: string
@@ -14,6 +15,8 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'updated'): void
 }>()
+
+const { withPreviewReadOnly, handlePreviewReadOnlyError } = usePreviewReadOnly()
 
 // ─────────────────────────────────────────────
 // Tabs
@@ -107,13 +110,16 @@ const isTransitioning = ref(false)
 async function handleTransition(newStatus: string) {
   isTransitioning.value = true
   try {
-    await $fetch(`/api/applications/${props.applicationId}`, {
-      method: 'PATCH',
-      body: { status: newStatus },
-    })
+    await withPreviewReadOnly(() =>
+      $fetch(`/api/applications/${props.applicationId}`, {
+        method: 'PATCH',
+        body: { status: newStatus },
+      }),
+    )
     await refresh()
     emit('updated')
   } catch (err: any) {
+    if (handlePreviewReadOnlyError(err)) return
     alert(err.data?.statusMessage ?? 'Failed to update status')
   } finally {
     isTransitioning.value = false
@@ -136,14 +142,17 @@ function startEditNotes() {
 async function saveNotes() {
   isSavingNotes.value = true
   try {
-    await $fetch(`/api/applications/${props.applicationId}`, {
-      method: 'PATCH',
-      body: { notes: notesInput.value || null },
-    })
+    await withPreviewReadOnly(() =>
+      $fetch(`/api/applications/${props.applicationId}`, {
+        method: 'PATCH',
+        body: { notes: notesInput.value || null },
+      }),
+    )
     await refresh()
     emit('updated')
     isEditingNotes.value = false
   } catch (err: any) {
+    if (handlePreviewReadOnlyError(err)) return
     alert(err.data?.statusMessage ?? 'Failed to save notes')
   } finally {
     isSavingNotes.value = false
@@ -243,10 +252,11 @@ async function handleDeleteDoc(docId: string) {
   if (!candidateId.value) return
   isDeletingDoc.value = true
   try {
-    await deleteDocument(docId, candidateId.value)
+    await withPreviewReadOnly(() => deleteDocument(docId, candidateId.value!))
     await refreshCandidate()
     showDocDeleteConfirm.value = null
   } catch (err: any) {
+    if (handlePreviewReadOnlyError(err)) return
     alert(err.data?.statusMessage ?? 'Failed to delete document')
   } finally {
     isDeletingDoc.value = false

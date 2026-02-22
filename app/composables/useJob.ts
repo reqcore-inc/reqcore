@@ -5,6 +5,7 @@ import type { MaybeRefOrGetter } from 'vue'
  * Wraps `useFetch('/api/jobs/:id')` with a reactive key.
  */
 export function useJob(id: MaybeRefOrGetter<string>) {
+  const { withPreviewReadOnly } = usePreviewReadOnly()
   const jobId = computed(() => toValue(id))
 
   const { data: job, status, error, refresh } = useFetch(
@@ -23,10 +24,12 @@ export function useJob(id: MaybeRefOrGetter<string>) {
     type: 'full_time' | 'part_time' | 'contract' | 'internship'
     status: 'draft' | 'open' | 'closed' | 'archived'
   }>) {
-    const updated = await $fetch(`/api/jobs/${jobId.value}`, {
-      method: 'PATCH',
-      body: payload,
-    })
+    const updated = await withPreviewReadOnly(() =>
+      $fetch(`/api/jobs/${jobId.value}`, {
+        method: 'PATCH',
+        body: payload,
+      }),
+    )
     await refresh()
     await refreshNuxtData('jobs')
     return updated
@@ -34,7 +37,7 @@ export function useJob(id: MaybeRefOrGetter<string>) {
 
   /** Delete this job and navigate back to the list */
   async function deleteJob() {
-    await $fetch(`/api/jobs/${jobId.value}`, { method: 'DELETE' })
+    await withPreviewReadOnly(() => $fetch(`/api/jobs/${jobId.value}`, { method: 'DELETE' }))
     await refreshNuxtData('jobs')
     await navigateTo('/dashboard/jobs')
   }

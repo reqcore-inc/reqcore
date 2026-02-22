@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ArrowLeft, ArrowRight, Briefcase, Clock, Hash, UserRound, Mail, MessageSquare, Hand, FileText, Paperclip, Download, Eye, Phone } from 'lucide-vue-next'
+import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 
 definePageMeta({
   layout: 'dashboard',
@@ -237,18 +238,22 @@ function setFocusStatus(status: PipelineStatus) {
 }
 
 const isMutating = ref(false)
+const { withPreviewReadOnly, handlePreviewReadOnlyError } = usePreviewReadOnly()
 
 async function changeStatus(status: string) {
   if (!currentSummary.value || isMutating.value) return
+  const applicationId = currentSummary.value.id
 
   isMutating.value = true
   const nextIndex = Math.min(currentIndex.value + 1, Math.max(focusedApplications.value.length - 1, 0))
 
   try {
-    await $fetch(`/api/applications/${currentSummary.value.id}`, {
-      method: 'PATCH',
-      body: { status },
-    })
+    await withPreviewReadOnly(() =>
+      $fetch(`/api/applications/${applicationId}`, {
+        method: 'PATCH',
+        body: { status },
+      }),
+    )
 
     await refreshApps()
 
@@ -256,6 +261,7 @@ async function changeStatus(status: string) {
       currentIndex.value = Math.min(nextIndex, focusedApplications.value.length - 1)
     }
   } catch (err: any) {
+    if (handlePreviewReadOnlyError(err)) return
     alert(err?.data?.statusMessage ?? 'Failed to update status')
   } finally {
     isMutating.value = false

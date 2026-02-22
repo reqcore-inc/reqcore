@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Eye } from 'lucide-vue-next'
+import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 
 const { data: session } = await authClient.useSession(useFetch)
 
 const config = useRuntimeConfig()
 const { activeOrg } = useCurrentOrg()
+const { isUpsellOpen, closeUpsell } = usePreviewReadOnly()
 
 const isDemo = computed(() => {
   const slug = config.public.demoOrgSlug
@@ -15,6 +17,7 @@ const isDemo = computed(() => {
 <template>
   <div class="flex min-h-screen">
     <AppSidebar />
+    <PreviewUpsellModal v-if="isUpsellOpen" @close="closeUpsell" />
     <main class="flex-1 overflow-y-auto bg-surface-50 dark:bg-surface-950 px-6 py-8">
       <!-- Demo mode banner -->
       <div

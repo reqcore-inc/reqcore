@@ -1,4 +1,5 @@
 import type { Ref } from 'vue'
+import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 
 /**
  * Composable for managing the applications list with filtering, pagination, and mutations.
@@ -9,6 +10,8 @@ export function useApplications(options?: {
   candidateId?: Ref<string | undefined> | string
   status?: Ref<string | undefined> | string
 }) {
+  const { handlePreviewReadOnlyError } = usePreviewReadOnly()
+
   const query = computed(() => ({
     ...(toValue(options?.jobId) && { jobId: toValue(options?.jobId) }),
     ...(toValue(options?.candidateId) && { candidateId: toValue(options?.candidateId) }),
@@ -30,12 +33,17 @@ export function useApplications(options?: {
     jobId: string
     notes?: string
   }) {
-    const created = await $fetch('/api/applications', {
-      method: 'POST',
-      body: payload,
-    })
-    await refresh()
-    return created
+    try {
+      const created = await $fetch('/api/applications', {
+        method: 'POST',
+        body: payload,
+      })
+      await refresh()
+      return created
+    } catch (error) {
+      handlePreviewReadOnlyError(error)
+      throw error
+    }
   }
 
   return {

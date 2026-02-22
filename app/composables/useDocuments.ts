@@ -1,3 +1,5 @@
+import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
+
 /**
  * Composable for document operations (upload, download, delete, preview).
  * Used on the candidate detail page Documents tab.
@@ -6,6 +8,8 @@
  * data cache so the document list updates automatically.
  */
 export function useDocuments() {
+  const { withPreviewReadOnly } = usePreviewReadOnly()
+
   /**
    * Upload a document for a candidate.
    * Sends multipart/form-data to POST /api/candidates/:id/documents.
@@ -24,10 +28,12 @@ export function useDocuments() {
     formData.append('file', file)
     formData.append('type', type)
 
-    const result = await $fetch(`/api/candidates/${candidateId}/documents`, {
-      method: 'POST',
-      body: formData,
-    })
+    const result = await withPreviewReadOnly(() =>
+      $fetch(`/api/candidates/${candidateId}/documents`, {
+        method: 'POST',
+        body: formData,
+      }),
+    )
 
     // Refresh the candidate detail cache so the document list updates
     await refreshNuxtData(`candidate-${candidateId}`)
@@ -66,7 +72,7 @@ export function useDocuments() {
    * @param candidateId - The owning candidate (used to refresh the cache)
    */
   async function deleteDocument(documentId: string, candidateId: string) {
-    await $fetch(`/api/documents/${documentId}`, { method: 'DELETE' })
+    await withPreviewReadOnly(() => $fetch(`/api/documents/${documentId}`, { method: 'DELETE' }))
     await refreshNuxtData(`candidate-${candidateId}`)
   }
 

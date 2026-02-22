@@ -1,4 +1,5 @@
 import type { Ref } from 'vue'
+import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 
 /**
  * Composable for managing the candidates list with search, pagination, and mutations.
@@ -7,6 +8,8 @@ import type { Ref } from 'vue'
 export function useCandidates(options?: {
   search?: Ref<string | undefined> | string
 }) {
+  const { handlePreviewReadOnlyError } = usePreviewReadOnly()
+
   const query = computed(() => ({
     ...(toValue(options?.search) && { search: toValue(options?.search) }),
   }))
@@ -27,17 +30,27 @@ export function useCandidates(options?: {
     email: string
     phone?: string
   }) {
-    const created = await $fetch('/api/candidates', {
-      method: 'POST',
-      body: payload,
-    })
-    await refresh()
-    return created
+    try {
+      const created = await $fetch('/api/candidates', {
+        method: 'POST',
+        body: payload,
+      })
+      await refresh()
+      return created
+    } catch (error) {
+      handlePreviewReadOnlyError(error)
+      throw error
+    }
   }
 
   /** Delete a candidate by ID and refresh the list */
   async function deleteCandidate(id: string) {
-    await $fetch(`/api/candidates/${id}`, { method: 'DELETE' })
+    try {
+      await $fetch(`/api/candidates/${id}`, { method: 'DELETE' })
+    } catch (error) {
+      handlePreviewReadOnlyError(error)
+      throw error
+    }
     await refresh()
   }
 
