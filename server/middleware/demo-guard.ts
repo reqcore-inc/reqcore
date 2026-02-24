@@ -93,11 +93,12 @@ export default defineEventHandler(async (event) => {
 
   const guardedOrgIds = await getDemoOrgIds(demoSlugs)
   if (guardedOrgIds.size === 0) {
-    // If the operator explicitly set DEMO_ORG_SLUG and we still can't resolve any
-    // org, that's a real misconfiguration — surface it loudly.
-    // If slugs were only added implicitly (Railway preview detection), a missing
-    // demo org is expected (e.g. a fresh PR env) — just pass through silently.
-    if (!isExplicitlyConfigured || import.meta.dev) return
+    // In dev or PR/preview environments the demo org may not exist yet
+    // (seed hasn't run, fresh DB, etc.) — pass through silently.
+    // Only surface a hard error in production-like environments where an
+    // explicitly configured DEMO_ORG_SLUG MUST resolve.
+    const isPreview = isRailwayPreviewEnvironment(env.RAILWAY_ENVIRONMENT_NAME)
+    if (!isExplicitlyConfigured || isPreview || import.meta.dev) return
 
     throw createError({
       statusCode: 503,
