@@ -13,6 +13,25 @@ const { data: job, status: fetchStatus, error: fetchError } = useFetch(
   { key: `public-job-detail-${jobSlug}` },
 )
 
+function markdownToPlainText(markdown?: string | null): string {
+  if (!markdown) return ''
+
+  return markdown
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}[-*+]\s+/gm, '')
+    .replace(/^\s{0,3}\d+\.\s+/gm, '')
+    .replace(/[*_~]/g, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const jobDescriptionPlain = computed(() => markdownToPlainText(job.value?.description))
+
 // ─────────────────────────────────────────────
 // SEO — Meta tags (title, description, OG, Twitter)
 // ─────────────────────────────────────────────
@@ -23,7 +42,7 @@ useSeoMeta({
     if (!job.value) return 'View job details and apply'
     const loc = job.value.location ? ` in ${job.value.location}` : ''
     const org = job.value.organizationName ? ` at ${job.value.organizationName}` : ''
-    return `Apply for ${job.value.title}${org}${loc}. ${job.value.description?.slice(0, 120) ?? ''}`.trim()
+    return `Apply for ${job.value.title}${org}${loc}. ${jobDescriptionPlain.value.slice(0, 120)}`.trim()
   }),
   ogTitle: computed(() => job.value ? `${job.value.title} — Hiring Now` : 'Job Details'),
   ogDescription: computed(() => {
@@ -64,7 +83,7 @@ watchEffect(() => {
   const posting: Record<string, unknown> = {
     '@type': 'JobPosting',
     'title': j.title,
-    'description': j.description ?? j.title,
+    'description': jobDescriptionPlain.value || j.title,
     'datePosted': j.createdAt,
     'employmentType': mapEmploymentType(j.type),
     'directApply': true,
@@ -227,9 +246,7 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
       <!-- Description -->
       <div v-if="job.description" class="mb-8">
         <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-100 mb-3">About this role</h2>
-        <div class="text-sm text-surface-700 dark:text-surface-300 leading-relaxed whitespace-pre-wrap">
-          {{ job.description }}
-        </div>
+        <MarkdownDescription :value="job.description" />
       </div>
 
       <!-- Custom questions preview -->

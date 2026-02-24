@@ -230,9 +230,9 @@ const typeLabels: Record<string, string> = {
             {{ job.location }}
           </span>
         </div>
-        <p v-if="job.description" class="mt-4 text-sm text-surface-600 dark:text-surface-400 whitespace-pre-wrap">
-          {{ job.description }}
-        </p>
+        <div v-if="job.description" class="mt-4">
+          <MarkdownDescription :value="job.description" />
+        </div>
       </div>
 
       <hr class="border-surface-200 dark:border-surface-800 mb-8" />

@@ -343,7 +343,7 @@ const applicantsInWindow = computed(() =>
         <!-- Description -->
         <div class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 mb-4">
           <h2 class="text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">Description</h2>
-          <p v-if="job.description" class="text-sm text-surface-600 dark:text-surface-400 whitespace-pre-wrap">{{ job.description }}</p>
+          <MarkdownDescription v-if="job.description" :value="job.description" />
           <p v-else class="text-sm text-surface-400 dark:text-surface-500 italic">No description provided.</p>
         </div>
 
