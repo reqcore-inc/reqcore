@@ -19,6 +19,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.995.0",
     "@nuxt/content": "^3.11.2",
+    "@nuxtjs/mdc": "^0.20.1",
     "@nuxtjs/seo": "^3.4.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.18",
