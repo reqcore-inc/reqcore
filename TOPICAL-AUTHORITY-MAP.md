@@ -86,7 +86,7 @@ All articles must follow the SEO Skill ([`.agents/skills/seo-skill/SKILL.md`](.a
 **Supporting — Decision frameworks:**
 - [ ] ATS features that actually matter (and which are bloat) 🟢
 - [ ] Red flags when evaluating an applicant tracking system 🟢
-- [ ] Total cost of ownership: SaaS ATS vs self-hosted open source 🟢 → [Cluster 4]
+- [x] Total cost of ownership: SaaS ATS vs self-hosted open source 🟢 → [Cluster 4]
 - [ ] How to run an ATS proof of concept before committing 🟢
 - [ ] Questions to ask in an ATS demo that vendors don't want you to ask 🟢
 - [ ] The ATS buyer's scorecard: how to evaluate and rank options 🔴

@@ -277,6 +277,8 @@ Here is a realistic 3-year total cost comparison for a company with 10 recruiter
 
 Even at the high end — assuming senior engineering time for setup and monthly maintenance — the self-hosted open source option costs 70–87% less over three years. The savings multiply as you add team members, since SaaS pricing scales per seat while self-hosted costs remain flat.
 
+For a deeper breakdown including hidden cost categories, per-seat compounding analysis, and a TCO calculator framework, see our [total cost of ownership: SaaS ATS vs self-hosted](/blog/total-cost-of-ownership-saas-ats-vs-self-hosted) guide.
+
 The more honest framing: open source does not cost zero. It costs engineering time instead of subscription dollars. For companies with technical capacity, that trade-off is overwhelmingly favorable. For reference, Applirank's production deployment on Railway costs roughly $5/month for the application service plus the included PostgreSQL database and S3 storage — that is $180 over three years for a fully managed platform, not $36,000.
 
 For companies with zero technical staff, a managed deployment option (like Applirank on Railway or ERPNext on Frappe Cloud) bridges the gap without requiring server administration skills.

@@ -86,6 +86,8 @@ Most "self-hosted is cheaper" claims omit maintenance costs. Here is an honest t
 
 The self-hosted VPS option costs **66% less** even after accounting for engineering time. The managed deployment on Railway — where infrastructure is handled for you — costs **91% less** than a mid-tier cloud ATS.
 
+For a full breakdown of hidden ATS costs, multi-scenario modeling across different team sizes, and a TCO calculator framework, see our [total cost of ownership: SaaS ATS vs self-hosted](/blog/total-cost-of-ownership-saas-ats-vs-self-hosted) guide.
+
 The savings multiply as you grow. Adding a 15th recruiter to a cloud ATS costs an extra $6,000 over three years. Adding that same recruiter to a self-hosted system costs nothing.
 
 According to [SHRM research](https://www.shrm.org/topics-tools/news/talent-acquisition), the average cost-per-hire is approximately $4,700. At $12,000/year in ATS subscription fees, you are paying the equivalent of 2.5 hires per year just for the software to manage the process.
