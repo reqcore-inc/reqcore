@@ -1086,8 +1086,14 @@ const ctaRef = useScrollFade()
     </section>
 
     <!-- ─── Tech Stack ─────────────────────────────────── -->
-    <section ref="techStackRef" class="scroll-fade border-t border-white/[0.06] py-24 sm:py-32">
-      <div class="mx-auto max-w-6xl px-6">
+    <section ref="techStackRef" class="scroll-fade relative overflow-hidden border-t border-white/[0.06] py-24 sm:py-32">
+      <!-- Ambient glow orbs -->
+      <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div class="absolute top-1/3 left-1/4 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-500/[0.04] blur-[160px]" />
+        <div class="absolute right-1/4 bottom-1/3 h-[400px] w-[400px] translate-x-1/2 translate-y-1/2 rounded-full bg-[#00DC82]/[0.03] blur-[140px]" />
+      </div>
+
+      <div class="relative mx-auto max-w-6xl px-6">
         <div class="mx-auto max-w-2xl text-center">
           <p class="text-sm font-semibold tracking-[0.2em] text-brand-400 uppercase">Built With</p>
           <h2 class="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -1098,36 +1104,91 @@ const ctaRef = useScrollFade()
           </p>
         </div>
 
-        <div class="mx-auto mt-14 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <div class="stagger-child flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center transition hover:border-white/[0.12] hover:bg-white/[0.04]">
-            <svg class="h-7 w-7" viewBox="0 0 400 400" fill="none">
-              <path d="M227.3 321.7H354c4.5 0 8.9-1.2 12.7-3.5 3.9-2.3 7-5.5 9.2-9.4 2.1-3.9 3.2-8.2 3.1-12.6-.1-4.4-1.4-8.7-3.7-12.4L281 122.6c-2.2-3.8-5.4-6.9-9.2-9.1-3.8-2.2-8.1-3.4-12.5-3.4s-8.7 1.2-12.5 3.4c-3.8 2.2-7 5.3-9.2 9.1l-10.3 17.8-20.2-34.8c-2.3-3.8-5.5-7-9.4-9.2-3.9-2.2-8.2-3.4-12.7-3.4-4.4 0-8.8 1.2-12.7 3.4-3.9 2.2-7.1 5.3-9.4 9.2L46.7 283.8c-2.3 3.8-3.5 8-3.6 12.4-.1 4.4 1 8.7 3.1 12.6 2.1 3.9 5.3 7.1 9.2 9.4 3.9 2.3 8.3 3.5 12.7 3.5h79.9c35.3 0 61.4-15.4 79.3-45.8l53.2-91.7-20.1-34.7-63.3 109.2c-13 22-28.7 29.4-52.7 29.4H88.2l97-167.6 48.3 83.4-26.5 45.6 20.3 35z" fill="#00DC82"/>
-            </svg>
-            <span class="text-[13px] font-medium text-surface-300">Nuxt 4</span>
+        <div class="mx-auto mt-16 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- Nuxt 4 -->
+          <div class="tech-card stagger-child group relative overflow-hidden rounded-2xl">
+            <div class="tech-card-border" />
+            <div class="relative flex items-start gap-4 p-6">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#00DC82]/10 ring-1 ring-inset ring-[#00DC82]/20 transition-all duration-300 group-hover:bg-[#00DC82]/15 group-hover:ring-[#00DC82]/30 group-hover:shadow-[0_0_20px_rgba(0,220,130,0.1)]">
+                <svg class="h-5 w-5" viewBox="0 0 400 400" fill="none">
+                  <path d="M227.3 321.7H354c4.5 0 8.9-1.2 12.7-3.5 3.9-2.3 7-5.5 9.2-9.4 2.1-3.9 3.2-8.2 3.1-12.6-.1-4.4-1.4-8.7-3.7-12.4L281 122.6c-2.2-3.8-5.4-6.9-9.2-9.1-3.8-2.2-8.1-3.4-12.5-3.4s-8.7 1.2-12.5 3.4c-3.8 2.2-7 5.3-9.2 9.1l-10.3 17.8-20.2-34.8c-2.3-3.8-5.5-7-9.4-9.2-3.9-2.2-8.2-3.4-12.7-3.4-4.4 0-8.8 1.2-12.7 3.4-3.9 2.2-7.1 5.3-9.4 9.2L46.7 283.8c-2.3 3.8-3.5 8-3.6 12.4-.1 4.4 1 8.7 3.1 12.6 2.1 3.9 5.3 7.1 9.2 9.4 3.9 2.3 8.3 3.5 12.7 3.5h79.9c35.3 0 61.4-15.4 79.3-45.8l53.2-91.7-20.1-34.7-63.3 109.2c-13 22-28.7 29.4-52.7 29.4H88.2l97-167.6 48.3 83.4-26.5 45.6 20.3 35z" fill="#00DC82"/>
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-[15px] font-semibold text-white">Nuxt 4</h3>
+                <p class="mt-1 text-[13px] leading-relaxed text-surface-500">Full-stack Vue framework with SSR, file-based routing, and server API.</p>
+              </div>
+            </div>
           </div>
-          <div class="stagger-child flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center transition hover:border-white/[0.12] hover:bg-white/[0.04]">
-            <svg class="h-7 w-7" viewBox="0 0 25.6 25.6" fill="none">
-              <g fill="#336791"><path d="M18.98 20.85c-.36.04-.18-.16-.63-.3-.46-.14-1.06-.48-.8-1 .58-1.08 1.07-.37 1.35-.08.36.37.46.68.37.91-.05.12-.14.2-.3.23l.01.24z"/><path d="M23.6 14.76c-.2-1.54-.6-2.1-1.85-2.78l-.6-.24c.88-1.38 1.6-2.93 1.88-4.08.4-1.6.14-2.38-.3-2.96a7.09 7.09 0 0 0-2.3-1.94 7.38 7.38 0 0 0-2.1-.66c-.33-.62-.54-1.28-1.27-1.72A5.1 5.1 0 0 0 14.66 0c-1.53.08-2.68.74-3.45 1.6-1 .06-1.97.22-2.77.6C7.53 2.57 7 3.14 6.6 3.93 5.37 3.84 3.99 4.3 3 5.21c-.84.77-1.37 1.83-1.27 3.56.03.46.43 3.25 1.15 5.44.4 1.21.85 2.25 1.37 2.88.25.3.53.5.85.55.4.06.8-.13 1.1-.54.82-1.13 1.45-2.2 1.77-4.78.5.22.94.35 1.35.41l-.01.05c-.35.54-.28.62-1.05 1.03-.23.12-.06.34.42.47.52.14 1.73.22 2.78-.62.22.72.28 1.67.22 2.87-.06 1.28-.37 1.65-.73 2.23-.14.22-.28.47-.4.82-.25.67-.12 1.08.28 1.33.36.23 1.02.33 1.78.15 1.35-.33 2.13-.8 2.58-2.48.24-.87.14-2.86.34-4.3.02-.11.04-.18.08-.16.22.16.42.46.6.86.25.55.4 1.22.43 1.73.04.63-.1 1.38-.23 2.15-.2 1.1-.4 2.2-.1 2.93.7 1.64 2.53 1.16 3.68.3.48-.36 1.5-1.3 1.16-3.93z"/></g>
-              <path d="M23.1 14.96c-.13-1-1-1.58-2.1-2l-.03-.02c.88-1.38 1.59-2.9 1.86-4.04.35-1.44.14-2.14-.24-2.66l-.02-.02A6.87 6.87 0 0 0 20.34 4.4a6.8 6.8 0 0 0-1.92-.6c-.38-.62-.65-1.29-1.44-1.74A4.8 4.8 0 0 0 14.68.28c-1.4.07-2.48.67-3.22 1.48a8 8 0 0 0-2.6.55c-.85.38-1.32.89-1.7 1.58-1.14-.08-2.36.34-3.26 1.16-.74.68-1.22 1.6-1.13 3.13.03.42.42 3.15 1.12 5.28.37 1.13.79 2.08 1.25 2.65.22.27.45.4.68.44.3.04.57-.12.8-.43.84-1.16 1.5-2.33 1.8-4.8.22.08.43.14.63.18l.34.07v.02c-.4.6-.31.57-1.04.95l-.1.06c-.13.06-.1.2.2.32.04.01.1.03.17.05.42.1 1.4.13 2.36-.46l.13-.09c.17.67.22 1.54.17 2.72-.06 1.27-.38 1.72-.75 2.3l-.06.1c-.13.2-.26.42-.37.72-.2.55-.1.9.25 1.12.18.12.57.28 1.3.1h.03c1.3-.32 1.96-.75 2.37-2.26.17-.63.12-1.95.22-3.4.02-.35.07-.67.15-.76l.04-.06c.04-.05.08-.06.14-.02.2.16.38.42.55.78.23.5.37 1.12.4 1.57.04.63-.1 1.36-.23 2.1-.2 1.1-.41 2.26-.11 2.96.57 1.3 2.1.96 3.17.3h.01c.48-.33 1.35-1.2 1.07-3.38z" fill="#fff"/>
-              <path d="M12.1 16.34c-.35.42-.77.64-1.15.72-.38.08-.67-.02-.72-.05.12-.35.26-.6.4-.82.35-.57.7-1.1.77-2.46.07-1.4-.03-2.48-.32-3.28l.03.01c.25.16.52.5.72.98.36.87.58 2.18.27 4.9z" fill="#336791"/>
-            </svg>
-            <span class="text-[13px] font-medium text-surface-300">PostgreSQL</span>
+
+          <!-- PostgreSQL -->
+          <div class="tech-card stagger-child group relative overflow-hidden rounded-2xl">
+            <div class="tech-card-border" />
+            <div class="relative flex items-start gap-4 p-6">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#336791]/10 ring-1 ring-inset ring-[#336791]/20 transition-all duration-300 group-hover:bg-[#336791]/15 group-hover:ring-[#336791]/30 group-hover:shadow-[0_0_20px_rgba(51,103,145,0.1)]">
+                <Database class="h-5 w-5 text-[#5B9BD5]" :stroke-width="1.5" />
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-[15px] font-semibold text-white">PostgreSQL</h3>
+                <p class="mt-1 text-[13px] leading-relaxed text-surface-500">Rock-solid relational database. Full ACID compliance, your data stays yours.</p>
+              </div>
+            </div>
           </div>
-          <div class="stagger-child flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center transition hover:border-white/[0.12] hover:bg-white/[0.04]">
-            <Droplets class="h-7 w-7 text-[#C5F74F]" :stroke-width="1.5" />
-            <span class="text-[13px] font-medium text-surface-300">Drizzle ORM</span>
+
+          <!-- Drizzle ORM -->
+          <div class="tech-card stagger-child group relative overflow-hidden rounded-2xl">
+            <div class="tech-card-border" />
+            <div class="relative flex items-start gap-4 p-6">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#C5F74F]/10 ring-1 ring-inset ring-[#C5F74F]/20 transition-all duration-300 group-hover:bg-[#C5F74F]/15 group-hover:ring-[#C5F74F]/30 group-hover:shadow-[0_0_20px_rgba(197,247,79,0.08)]">
+                <Droplets class="h-5 w-5 text-[#C5F74F]" :stroke-width="1.5" />
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-[15px] font-semibold text-white">Drizzle ORM</h3>
+                <p class="mt-1 text-[13px] leading-relaxed text-surface-500">Type-safe SQL with zero abstraction overhead. Migrations that just work.</p>
+              </div>
+            </div>
           </div>
-          <div class="stagger-child flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center transition hover:border-white/[0.12] hover:bg-white/[0.04]">
-            <KeyRound class="h-7 w-7 text-surface-300" :stroke-width="1.5" />
-            <span class="text-[13px] font-medium text-surface-300">Better Auth</span>
+
+          <!-- Better Auth -->
+          <div class="tech-card stagger-child group relative overflow-hidden rounded-2xl">
+            <div class="tech-card-border" />
+            <div class="relative flex items-start gap-4 p-6">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] ring-1 ring-inset ring-white/[0.08] transition-all duration-300 group-hover:bg-white/[0.08] group-hover:ring-white/[0.14] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.04)]">
+                <KeyRound class="h-5 w-5 text-surface-300" :stroke-width="1.5" />
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-[15px] font-semibold text-white">Better Auth</h3>
+                <p class="mt-1 text-[13px] leading-relaxed text-surface-500">Framework-agnostic authentication. Sessions, OAuth, and org management built in.</p>
+              </div>
+            </div>
           </div>
-          <div class="stagger-child flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center transition hover:border-white/[0.12] hover:bg-white/[0.04]">
-            <HardDrive class="h-7 w-7 text-[#C72C48]" :stroke-width="1.5" />
-            <span class="text-[13px] font-medium text-surface-300">MinIO / S3</span>
+
+          <!-- MinIO / S3 -->
+          <div class="tech-card stagger-child group relative overflow-hidden rounded-2xl">
+            <div class="tech-card-border" />
+            <div class="relative flex items-start gap-4 p-6">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#C72C48]/10 ring-1 ring-inset ring-[#C72C48]/20 transition-all duration-300 group-hover:bg-[#C72C48]/15 group-hover:ring-[#C72C48]/30 group-hover:shadow-[0_0_20px_rgba(199,44,72,0.1)]">
+                <HardDrive class="h-5 w-5 text-[#C72C48]" :stroke-width="1.5" />
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-[15px] font-semibold text-white">MinIO / S3</h3>
+                <p class="mt-1 text-[13px] leading-relaxed text-surface-500">S3-compatible object storage. Self-hosted or cloud — resumes stay on your infra.</p>
+              </div>
+            </div>
           </div>
-          <div class="stagger-child flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center transition hover:border-white/[0.12] hover:bg-white/[0.04]">
-            <Container class="h-7 w-7 text-[#2496ED]" :stroke-width="1.5" />
-            <span class="text-[13px] font-medium text-surface-300">Docker</span>
+
+          <!-- Docker -->
+          <div class="tech-card stagger-child group relative overflow-hidden rounded-2xl">
+            <div class="tech-card-border" />
+            <div class="relative flex items-start gap-4 p-6">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#2496ED]/10 ring-1 ring-inset ring-[#2496ED]/20 transition-all duration-300 group-hover:bg-[#2496ED]/15 group-hover:ring-[#2496ED]/30 group-hover:shadow-[0_0_20px_rgba(36,150,237,0.1)]">
+                <Container class="h-5 w-5 text-[#2496ED]" :stroke-width="1.5" />
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-[15px] font-semibold text-white">Docker</h3>
+                <p class="mt-1 text-[13px] leading-relaxed text-surface-500">One command to deploy. Compose up, port forward, done — every time.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

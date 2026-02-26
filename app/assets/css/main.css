@@ -232,6 +232,52 @@
     #0c0c0f;
 }
 
+/* ── Tech stack cards (Linear-style premium) ──────────── */
+.tech-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%),
+    rgba(12, 12, 15, 0.8);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tech-card:hover {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%),
+    rgba(12, 12, 15, 0.8);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 8px 40px -12px rgba(0,0,0,0.5);
+}
+
+.tech-card-border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 40%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.tech-card:hover .tech-card-border {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.05) 40%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+}
+
 .bento-card::before {
   content: '';
   position: absolute;
