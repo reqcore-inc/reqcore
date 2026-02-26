@@ -1,10 +1,10 @@
 <div align="center">
 
-# Applirank
+# Reqcore
 
 **The open-source ATS you own. No per-seat fees. No data lock-in. No secret algorithms.**
 
-[Live Demo](https://demo.applirank.com) · [Documentation](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Report Bug](https://github.com/applirank/applirank/issues/new)
+[Live Demo](https://demo.reqcore.com) · [Documentation](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Report Bug](https://github.com/reqcore/reqcore/issues/new)
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 
@@ -12,11 +12,11 @@
 
 ---
 
-Most recruiting software holds your candidate data hostage behind per-seat pricing and opaque algorithms. Applirank is different — it runs on **your** infrastructure, your team scales without increasing your software bill, and when AI ranks a candidate, it shows you exactly why.
+Most recruiting software holds your candidate data hostage behind per-seat pricing and opaque algorithms. Reqcore is different — it runs on **your** infrastructure, your team scales without increasing your software bill, and when AI ranks a candidate, it shows you exactly why.
 
-## Why Applirank?
+## Why Reqcore?
 
-| | **Applirank** | Greenhouse | Lever | Ashby | OpenCATS |
+| | **Reqcore** | Greenhouse | Lever | Ashby | OpenCATS |
 |---|:---:|:---:|:---:|:---:|:---:|
 | **Open source** | ✅ | ❌ | ❌ | ❌ | ✅ |
 | **Self-hosted** | ✅ | ❌ | ❌ | ❌ | ✅ |
@@ -70,16 +70,16 @@ You should see something like `Docker version 27.x.x`. If you get `command not f
 
 ---
 
-### Step 2 — Download Applirank
+### Step 2 — Download Reqcore
 
 Clone the repository (this downloads the source code):
 
 ```bash
-git clone https://github.com/applirank/applirank.git
-cd applirank
+git clone https://github.com/reqcore/reqcore.git
+cd reqcore
 ```
 
-> Don't have `git`? [Download it here](https://git-scm.com/downloads), or [download a ZIP](https://github.com/applirank/applirank/archive/refs/heads/main.zip) and unzip it manually.
+> Don't have `git`? [Download it here](https://git-scm.com/downloads), or [download a ZIP](https://github.com/reqcore/reqcore/archive/refs/heads/main.zip) and unzip it manually.
 
 ---
 
@@ -115,7 +115,7 @@ app  | Listening on http://[::]:3000
 
 ---
 
-### Step 5 — Open Applirank
+### Step 5 — Open Reqcore
 
 Go to **[http://localhost:3000](http://localhost:3000)** in your browser.
 
@@ -132,7 +132,7 @@ docker compose exec app npm run db:seed
 ```
 
 Then sign in with:
-- **Email:** `demo@applirank.com`
+- **Email:** `demo@reqcore.com`
 - **Password:** `demo1234`
 
 ---
@@ -159,7 +159,7 @@ docker compose down -v
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **App** | [localhost:3000](http://localhost:3000) | The Applirank web UI |
+| **App** | [localhost:3000](http://localhost:3000) | The Reqcore web UI |
 | **MinIO Console** | [localhost:9001](http://localhost:9001) | File storage browser (S3-compatible) |
 | **Adminer** | [localhost:8080](http://localhost:8080) | Database browser — only with `--profile tools` |
 
@@ -218,7 +218,7 @@ setup.sh                      # One-time secret generator → writes .env
 
 ## Deployment
 
-Applirank is designed to run on a single VPS. The reference deployment uses:
+Reqcore is designed to run on a single VPS. The reference deployment uses:
 
 | Component | Role |
 |-----------|------|
@@ -249,7 +249,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full deployment architecture diag
 
 ## Roadmap
 
-Applirank is actively developed. Here's what's next:
+Reqcore is actively developed. Here's what's next:
 
 | Status | Milestone |
 |--------|-----------|
@@ -261,7 +261,7 @@ See the full [Roadmap](ROADMAP.md) and [Product Vision](PRODUCT.md).
 
 ## Contributing
 
-Applirank is in early development and contributions are welcome. Check [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, DCO sign-off requirements, and submission guidelines.
+Reqcore is in early development and contributions are welcome. Check [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, DCO sign-off requirements, and submission guidelines.
 
 ## License
 

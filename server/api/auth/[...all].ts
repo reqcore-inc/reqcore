@@ -3,7 +3,7 @@ export default defineEventHandler(async (event) => {
     return await auth.handler(toWebRequest(event))
   } catch (error) {
     const requestUrl = getRequestURL(event)
-    console.error('[Applirank] Auth handler error', {
+    console.error('[Reqcore] Auth handler error', {
       method: event.method,
       path: requestUrl.pathname,
       message: error instanceof Error ? error.message : 'Unknown error',

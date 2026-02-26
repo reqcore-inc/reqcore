@@ -16,8 +16,8 @@ const { application, status: fetchStatus, error, updateApplication } = useApplic
 useSeoMeta({
   title: computed(() =>
     application.value
-      ? `${application.value.candidate.firstName} ${application.value.candidate.lastName} → ${application.value.job.title} — Applirank`
-      : 'Application — Applirank',
+      ? `${application.value.candidate.firstName} ${application.value.candidate.lastName} → ${application.value.job.title} — Reqcore`
+      : 'Application — Reqcore',
   ),
 })
 

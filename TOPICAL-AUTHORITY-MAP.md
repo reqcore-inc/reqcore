@@ -38,7 +38,7 @@ All articles must follow the SEO Skill ([`.agents/skills/seo-skill/SKILL.md`](.a
 - **Supporting articles:** 1,200–2,000 words, links to pillar + 2–3 siblings.
 - Every article must include at least one of: original screenshot, data point, code snippet, decision framework, or template.
 - No filler paragraphs — every section teaches something specific.
-- First-person experience from building Applirank wherever relevant (E-E-A-T).
+- First-person experience from building Reqcore wherever relevant (E-E-A-T).
 - Answer the query in the first 100 words (featured snippet + AI Overview optimization).
 - Apply the full [SEO Quality Checklist](.agents/skills/seo-skill/SKILL.md) §15 before publishing.
 - Update every pillar page quarterly (freshness signal).
@@ -81,7 +81,7 @@ All articles must follow the SEO Skill ([`.agents/skills/seo-skill/SKILL.md`](.a
 - [ ] Zoho Recruit vs open source ATS: ecosystem comparison 🟢
 - [ ] iCIMS vs open source ATS: legacy vs modern 🟢
 - [ ] SmartRecruiters vs open source ATS: enterprise vs DIY 🟢
-- [ ] OpenCATS vs Applirank: open source ATS head-to-head 🟢
+- [ ] OpenCATS vs Reqcore: open source ATS head-to-head 🟢
 
 **Supporting — Decision frameworks:**
 - [ ] ATS features that actually matter (and which are bloat) 🟢
@@ -119,11 +119,11 @@ All articles must follow the SEO Skill ([`.agents/skills/seo-skill/SKILL.md`](.a
 
 ## Phase 2: Differentiation (Weeks 5–8)
 
-> These are Applirank's moat. No competitor covers transparent AI scoring or self-hosted data ownership with this depth.
+> These are Reqcore's moat. No competitor covers transparent AI scoring or self-hosted data ownership with this depth.
 
 ### Cluster 3: AI & Automation in Your ATS (Differentiation Cluster) — 17 articles
 
-> Where Applirank's transparent AI positioning shines. High interest, under-served by competitors.
+> Where Reqcore's transparent AI positioning shines. High interest, under-served by competitors.
 
 **Pillar:**
 - [ ] How AI works in modern applicant tracking systems (the honest guide) 🔵
@@ -307,7 +307,7 @@ All articles must follow the SEO Skill ([`.agents/skills/seo-skill/SKILL.md`](.a
 
 ### Cluster 9: Migration & Switching ATS (Action Cluster) — 9 articles
 
-> Pure conversion content. People searching these are ready to switch. Tightest path to Applirank adoption.
+> Pure conversion content. People searching these are ready to switch. Tightest path to Reqcore adoption.
 
 **Pillar:**
 - [ ] How to switch your ATS without losing data or momentum 🔴

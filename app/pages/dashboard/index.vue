@@ -11,7 +11,7 @@ definePageMeta({
 })
 
 useSeoMeta({
-  title: 'Dashboard — Applirank',
+  title: 'Dashboard — Reqcore',
   description: 'Your recruitment overview',
 })
 
@@ -220,7 +220,7 @@ const isEmpty = computed(() =>
       <div class="rounded-2xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-10 text-center max-w-md">
         <Briefcase class="size-12 text-brand-400 mx-auto mb-4" />
         <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-100 mb-2">
-          Welcome to Applirank
+          Welcome to Reqcore
         </h2>
         <p class="text-sm text-surface-500 dark:text-surface-400 mb-6 leading-relaxed">
           Get started by creating your first job posting. Candidates and applications will appear here as they come in.

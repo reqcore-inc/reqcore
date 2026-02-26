@@ -42,8 +42,8 @@ useSchemaOrg([
     image: post.value.image || '/og-image.png',
     publisher: {
       '@type': 'Organization',
-      name: 'Applirank',
-      url: 'https://applirank.com',
+      name: 'Reqcore',
+      url: 'https://reqcore.com',
     },
   }),
 ])
@@ -64,13 +64,13 @@ const { data: session } = await authClient.useSession(useFetch)
       class="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl"
     >
       <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-        <NuxtLink to="/" class="text-[15px] font-semibold tracking-tight">Applirank</NuxtLink>
+        <NuxtLink to="/" class="text-[15px] font-semibold tracking-tight">Reqcore</NuxtLink>
         <div class="flex items-center gap-5 text-[13px] text-white/60">
           <NuxtLink to="/roadmap" class="transition hover:text-white">Roadmap</NuxtLink>
           <NuxtLink to="/catalog" class="transition hover:text-white">Features</NuxtLink>
           <NuxtLink to="/blog" class="text-white transition">Blog</NuxtLink>
           <a
-            href="https://github.com/joachimhorsworthy/applirank"
+            href="https://github.com/joachimhorsworthy/reqcore"
             target="_blank"
             class="transition hover:text-white"
           >
@@ -142,7 +142,7 @@ const { data: session } = await authClient.useSession(useFetch)
         >
           <h3 class="text-lg font-semibold">Ready to own your hiring?</h3>
           <p class="mt-2 text-sm text-white/50">
-            Applirank is the open-source ATS you can self-host. Transparent AI, no per-seat fees, full data ownership.
+            Reqcore is the open-source ATS you can self-host. Transparent AI, no per-seat fees, full data ownership.
           </p>
           <div class="mt-5 flex items-center justify-center gap-3">
             <NuxtLink
@@ -165,12 +165,12 @@ const { data: session } = await authClient.useSession(useFetch)
     <!-- ───── Footer ───── -->
     <footer class="border-t border-white/[0.06] py-8">
       <div class="mx-auto max-w-5xl px-6 flex items-center justify-between text-xs text-white/30">
-        <span>&copy; {{ new Date().getFullYear() }} Applirank</span>
+        <span>&copy; {{ new Date().getFullYear() }} Reqcore</span>
         <div class="flex items-center gap-4">
           <NuxtLink to="/" class="transition hover:text-white/60">Home</NuxtLink>
           <NuxtLink to="/roadmap" class="transition hover:text-white/60">Roadmap</NuxtLink>
           <a
-            href="https://github.com/joachimhorsworthy/applirank"
+            href="https://github.com/joachimhorsworthy/reqcore"
             target="_blank"
             class="transition hover:text-white/60"
           >

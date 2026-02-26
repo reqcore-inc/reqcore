@@ -1,6 +1,6 @@
-# Contributing to Applirank
+# Contributing to Reqcore
 
-Thanks for contributing to Applirank.
+Thanks for contributing to Reqcore.
 
 ## Before You Start
 
@@ -11,8 +11,8 @@ Thanks for contributing to Applirank.
 ## Development Setup
 
 ```bash
-git clone https://github.com/applirank/applirank.git
-cd applirank
+git clone https://github.com/reqcore/reqcore.git
+cd reqcore
 cp .env.example .env
 docker compose up -d
 npm install
@@ -28,7 +28,7 @@ npm run dev
 
 ### DCO Sign-off (Required)
 
-Applirank uses the Developer Certificate of Origin (DCO) instead of a CLA.
+Reqcore uses the Developer Certificate of Origin (DCO) instead of a CLA.
 
 Sign every commit with:
 

@@ -5,8 +5,8 @@ definePageMeta({
 })
 
 useSeoMeta({
-  title: 'Sign In — Applirank',
-  description: 'Sign in to your Applirank account',
+  title: 'Sign In — Reqcore',
+  description: 'Sign in to your Reqcore account',
   robots: 'noindex, nofollow',
 })
 

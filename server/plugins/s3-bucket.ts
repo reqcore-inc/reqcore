@@ -14,15 +14,15 @@ export default defineNitroPlugin(async () => {
   // Managed S3 providers (Railway Buckets, AWS S3) pre-provision buckets
   // and enforce privacy at the platform level — skip bucket initialization
   if (!env.S3_FORCE_PATH_STYLE) {
-    console.log(`[Applirank] S3 bucket "${env.S3_BUCKET}" — managed provider detected, skipping initialization`)
+    console.log(`[Reqcore] S3 bucket "${env.S3_BUCKET}" — managed provider detected, skipping initialization`)
     return
   }
 
   try {
     await ensureBucketExists()
-    console.log(`[Applirank] S3 bucket "${env.S3_BUCKET}" is ready`)
+    console.log(`[Reqcore] S3 bucket "${env.S3_BUCKET}" is ready`)
   } catch (error) {
-    console.error(`[Applirank] Failed to initialize S3 bucket "${env.S3_BUCKET}":`, error)
+    console.error(`[Reqcore] Failed to initialize S3 bucket "${env.S3_BUCKET}":`, error)
     // Don't throw — the app can still start, but uploads will fail.
     // This allows the app to boot even if MinIO is temporarily unavailable.
   }

@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: applirank_db
+    container_name: reqcore_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER}
@@ -19,7 +19,7 @@ services:
 
   minio:
     image: minio/minio
-    container_name: applirank_minio
+    container_name: reqcore_minio
     restart: unless-stopped
     ports:
       - "127.0.0.1:9000:9000" # S3 API — localhost only, never expose publicly
@@ -38,7 +38,7 @@ services:
 
   app:
     build: .
-    container_name: applirank_app
+    container_name: reqcore_app
     restart: unless-stopped
     env_file: .env
     environment:
@@ -56,7 +56,7 @@ services:
   # Optional DB browser — run with: docker compose --profile tools up
   adminer:
     image: adminer
-    container_name: applirank_adminer
+    container_name: reqcore_adminer
     restart: unless-stopped
     profiles: [tools]
     ports:

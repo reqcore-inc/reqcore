@@ -7,7 +7,7 @@ definePageMeta({
 })
 
 useSeoMeta({
-  title: 'Jobs — Applirank',
+  title: 'Jobs — Reqcore',
   description: 'Manage your job postings',
 })
 

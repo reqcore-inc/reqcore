@@ -15,7 +15,7 @@ const { data: job, status: fetchStatus, error: fetchError } = useFetch(
 )
 
 useSeoMeta({
-  title: computed(() => job.value ? `Apply — ${job.value.title}` : 'Apply — Applirank'),
+  title: computed(() => job.value ? `Apply — ${job.value.title}` : 'Apply — Reqcore'),
   description: computed(() => job.value?.description?.slice(0, 160) ?? 'Submit your application'),
   robots: 'noindex, nofollow',
 })

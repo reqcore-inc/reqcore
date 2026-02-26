@@ -64,14 +64,14 @@ Never use full names unless publicly attributed. Use: platform, role, and compan
 
 ### Step 3: Builder Experience Notes
 
-**When:** The topic relates to something built or decided in Applirank.
-**Skip if:** The topic has no connection to Applirank's technical implementation.
+**When:** The topic relates to something built or decided in Reqcore.
+**Skip if:** The topic has no connection to Reqcore's technical implementation.
 
 Prompt the human with these specific questions:
 
 1. **"What's one technical decision you made related to this topic, and why?"** (e.g., "I chose Drizzle ORM over Prisma because...")
 2. **"What problem did you encounter building this, and how did you solve it?"**
-3. **"Do you have a number or data point from Applirank's development?"** (processing time, architecture choice, lines of code, deployment metric)
+3. **"Do you have a number or data point from Reqcore's development?"** (processing time, architecture choice, lines of code, deployment metric)
 4. **"What's one thing you learned building this that most people get wrong?"**
 5. **"Do you hold an opinion based on building experience that goes against conventional wisdom?"**
 
@@ -156,7 +156,7 @@ Compile all gathered materials into this structured format.
 
 ---
 
-## 3. Builder Experience (Applirank)
+## 3. Builder Experience (Reqcore)
 
 - [specific experience, decision, or insight relevant to this topic]
 - [technical detail or data point from development]

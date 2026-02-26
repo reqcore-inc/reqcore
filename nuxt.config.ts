@@ -23,8 +23,8 @@ export default defineNuxtConfig({
   // Site config — shared across all SEO modules
   // ─────────────────────────────────────────────
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'https://applirank.com',
-    name: 'Applirank',
+    url: process.env.NUXT_PUBLIC_SITE_URL || 'https://reqcore.com',
+    name: 'Reqcore',
     description: 'Open-source applicant tracking system with transparent AI, no per-seat pricing, and full data ownership. Self-host on your own infrastructure.',
     defaultLocale: 'en',
   },
@@ -35,7 +35,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'en' },
-      titleTemplate: '%s — Applirank',
+      titleTemplate: '%s — Reqcore',
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       ],
@@ -45,7 +45,7 @@ export default defineNuxtConfig({
       script: [
         {
           defer: true,
-          'data-domain': 'applirank.com',
+          'data-domain': 'reqcore.com',
           src: 'https://test-plausible.kjadfu.easypanel.host/js/script.js',
         },
       ],
@@ -55,14 +55,14 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       /** When set, the dashboard shows a read-only demo banner for this org slug */
-      demoOrgSlug: process.env.DEMO_ORG_SLUG || (isRailwayPreview ? 'applirank-demo' : ''),
+      demoOrgSlug: process.env.DEMO_ORG_SLUG || (isRailwayPreview ? 'reqcore-demo' : ''),
       /** Public live-demo account email used to prefill sign-in */
       liveDemoEmail:
         process.env.LIVE_DEMO_EMAIL
         || process.env.DEMO_EMAIL
-        || 'demo@applirank.com',
+        || 'demo@reqcore.com',
       /** Public URL for hosted plan upsell CTA shown in preview mode modals */
-      hostedPlanUrl: process.env.NUXT_PUBLIC_HOSTED_PLAN_URL || 'https://applirank.com',
+      hostedPlanUrl: process.env.NUXT_PUBLIC_HOSTED_PLAN_URL || 'https://reqcore.com',
       /** Public live-demo secret used to prefill sign-in */
       liveDemoSecret:
         process.env.LIVE_DEMO_SECRET
@@ -102,10 +102,10 @@ export default defineNuxtConfig({
   schemaOrg: {
     identity: {
       type: 'Organization',
-      name: 'Applirank',
-      url: 'https://applirank.com',
-      logo: 'https://applirank.com/og-image.png',
-      sameAs: ['https://github.com/applirank/applirank'],
+      name: 'Reqcore',
+      url: 'https://reqcore.com',
+      logo: 'https://reqcore.com/og-image.png',
+      sameAs: ['https://github.com/reqcore/reqcore'],
     },
   },
 

@@ -21,7 +21,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup -S applirank && adduser -S applirank -G applirank
+RUN addgroup -S reqcore && adduser -S reqcore -G reqcore
 
 # .output is fully self-contained (includes content DB, server, public assets)
 COPY --from=builder /app/.output ./.output
@@ -37,8 +37,8 @@ COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/server ./server
 
-RUN chown -R applirank:applirank /app
-USER applirank
+RUN chown -R reqcore:reqcore /app
+USER reqcore
 
 EXPOSE 3000
 

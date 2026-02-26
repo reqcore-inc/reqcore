@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Applirank is under active development on the `main` branch.
+Reqcore is under active development on the `main` branch.
 
 - `main`: Supported
 - Tagged releases: Security support windows are defined per release once stable releases begin.
@@ -11,7 +11,7 @@ Applirank is under active development on the `main` branch.
 
 Please do **not** report security vulnerabilities through public GitHub issues.
 
-Report privately by email: security@applirank.com
+Report privately by email: security@reqcore.com
 
 Include as much detail as possible:
 
@@ -29,7 +29,7 @@ Include as much detail as possible:
 
 ## Scope Priorities
 
-Given Applirank's architecture, the highest-priority findings include:
+Given Reqcore's architecture, the highest-priority findings include:
 
 - Multi-tenant data isolation bypass (`organizationId` scope issues)
 - Authentication or authorization bypass

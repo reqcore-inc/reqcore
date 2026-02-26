@@ -5,7 +5,7 @@ description: Organic SEO optimization for blog articles, landing pages, and publ
 
 # SEO Skill — Maximize Organic Search Ranking & AI Visibility
 
-This skill provides actionable rules for writing and optimizing content that ranks at the top of Google Search and gets cited by AI assistants. Every rule is grounded in Google's official documentation, industry-leading SEO research (Ahrefs, Backlinko), and adapted to the Applirank tech stack (`@nuxt/content` v3, `@nuxtjs/seo`, Nuxt 4).
+This skill provides actionable rules for writing and optimizing content that ranks at the top of Google Search and gets cited by AI assistants. Every rule is grounded in Google's official documentation, industry-leading SEO research (Ahrefs, Backlinko), and adapted to the Reqcore tech stack (`@nuxt/content` v3, `@nuxtjs/seo`, Nuxt 4).
 
 **When to use this skill:**
 - Writing or reviewing blog articles (`content/blog/*.md`)
@@ -20,7 +20,7 @@ This skill provides actionable rules for writing and optimizing content that ran
 
 ### 1.1 Target One Primary Keyword Per Article
 - Every article targets **one** primary keyword (e.g., "self-hosted ATS", "open-source applicant tracking system").
-- The primary keyword should have search volume, be relevant to Applirank's audience (recruiters, HR teams, CTOs), and have realistic ranking difficulty.
+- The primary keyword should have search volume, be relevant to Reqcore's audience (recruiters, HR teams, CTOs), and have realistic ranking difficulty.
 - Use long-tail variants to capture specific search queries (e.g., "self-hosted ATS vs cloud ATS comparison").
 
 ### 1.2 Match Search Intent
@@ -31,9 +31,9 @@ Before writing, search the primary keyword on Google and analyze the top 10 resu
 - Match the **content format** (guide, listicle, comparison, how-to) that dominates page 1
 
 ### 1.3 Business Potential Score
-Prioritize topics where Applirank can be naturally mentioned as a solution. Rank topics 1–3:
-- **3 (High)**: Applirank is an irreplaceable solution (e.g., "best open-source ATS")
-- **2 (Medium)**: Applirank can be mentioned naturally (e.g., "ATS data ownership guide")
+Prioritize topics where Reqcore can be naturally mentioned as a solution. Rank topics 1–3:
+- **3 (High)**: Reqcore is an irreplaceable solution (e.g., "best open-source ATS")
+- **2 (Medium)**: Reqcore can be mentioned naturally (e.g., "ATS data ownership guide")
 - **1 (Low)**: Tangential topic, brand mention feels forced (e.g., "remote work trends")
 
 Focus on topics scoring 2–3.
@@ -49,7 +49,7 @@ Every blog post in `content/blog/*.md` MUST include complete frontmatter:
 title: "Primary Keyword — Compelling Modifier | Brand Context"
 description: "A 120–155 character meta description that includes the primary keyword, communicates value, and uses active voice."
 date: 2026-02-22
-author: "Applirank Team"
+author: "Reqcore Team"
 image: "/og-image.png"
 tags: ["primary-keyword", "related-term-1", "related-term-2", "ats", "recruitment"]
 ---
@@ -62,7 +62,7 @@ tags: ["primary-keyword", "related-term-1", "related-term-2", "ats", "recruitmen
 | `title` | 50–60 characters. Include primary keyword near the front. Use a compelling modifier (e.g., "Definitive Guide", "Practical Comparison", number). Avoid clickbait. |
 | `description` | 120–155 characters. Expand on the title with additional value. Include primary keyword. Use active voice. Address the searcher directly. |
 | `date` | ISO date format (YYYY-MM-DD). Must reflect actual publish or substantial update date. Never backdate for freshness illusion. |
-| `author` | Real person name preferred for E-E-A-T. "Applirank Team" acceptable for team-authored content. |
+| `author` | Real person name preferred for E-E-A-T. "Reqcore Team" acceptable for team-authored content. |
 | `image` | Path to a representative OG image. Use article-specific images when possible (minimum 1200×630px). |
 | `tags` | 3–7 lowercase tags. Include primary keyword, topical category, and 2–3 related terms. |
 
@@ -80,7 +80,7 @@ The title tag is the single most impactful on-page SEO element. It directly infl
 5. **Stand out from competitors** — scan SERP titles and differentiate
 6. **Use positive emotion** — modifiers like "Practical", "Complete", "Essential" perform well. Avoid "insane", "unbelievable" (clickbait penalty)
 7. **Add the current year** only for topics that demand freshness (e.g., "Best ATS 2026") — do NOT put the year in the URL slug
-8. **Nuxt title template**: The `nuxt.config.ts` appends ` — Applirank` via `titleTemplate: '%s — Applirank'`. Account for this in total character count (~12 extra chars). Set the title via `useSeoMeta({ title: '...' })`, not `useHead({ title: '...' })`
+8. **Nuxt title template**: The `nuxt.config.ts` appends ` — Reqcore` via `titleTemplate: '%s — Reqcore'`. Account for this in total character count (~12 extra chars). Set the title via `useSeoMeta({ title: '...' })`, not `useHead({ title: '...' })`
 
 ### Title Formulas That Work
 - `[Primary Keyword]: [Benefit or Outcome]` → "Self-Hosted ATS: Full Data Ownership Without the SaaS Tax"
@@ -121,7 +121,7 @@ URLs are a lightweight ranking factor and a strong user trust signal.
 3. **Never include dates in slugs** — content should be updatable without changing the URL
 4. **Use lowercase, hyphens only** — no underscores, no uppercase, no special characters
 5. **No trailing slashes** in links
-6. In Applirank, blog URLs are derived from the filename: `content/blog/self-hosted-vs-cloud-ats.md` → `/blog/self-hosted-vs-cloud-ats`
+6. In Reqcore, blog URLs are derived from the filename: `content/blog/self-hosted-vs-cloud-ats.md` → `/blog/self-hosted-vs-cloud-ats`
 
 ### Good vs Bad URLs
 ```
@@ -220,12 +220,12 @@ Google's quality rater guidelines prioritize E-E-A-T. While not a direct ranking
 - **Author byline** with real name when possible
 - Link to author bio or about page (currently `/` or a dedicated team page)
 - Show **first-hand experience**: reference actual product usage, real data, real workflows
-- For Applirank content: include screenshots, code snippets, or configuration examples that prove familiarity
+- For Reqcore content: include screenshots, code snippets, or configuration examples that prove familiarity
 - **Cite authoritative sources**: link to Google documentation, industry reports, credible studies
 
 ### 8.2 Build Authoritativeness
 - **Include original data or analysis** — cost comparisons, feature matrices, benchmarks that nobody else has
-- **Reference Applirank's own product** as a case study when relevant
+- **Reference Reqcore's own product** as a case study when relevant
 - **Expert quotes** for topics outside direct expertise (e.g., legal compliance, privacy law)
 - Consistently publish on your core topic (ATS, recruitment, hiring tech) to build topical authority
 
@@ -282,7 +282,7 @@ Google's quality rater guidelines prioritize E-E-A-T. While not a direct ranking
 
 ## 11. Structured Data (Schema.org)
 
-Applirank uses `@nuxtjs/seo` which auto-generates schema. Always enhance it.
+Reqcore uses `@nuxtjs/seo` which auto-generates schema. Always enhance it.
 
 ### 11.1 Blog Articles — Required Schema
 Every blog article page (`app/pages/blog/[...slug].vue`) must use:
@@ -296,14 +296,14 @@ useSchemaOrg([
     dateModified: new Date(post.value.date).toISOString(), // Update when content changes
     author: {
       '@type': 'Person',
-      name: post.value.author || 'Applirank Team',
-      url: 'https://applirank.com', // Link to author page when available
+      name: post.value.author || 'Reqcore Team',
+      url: 'https://reqcore.com', // Link to author page when available
     },
     image: post.value.image || '/og-image.png',
     publisher: {
       '@type': 'Organization',
-      name: 'Applirank',
-      url: 'https://applirank.com',
+      name: 'Reqcore',
+      url: 'https://reqcore.com',
     },
   }),
 ])
@@ -365,7 +365,7 @@ useSeoMeta({
 - **Largest Contentful Paint (LCP)** < 2.5s — avoid massive hero images above the fold
 - **Cumulative Layout Shift (CLS)** < 0.1 — always specify image dimensions
 - **Interaction to Next Paint (INP)** < 200ms — avoid heavy JS on content pages
-- Applirank uses ISR/prerender for public pages — this helps significantly
+- Reqcore uses ISR/prerender for public pages — this helps significantly
 
 ### 12.5 Route Rules (Already Configured)
 ```typescript
@@ -418,7 +418,7 @@ pulled into a featured snippet.]
 
 ## [H2 — Another Major Subtopic]
 
-[Content with internal links to related Applirank pages and external links to
+[Content with internal links to related Reqcore pages and external links to
 authoritative sources.]
 
 | Comparison Column A | Column B |
@@ -444,12 +444,12 @@ authoritative sources.]
 
 ## The Bottom Line
 
-[Summary paragraph. Restate key takeaway. Include CTA mentioning Applirank
+[Summary paragraph. Restate key takeaway. Include CTA mentioning Reqcore
 naturally.]
 
 ---
 
-*[Applirank](/) is an open-source applicant tracking system with transparent AI,
+*[Reqcore](/) is an open-source applicant tracking system with transparent AI,
 no per-seat pricing, and full data ownership.
 [Try the live demo](/auth/sign-in) or explore the [product roadmap](/roadmap).*
 ```
@@ -477,7 +477,7 @@ Run through this checklist before publishing or updating any blog article:
 - [ ] Opening answers the core question immediately (featured snippet optimization)
 
 ### Links
-- [ ] 3–5 internal links to relevant Applirank pages
+- [ ] 3–5 internal links to relevant Reqcore pages
 - [ ] 3–8 external links to authoritative sources
 - [ ] All links use descriptive anchor text
 - [ ] No broken links
@@ -517,9 +517,9 @@ Run through this checklist before publishing or updating any blog article:
 
 ---
 
-## 17. Applirank-Specific Content Topics (High Business Potential)
+## 17. Reqcore-Specific Content Topics (High Business Potential)
 
-When choosing blog topics, prioritize these topic clusters where Applirank naturally fits as a solution:
+When choosing blog topics, prioritize these topic clusters where Reqcore naturally fits as a solution:
 
 ### Cluster 1: ATS Comparison & Selection (Business Potential: 3)
 - "Best open-source ATS" / "open-source applicant tracking systems"

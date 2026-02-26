@@ -13,7 +13,7 @@ const { job, status: fetchStatus, error } = useJob(jobId)
 
 useSeoMeta({
   title: computed(() =>
-    job.value ? `Application Form — ${job.value.title} — Applirank` : 'Application Form — Applirank',
+    job.value ? `Application Form — ${job.value.title} — Reqcore` : 'Application Form — Reqcore',
   ),
 })
 

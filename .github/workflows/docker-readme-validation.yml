@@ -100,7 +100,7 @@ jobs:
           set -euo pipefail
           echo "Waiting for db..."
           for i in $(seq 60); do
-            state="$(docker inspect --format='{{.State.Health.Status}}' applirank_db 2>/dev/null || echo 'not-started')"
+            state="$(docker inspect --format='{{.State.Health.Status}}' reqcore_db 2>/dev/null || echo 'not-started')"
             echo "  db: $state"
             [ "$state" = "healthy" ] && break
             if [ "$i" -eq 60 ]; then
@@ -117,7 +117,7 @@ jobs:
           set -euo pipefail
           echo "Waiting for minio..."
           for i in $(seq 60); do
-            state="$(docker inspect --format='{{.State.Health.Status}}' applirank_minio 2>/dev/null || echo 'not-started')"
+            state="$(docker inspect --format='{{.State.Health.Status}}' reqcore_minio 2>/dev/null || echo 'not-started')"
             echo "  minio: $state"
             [ "$state" = "healthy" ] && break
             if [ "$i" -eq 60 ]; then
@@ -138,7 +138,7 @@ jobs:
               echo "✅ App is reachable on http://localhost:3000"
               exit 0
             fi
-            state="$(docker inspect --format='{{.State.Status}}' applirank_app 2>/dev/null || echo 'missing')"
+            state="$(docker inspect --format='{{.State.Status}}' reqcore_app 2>/dev/null || echo 'missing')"
             if [ "$state" = "exited" ] || [ "$state" = "dead" ]; then
               echo "❌ App container exited unexpectedly"
               docker compose logs app --tail=100
@@ -165,7 +165,7 @@ jobs:
       - name: Assert S3 bucket is ready
         run: |
           set -euo pipefail
-          if ! docker compose logs app | grep -q 'S3 bucket "applirank" is ready'; then
+          if ! docker compose logs app | grep -q 'S3 bucket "reqcore" is ready'; then
             echo "❌ S3 bucket ready message not found in app logs"
             docker compose logs app
             exit 1
@@ -217,7 +217,7 @@ jobs:
           set -euo pipefail
           response="$(curl -s -X POST http://localhost:3000/api/auth/sign-in/email \
             -H "Content-Type: application/json" \
-            -d '{"email":"demo@applirank.com","password":"demo1234"}' \
+            -d '{"email":"demo@reqcore.com","password":"demo1234"}' \
             -w "\n%{http_code}")"
           body="$(echo "$response" | head -n -1)"
           status="$(echo "$response" | tail -n 1)"
@@ -227,7 +227,7 @@ jobs:
             echo "❌ Sign-in failed — expected 200, got $status"
             exit 1
           fi
-          if ! echo "$body" | grep -q "demo@applirank.com"; then
+          if ! echo "$body" | grep -q "demo@reqcore.com"; then
             echo "❌ Response body does not contain expected email"
             exit 1
           fi

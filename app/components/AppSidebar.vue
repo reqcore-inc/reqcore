@@ -85,7 +85,7 @@ function isActiveTab(to: string, exact: boolean) {
     <!-- Top -->
     <div class="flex flex-col gap-5">
       <!-- Logo -->
-      <div class="px-2 text-lg font-bold text-surface-900 dark:text-surface-100">Applirank</div>
+      <div class="px-2 text-lg font-bold text-surface-900 dark:text-surface-100">Reqcore</div>
 
       <!-- Org Switcher -->
       <div>

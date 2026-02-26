@@ -111,7 +111,7 @@ export const env = new Proxy({} as z.infer<typeof envSchema>, {
           .map(i => `  - ${i.path.join('.')}: ${i.message}`)
           .join('\n')
         console.error(
-          `\n[Applirank] ❌ Missing or invalid environment variables:\n${missing}\n\n` +
+          `\n[Reqcore] ❌ Missing or invalid environment variables:\n${missing}\n\n` +
           `Ensure these variables are set in your Railway service (Settings → Variables).\n` +
           `Required: DATABASE_URL, BETTER_AUTH_SECRET, S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET\n` +
           `Required outside Railway PR/preview environments: BETTER_AUTH_URL\n` +

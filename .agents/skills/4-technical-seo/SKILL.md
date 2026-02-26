@@ -39,7 +39,7 @@ Run each check sequentially. Record ✅ (pass), ❌ (fail), or ⚠️ (acceptabl
 
 | # | Check | Rule |
 |---|-------|------|
-| 1.1 | Character count | 50–60 chars (account for ` — Applirank` suffix = ~12 extra chars, so frontmatter title should be 50–60 chars) |
+| 1.1 | Character count | 50–60 chars (account for ` — Reqcore` suffix = ~12 extra chars, so frontmatter title should be 50–60 chars) |
 | 1.2 | Keyword position | Primary keyword within the first 5 words |
 | 1.3 | Modifier present | Includes a compelling modifier: guide, comparison, number, year, checklist, breakdown, etc. |
 | 1.4 | Differentiation | Does NOT duplicate the phrasing of likely competitor titles found in the Phase 1 brief |
@@ -144,13 +144,13 @@ useSchemaOrg([
     author: {
       '@type': 'Person',
       name: 'Joachim',
-      url: 'https://applirank.com',
+      url: 'https://reqcore.com',
     },
     image: post.value.image || '/og-image.png',
     publisher: {
       '@type': 'Organization',
-      name: 'Applirank',
-      url: 'https://applirank.com',
+      name: 'Reqcore',
+      url: 'https://reqcore.com',
     },
   }),
 ])

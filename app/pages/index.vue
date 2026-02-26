@@ -27,14 +27,14 @@ import {
 useSeoMeta({
   title: 'Open-Source Applicant Tracking System — Self-Hosted ATS',
   description:
-    'Applirank is a free, open-source ATS you can self-host. Transparent AI candidate ranking, no per-seat pricing, and full data ownership. The best Greenhouse & Lever alternative.',
-  ogTitle: 'Applirank — Open-Source Applicant Tracking System',
+    'Reqcore is a free, open-source ATS you can self-host. Transparent AI candidate ranking, no per-seat pricing, and full data ownership. The best Greenhouse & Lever alternative.',
+  ogTitle: 'Reqcore — Open-Source Applicant Tracking System',
   ogDescription:
     'Free, self-hosted ATS with auditable AI, zero per-seat fees, and full data ownership. Deploy on your own infrastructure in minutes.',
   ogType: 'website',
   ogImage: '/og-image.png',
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Applirank — Open-Source Applicant Tracking System',
+  twitterTitle: 'Reqcore — Open-Source Applicant Tracking System',
   twitterDescription:
     'Self-hosted ATS with transparent AI, no per-seat pricing, and full data ownership.',
 })
@@ -42,18 +42,18 @@ useSeoMeta({
 // ─── Schema.org: Organization + WebSite ──────────────
 useSchemaOrg([
   defineOrganization({
-    name: 'Applirank',
-    url: 'https://applirank.com',
-    logo: 'https://applirank.com/og-image.png',
-    sameAs: ['https://github.com/applirank/applirank'],
+    name: 'Reqcore',
+    url: 'https://reqcore.com',
+    logo: 'https://reqcore.com/og-image.png',
+    sameAs: ['https://github.com/reqcore/reqcore'],
     description: 'Open-source applicant tracking system with transparent AI and full data ownership.',
   }),
   defineWebSite({
-    name: 'Applirank',
+    name: 'Reqcore',
     description: 'Open-source applicant tracking system with transparent AI, no per-seat pricing, and full data ownership.',
   }),
   defineWebPage({
-    name: 'Applirank — Open-Source Applicant Tracking System',
+    name: 'Reqcore — Open-Source Applicant Tracking System',
     description: 'Free, self-hosted ATS with auditable AI, zero per-seat fees, and full data ownership.',
   }),
 ])
@@ -76,7 +76,7 @@ useHead({
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         <NuxtLink to="/" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
           <span class="flex h-7 w-7 items-center justify-center rounded-md bg-brand-500 text-xs font-black text-white">A</span>
-          Applirank
+          Reqcore
         </NuxtLink>
 
         <div class="flex items-center gap-2">
@@ -105,7 +105,7 @@ useHead({
             Blog
           </NuxtLink>
           <a
-            href="https://github.com/applirank/applirank"
+            href="https://github.com/reqcore/reqcore"
             target="_blank"
             rel="noopener noreferrer"
             class="hidden items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:flex"
@@ -160,7 +160,7 @@ useHead({
       <div class="relative mx-auto max-w-3xl px-6 text-center">
         <!-- Badge -->
         <a
-          href="https://github.com/applirank/applirank"
+          href="https://github.com/reqcore/reqcore"
           target="_blank"
           rel="noopener noreferrer"
           class="group mb-8 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-1.5 text-[13px] font-medium text-surface-300 transition hover:border-white/[0.15] hover:bg-white/[0.06]"
@@ -208,7 +208,7 @@ useHead({
               <span class="ml-2 text-[11px] text-surface-500">terminal</span>
             </div>
             <div class="space-y-1 px-5 py-4 font-mono text-[13px] leading-relaxed text-surface-300">
-              <div><span class="text-brand-400">$</span> git clone https://github.com/applirank/applirank</div>
+              <div><span class="text-brand-400">$</span> git clone https://github.com/reqcore/reqcore</div>
               <div><span class="text-brand-400">$</span> docker compose up -d</div>
               <div><span class="text-brand-400">$</span> npm install &amp;&amp; npm run dev</div>
             </div>
@@ -221,7 +221,7 @@ useHead({
     <section class="relative border-t border-white/[0.06] py-24 sm:py-32">
       <div class="mx-auto max-w-6xl px-6">
         <div class="mx-auto max-w-2xl text-center">
-          <p class="text-sm font-semibold tracking-[0.2em] text-brand-400 uppercase">Why Applirank</p>
+          <p class="text-sm font-semibold tracking-[0.2em] text-brand-400 uppercase">Why Reqcore</p>
           <h2 class="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
             The Glass Box alternative
           </h2>
@@ -345,7 +345,7 @@ useHead({
               A
             </div>
             <div>
-              <div class="text-sm font-semibold text-white">The Applirank Team</div>
+              <div class="text-sm font-semibold text-white">The Reqcore Team</div>
               <div class="text-[13px] text-surface-500">Building the open-source applicant tracking system</div>
             </div>
           </div>
@@ -580,7 +580,7 @@ useHead({
             <ArrowRight class="h-3.5 w-3.5" />
           </NuxtLink>
           <a
-            href="https://github.com/applirank/applirank"
+            href="https://github.com/reqcore/reqcore"
             target="_blank"
             rel="noopener noreferrer"
             class="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-surface-300 transition hover:border-white/[0.2] hover:bg-white/[0.06] hover:text-white"
@@ -597,7 +597,7 @@ useHead({
       <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
         <div class="flex items-center gap-2 text-[13px] text-surface-500">
           <span class="flex h-5 w-5 items-center justify-center rounded bg-brand-500 text-[9px] font-black text-white">A</span>
-          &copy; {{ new Date().getFullYear() }} Applirank. Open source under AGPL-3.0.
+          &copy; {{ new Date().getFullYear() }} Reqcore. Open source under AGPL-3.0.
         </div>
         <div class="flex gap-6 text-[13px] text-surface-500">
           <NuxtLink to="/roadmap" class="transition hover:text-white">
@@ -607,7 +607,7 @@ useHead({
             Blog
           </NuxtLink>
           <a
-            href="https://github.com/applirank/applirank"
+            href="https://github.com/reqcore/reqcore"
             target="_blank"
             rel="noopener noreferrer"
             class="transition hover:text-white"
@@ -615,7 +615,7 @@ useHead({
             GitHub
           </a>
           <a
-            href="https://github.com/applirank/applirank/blob/main/README.md"
+            href="https://github.com/reqcore/reqcore/blob/main/README.md"
             target="_blank"
             rel="noopener noreferrer"
             class="transition hover:text-white"
@@ -623,7 +623,7 @@ useHead({
             Docs
           </a>
           <a
-            href="https://github.com/applirank/applirank/blob/main/LICENSE"
+            href="https://github.com/reqcore/reqcore/blob/main/LICENSE"
             target="_blank"
             rel="noopener noreferrer"
             class="transition hover:text-white"

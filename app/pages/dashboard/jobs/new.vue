@@ -19,7 +19,7 @@ definePageMeta({
 })
 
 useSeoMeta({
-  title: 'Create Job — Applirank',
+  title: 'Create Job — Reqcore',
   description: 'Create a new job posting',
 })
 

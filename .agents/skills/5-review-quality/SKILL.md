@@ -67,7 +67,7 @@ Read the intro aloud. If it sounds like a language model, rewrite it.
 
 Identify **2–3 specific locations** (by section heading) where the human must add:
 
-- [ ] A sentence grounded in **builder experience** (building Applirank — architecture decision, tradeoff, lesson learned)
+- [ ] A sentence grounded in **builder experience** (building Reqcore — architecture decision, tradeoff, lesson learned)
 - [ ] A **specific detail only the author would know** (user feedback, support conversation, metric, failed experiment)
 - [ ] A **genuine opinion** the AI could not have generated (a recommendation, a warning, a preference with reasoning)
 

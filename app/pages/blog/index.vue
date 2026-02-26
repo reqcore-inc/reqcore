@@ -5,13 +5,13 @@ useSeoMeta({
   title: 'Blog — Recruitment, ATS, and Hiring Insights',
   description:
     'Practical guides on applicant tracking systems, self-hosted recruitment software, hiring best practices, and open-source ATS comparisons.',
-  ogTitle: 'Applirank Blog — Recruitment & ATS Insights',
+  ogTitle: 'Reqcore Blog — Recruitment & ATS Insights',
   ogDescription:
     'Practical guides on applicant tracking systems, self-hosted recruitment, and hiring best practices.',
   ogType: 'website',
   ogImage: '/og-image.png',
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Applirank Blog — Recruitment & ATS Insights',
+  twitterTitle: 'Reqcore Blog — Recruitment & ATS Insights',
   twitterDescription:
     'Practical guides on self-hosted ATS, recruitment, and hiring best practices.',
 })
@@ -36,13 +36,13 @@ const { data: posts } = await useAsyncData('blog-posts', () =>
       class="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl"
     >
       <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-        <NuxtLink to="/" class="text-[15px] font-semibold tracking-tight">Applirank</NuxtLink>
+        <NuxtLink to="/" class="text-[15px] font-semibold tracking-tight">Reqcore</NuxtLink>
         <div class="flex items-center gap-5 text-[13px] text-white/60">
           <NuxtLink to="/roadmap" class="transition hover:text-white">Roadmap</NuxtLink>
           <NuxtLink to="/catalog" class="transition hover:text-white">Features</NuxtLink>
           <NuxtLink to="/blog" class="text-white transition">Blog</NuxtLink>
           <a
-            href="https://github.com/joachimhorsworthy/applirank"
+            href="https://github.com/joachimhorsworthy/reqcore"
             target="_blank"
             class="transition hover:text-white"
           >
@@ -81,7 +81,7 @@ const { data: posts } = await useAsyncData('blog-posts', () =>
           Insights &amp; Guides
         </div>
         <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl">
-          The Applirank Blog
+          The Reqcore Blog
         </h1>
         <p class="mx-auto mt-4 max-w-lg text-base leading-relaxed text-white/50">
           Practical guides on hiring, recruitment software, and building a better ATS.
@@ -135,12 +135,12 @@ const { data: posts } = await useAsyncData('blog-posts', () =>
     <!-- ───── Footer ───── -->
     <footer class="border-t border-white/[0.06] py-8">
       <div class="mx-auto max-w-5xl px-6 flex items-center justify-between text-xs text-white/30">
-        <span>&copy; {{ new Date().getFullYear() }} Applirank</span>
+        <span>&copy; {{ new Date().getFullYear() }} Reqcore</span>
         <div class="flex items-center gap-4">
           <NuxtLink to="/" class="transition hover:text-white/60">Home</NuxtLink>
           <NuxtLink to="/roadmap" class="transition hover:text-white/60">Roadmap</NuxtLink>
           <a
-            href="https://github.com/joachimhorsworthy/applirank"
+            href="https://github.com/joachimhorsworthy/reqcore"
             target="_blank"
             class="transition hover:text-white/60"
           >

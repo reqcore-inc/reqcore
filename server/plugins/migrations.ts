@@ -8,7 +8,7 @@ export default defineNitroPlugin(async () => {
   // Railway handles schema sync via preDeploy commands.
   // Running runtime migrations there can conflict with drizzle-kit push/migrate.
   if (process.env.RAILWAY_ENVIRONMENT_ID) {
-    console.log('[Applirank] Skipping runtime migrations on Railway (handled in preDeploy)')
+    console.log('[Reqcore] Skipping runtime migrations on Railway (handled in preDeploy)')
     return
   }
 
@@ -24,20 +24,20 @@ export default defineNitroPlugin(async () => {
     const locked = lockResult[0]?.locked ?? false
 
     if (!locked) {
-      console.log('[Applirank] Another instance is running migrations, skipping')
+      console.log('[Reqcore] Another instance is running migrations, skipping')
       return
     }
 
-    console.log('[Applirank] Running database migrations...')
+    console.log('[Reqcore] Running database migrations...')
     // Suppress harmless NOTICE messages (e.g. "schema already exists, skipping")
     await db.execute(`SET client_min_messages TO warning`)
     await migrate(db, {
       migrationsFolder: './server/database/migrations',
     })
     await db.execute(`SET client_min_messages TO notice`)
-    console.log('[Applirank] Database migrations applied successfully')
+    console.log('[Reqcore] Database migrations applied successfully')
   } catch (error) {
-    console.error('[Applirank] Migration failed:', error)
+    console.error('[Reqcore] Migration failed:', error)
     throw error
   } finally {
     await db.execute(

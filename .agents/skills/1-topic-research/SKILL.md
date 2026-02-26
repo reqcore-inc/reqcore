@@ -19,9 +19,9 @@ description: "Phase 1 of the SEO article pipeline: Topic Research & Validation. 
 - The user asks "should I write about X?" or "is this keyword worth targeting?"
 - Before ANY blog article is drafted — this phase is mandatory
 
-## Context: Applirank & The Content Strategy
+## Context: Reqcore & The Content Strategy
 
-**Applirank** is an open-source applicant tracking system (ATS). We are executing a topical authority SEO strategy with ~132 planned articles across 9 clusters (see `TOPICAL-AUTHORITY-MAP.md`). We publish one AI-assisted article per day on `applirank.com/blog`. Content lives in `content/blog/*.md` files using `@nuxt/content` v3.
+**Reqcore** is an open-source applicant tracking system (ATS). We are executing a topical authority SEO strategy with ~132 planned articles across 9 clusters (see `TOPICAL-AUTHORITY-MAP.md`). We publish one AI-assisted article per day on `reqcore.com/blog`. Content lives in `content/blog/*.md` files using `@nuxt/content` v3.
 
 **Primary audiences:**
 1. Technical recruiters & hiring managers evaluating ATS tools
@@ -44,7 +44,7 @@ description: "Phase 1 of the SEO article pipeline: Topic Research & Validation. 
 Take the topic from the topical authority map and determine the best **primary keyword** to target. The primary keyword should be:
 
 - The most natural, commonly-searched phrasing of this topic
-- Relevant to Applirank's audience (recruiters, HR teams, developers, founders)
+- Relevant to Reqcore's audience (recruiters, HR teams, developers, founders)
 - Specific enough to have clear search intent (avoid overly broad terms)
 
 **How to validate:** Use `fetch_webpage` to search Google for the candidate keyword. Analyze the top 10 results:
@@ -95,7 +95,7 @@ Long-tail pivot (if needed): [alternative keyword]
 
 Search the primary keyword and classify intent based on what **dominates page 1**:
 
-| Intent | SERP Signals | Applirank Action |
+| Intent | SERP Signals | Reqcore Action |
 |--------|-------------|------------------|
 | **Informational** | Guides, explainers, how-tos, Wikipedia, blog posts | Write a blog article (guide, explainer, how-to) |
 | **Commercial Investigation** | "Best X", comparison posts, review roundups, listicles | Write a blog article (comparison, roundup, listicle) |
@@ -224,7 +224,7 @@ Competitor weaknesses: [bulleted list]
 
 | Source | How to Use It | Example |
 |--------|--------------|---------|
-| **Builder experience** | Reference real decisions, trade-offs, and code from building Applirank | "When we built our pipeline Kanban board, we found that..." |
+| **Builder experience** | Reference real decisions, trade-offs, and code from building Reqcore | "When we built our pipeline Kanban board, we found that..." |
 | **Review data analysis** | Analyze G2/Capterra review patterns to surface real user pain points | "Across 200+ G2 reviews of [Competitor], 34% mention data export frustration" |
 | **Contrarian opinion** | Challenge conventional wisdom with evidence | "Most 'best ATS' lists rank by feature count — but features you'll never use are anti-features" |
 | **Original data / cost analysis** | Calculate real numbers nobody else has published | "We calculated the 3-year total cost for self-hosted vs cloud ATS for a 20-person team" |
@@ -305,15 +305,15 @@ Incoming links (existing → new article, for Phase 6):
 
 ### Step 7: Business Potential Scoring
 
-**Goal:** Score the topic's alignment with Applirank's business goals.
+**Goal:** Score the topic's alignment with Reqcore's business goals.
 
 #### 7.1 Scoring Rubric
 
 | Score | Criteria | Examples |
 |-------|----------|---------|
-| **3 — High** | Applirank is a natural, irreplaceable solution to the searcher's problem. The article can organically feature Applirank as a recommendation. | ATS comparisons ("Best open-source ATS"), ATS selection guides, deployment tutorials, data ownership articles, self-hosting guides |
-| **2 — Medium** | Applirank can be mentioned naturally as one relevant example, but the article isn't *about* Applirank. Brand mention feels authentic but not central. | AI in hiring, recruiting metrics, compliance guides, hiring workflow best practices, vendor lock-in discussions |
-| **1 — Low** | Applirank mention would feel forced or tangential. The topic doesn't naturally connect to ATS software. | Generic remote work trends, general career advice, HR leadership philosophy, interview tips for candidates |
+| **3 — High** | Reqcore is a natural, irreplaceable solution to the searcher's problem. The article can organically feature Reqcore as a recommendation. | ATS comparisons ("Best open-source ATS"), ATS selection guides, deployment tutorials, data ownership articles, self-hosting guides |
+| **2 — Medium** | Reqcore can be mentioned naturally as one relevant example, but the article isn't *about* Reqcore. Brand mention feels authentic but not central. | AI in hiring, recruiting metrics, compliance guides, hiring workflow best practices, vendor lock-in discussions |
+| **1 — Low** | Reqcore mention would feel forced or tangential. The topic doesn't naturally connect to ATS software. | Generic remote work trends, general career advice, HR leadership philosophy, interview tips for candidates |
 
 #### 7.2 Decision Gate
 
@@ -326,8 +326,8 @@ Incoming links (existing → new article, for Phase 6):
 **Output for this step:**
 ```
 Business potential: 3 / 2 / 1
-Justification: [How Applirank connects to this topic]
-CTA recommendation: [What Applirank CTA fits naturally — e.g., "Try the live demo", "See our transparent AI scoring", "Deploy with Docker in 5 minutes"]
+Justification: [How Reqcore connects to this topic]
+CTA recommendation: [What Reqcore CTA fits naturally — e.g., "Try the live demo", "See our transparent AI scoring", "Deploy with Docker in 5 minutes"]
 ```
 
 ---
@@ -427,7 +427,7 @@ After completing all 7 steps, compile the results into this structured brief. Th
 | Field | Value |
 |-------|-------|
 | Score | 3 / 2 / 1 |
-| Justification | [How Applirank connects] |
+| Justification | [How Reqcore connects] |
 | CTA recommendation | [Natural CTA for this article] |
 
 ## 8. Recommended Article Specifications
@@ -500,7 +500,7 @@ For original angles based on review data:
 
 **Do NOT proceed to Phase 2 if any of these are true:**
 
-1. **Business potential = 1** — The topic has no natural connection to Applirank. Recommend a different topic.
+1. **Business potential = 1** — The topic has no natural connection to Reqcore. Recommend a different topic.
 2. **High cannibalization with no resolution** — An existing article already targets this keyword and intent, and there's no way to differentiate. Recommend expanding the existing article instead.
 3. **No original angles found** — If all top-10 results already cover the topic comprehensively and you cannot identify at least 2 unique angles, the article will be a "me too" post. Recommend a long-tail pivot or different topic.
 4. **Transactional intent** — The keyword triggers product/pricing pages, not blog content. Flag for the product team as a landing page opportunity.

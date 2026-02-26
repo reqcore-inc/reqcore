@@ -390,9 +390,9 @@ export default defineEventHandler(async (event) => {
       try {
         await deleteFromS3(storageKey)
       } catch (cleanupError) {
-        console.error('[Applirank] Failed to clean up orphaned S3 object:', storageKey, cleanupError)
+        console.error('[Reqcore] Failed to clean up orphaned S3 object:', storageKey, cleanupError)
       }
-      console.error('[Applirank] File upload failed during application:', uploadError)
+      console.error('[Reqcore] File upload failed during application:', uploadError)
       // Continue processing — don't fail the entire application for a file upload error
     }
   }

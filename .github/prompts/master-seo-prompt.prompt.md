@@ -5,7 +5,7 @@ description: End-to-end SEO article pipeline — runs all 5 phases from topic re
 
 # Master SEO Pipeline — Full Article Production
 
-This prompt orchestrates the complete 5-phase SEO article pipeline for Applirank's blog. Each phase uses its dedicated skill file. Execute phases **sequentially** — each phase's output feeds the next. Stop at any phase if its quality gate fails.
+This prompt orchestrates the complete 5-phase SEO article pipeline for Reqcore's blog. Each phase uses its dedicated skill file. Execute phases **sequentially** — each phase's output feeds the next. Stop at any phase if its quality gate fails.
 
 ---
 
@@ -42,7 +42,7 @@ This prompt orchestrates the complete 5-phase SEO article pipeline for Applirank
 4. **Content Gap Analysis** — Fetch and analyze top 5–10 ranking pages; extract PAA questions; identify what competitors miss
 5. **Original Angle Identification** — Define 2–3 unique angles from builder experience, review data, contrarian opinions, original data, or technical depth
 6. **Internal Link Planning** — Plan 3–5 outgoing links and 2–3 incoming links for topical authority reinforcement
-7. **Business Potential Scoring** — Score 1–3 for Applirank alignment; recommend a natural CTA
+7. **Business Potential Scoring** — Score 1–3 for Reqcore alignment; recommend a natural CTA
 
 ### Output
 
@@ -51,7 +51,7 @@ A structured **Topic Brief** (see the template in the skill file §8).
 ### Decision Gate
 
 **STOP if any of these are true:**
-- Business potential = 1 (no natural Applirank connection)
+- Business potential = 1 (no natural Reqcore connection)
 - High cannibalization with no resolution path
 - Cannot find at least 2 original angles
 - Transactional or navigational intent (not a blog topic)
@@ -114,7 +114,7 @@ When a gate fails, tell the human exactly what's missing and provide the specifi
 - **Links**: 3–5 internal links (keyword-rich anchor text), 3–8 external links to authoritative sources
 - **LLM-ready**: Each H2 section stands alone as a citable chunk. Key points are quotable, declarative sentences. Include an FAQ section addressing PAA questions
 - **No AI voice artifacts**: No "In today's competitive...", "Let's dive in", "It's important to note", "When it comes to...", "Whether you're a X or a Y", "Look no further", "Game-changer", "Comprehensive guide", "Stands out from the crowd"
-- **CTA**: End with a natural Applirank mention and CTA from the Topic Brief's business potential assessment
+- **CTA**: End with a natural Reqcore mention and CTA from the Topic Brief's business potential assessment
 
 ### Frontmatter Requirements
 
@@ -237,5 +237,5 @@ After Phase 5 passes, complete these final steps:
 
 - [Topical Authority Map](../../TOPICAL-AUTHORITY-MAP.md) — The 132-article content plan with clusters, phases, and cross-linking rules
 - [Existing blog content](../../content/blog/) — Published articles for cannibalization checks and internal linking
-- [Product Vision](../../PRODUCT.md) — Applirank's UVP, audience, and positioning
+- [Product Vision](../../PRODUCT.md) — Reqcore's UVP, audience, and positioning
 - [Copilot Instructions](../copilot-instructions.md) — Codebase conventions, design system, and project structure

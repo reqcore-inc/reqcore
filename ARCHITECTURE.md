@@ -1,8 +1,8 @@
-# Applirank — System Architecture
+# Reqcore — System Architecture
 
 ## Overview
 
-Applirank is a **Nuxt 4** full-stack application following a monolithic architecture with clear separation between client (`app/`) and server (`server/`) code. The system supports both **managed deployment** on Railway and **self-hosted deployment** via Docker Compose.
+Reqcore is a **Nuxt 4** full-stack application following a monolithic architecture with clear separation between client (`app/`) and server (`server/`) code. The system supports both **managed deployment** on Railway and **self-hosted deployment** via Docker Compose.
 
 ## Technology Stack
 
@@ -26,7 +26,7 @@ Applirank is a **Nuxt 4** full-stack application following a monolithic architec
 ## Directory Structure
 
 ```
-applirank/
+reqcore/
 ├── app/                          # Client source (Nuxt 4 srcDir)
 │   ├── app.vue                   # Root component
 │   ├── assets/
@@ -222,7 +222,7 @@ Public-facing endpoints live under `server/api/public/` and require no authentic
 
 ### 10. SEO & Structured Data
 
-Applirank uses `@nuxtjs/seo` for comprehensive search engine optimization:
+Reqcore uses `@nuxtjs/seo` for comprehensive search engine optimization:
 
 | Feature | Implementation |
 |---------|---------------|
@@ -262,7 +262,7 @@ Blog articles are Markdown files in `content/blog/` powered by `@nuxt/content` v
 | Environment secrets | Validated at startup, never exposed to client |
 ## Deployment Architecture
 
-Applirank runs on **Railway** with **Cloudflare** as CDN/DNS:
+Reqcore runs on **Railway** with **Cloudflare** as CDN/DNS:
 
 | Component | Role |
 |-----------|------|
@@ -295,7 +295,7 @@ Variables are configured in the Railway dashboard or via `railway variables`. Se
 | `S3_REGION` | `${{Bucket.REGION}}` |
 | `S3_FORCE_PATH_STYLE` | `false` |
 | `BETTER_AUTH_SECRET` | Manual (sealed) |
-| `BETTER_AUTH_URL` | Production: `https://applirank.com` · PR/preview: `https://${{RAILWAY_PUBLIC_DOMAIN}}` |
+| `BETTER_AUTH_URL` | Production: `https://reqcore.com` · PR/preview: `https://${{RAILWAY_PUBLIC_DOMAIN}}` |
 
 For zero manual PR setup, define `BETTER_AUTH_URL` as `https://${{RAILWAY_PUBLIC_DOMAIN}}` in your Railway preview/PR environment (or shared variables scoped to previews).
 ## Local Development Services

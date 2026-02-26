@@ -29,14 +29,14 @@ import {
 useSeoMeta({
   title: 'Product Roadmap — Open-Source ATS Development',
   description:
-    'See what we\'ve shipped, what we\'re building, and where we\'re headed. Follow the transparent Applirank product roadmap.',
-  ogTitle: 'Applirank Roadmap — Open-Source ATS Development',
+    'See what we\'ve shipped, what we\'re building, and where we\'re headed. Follow the transparent Reqcore product roadmap.',
+  ogTitle: 'Reqcore Roadmap — Open-Source ATS Development',
   ogDescription:
-    'Follow the Applirank product roadmap — transparent progress on the open-source ATS you actually own.',
+    'Follow the Reqcore product roadmap — transparent progress on the open-source ATS you actually own.',
   ogType: 'website',
   ogImage: '/og-image.png',
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Applirank Product Roadmap',
+  twitterTitle: 'Reqcore Product Roadmap',
   twitterDescription:
     'Transparent progress updates on the open-source ATS you actually own.',
 })
@@ -263,7 +263,7 @@ const items: RoadmapItem[] = [
   },
   {
     title: 'Production Hardening',
-    description: 'Everything needed to run Applirank in production with confidence — security, compliance, and reliability.',
+    description: 'Everything needed to run Reqcore in production with confidence — security, compliance, and reliability.',
     highlights: [
       'Live on Railway with auto-TLS and Cloudflare CDN',
       'Security headers, rate limiting, and server-proxied docs',
@@ -387,7 +387,7 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         <NuxtLink to="/" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
           <span class="flex h-7 w-7 items-center justify-center rounded-md bg-brand-500 text-xs font-black text-white">A</span>
-          Applirank
+          Reqcore
         </NuxtLink>
 
         <div class="flex items-center gap-2">
@@ -416,7 +416,7 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
             Blog
           </NuxtLink>
           <a
-            href="https://github.com/applirank/applirank"
+            href="https://github.com/reqcore/reqcore"
             target="_blank"
             rel="noopener noreferrer"
             class="hidden items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:flex"
@@ -609,7 +609,7 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
 
             <div class="flex flex-1 flex-col items-center justify-center p-10 text-center">
               <a
-                href="https://github.com/applirank/applirank"
+                href="https://github.com/reqcore/reqcore"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="mb-8 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-1.5 text-[13px] font-medium text-surface-300 transition hover:border-white/[0.15] hover:bg-white/[0.06]"
@@ -767,11 +767,11 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
             Shape the future
           </h2>
           <p class="mt-3 text-sm leading-relaxed text-surface-400">
-            Applirank is open source. Suggest features, report bugs, or contribute directly.
+            Reqcore is open source. Suggest features, report bugs, or contribute directly.
           </p>
           <div class="mt-6 flex flex-col gap-3 sm:flex-row">
             <a
-              href="https://github.com/applirank/applirank/issues"
+              href="https://github.com/reqcore/reqcore/issues"
               target="_blank"
               rel="noopener noreferrer"
               class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-[13px] font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.08)] transition hover:bg-white/90"

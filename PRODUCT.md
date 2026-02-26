@@ -1,8 +1,8 @@
-# Applirank — Product Vision & Goals
+# Reqcore — Product Vision & Goals
 
 ## The Sovereign Recruitment Engine
 
-Applirank is a lean, open-source Applicant Tracking System (ATS) designed to return power to the employer. We are the **"Glass Box"** alternative to the **"Black Box"** incumbents.
+Reqcore is a lean, open-source Applicant Tracking System (ATS) designed to return power to the employer. We are the **"Glass Box"** alternative to the **"Black Box"** incumbents.
 
 ## Problem Statement
 
@@ -21,10 +21,10 @@ You *own* the infrastructure (Postgres + MinIO). Your talent pool is a permanent
 We reject "Secret Algorithms." When AI ranks a candidate, it **must** provide a visible **Matching Logic** summary so recruiters can verify the result. Every AI decision is explainable and auditable.
 
 ### 3. The Anti-Growth Tax
-No per-seat pricing. Applirank is designed to let companies scale their hiring teams without increasing their software bill.
+No per-seat pricing. Reqcore is designed to let companies scale their hiring teams without increasing their software bill.
 
 ### 4. Privacy Sovereignty
-By supporting local-first storage (MinIO) and local AI models (Ollama), Applirank is the only ATS where sensitive candidate PII never has to leave the company's private network.
+By supporting local-first storage (MinIO) and local AI models (Ollama), Reqcore is the only ATS where sensitive candidate PII never has to leave the company's private network.
 
 ## Target Users
 
@@ -55,7 +55,7 @@ By supporting local-first storage (MinIO) and local AI models (Ollama), Appliran
 ### Phase 3 — Collaboration
 - [ ] Team comments and notes on candidates
 - [ ] Interview scheduling
-- [ ] Email integration (send/receive from within Applirank)
+- [ ] Email integration (send/receive from within Reqcore)
 - [ ] Candidate portal (self-service application status)
 
 ## Design Principles

@@ -15,7 +15,7 @@ const { handlePreviewReadOnlyError } = usePreviewReadOnly()
 const { job, status: fetchStatus, error, refresh, updateJob, deleteJob } = useJob(jobId)
 
 useSeoMeta({
-  title: computed(() => job.value ? `${job.value.title} — Applirank` : 'Job — Applirank'),
+  title: computed(() => job.value ? `${job.value.title} — Reqcore` : 'Job — Reqcore'),
 })
 
 // ─────────────────────────────────────────────

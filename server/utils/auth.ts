@@ -39,20 +39,20 @@ function resolveBetterAuthUrl(): string {
 
   if (railwayDomain) {
     const previewUrl = `https://${railwayDomain}`
-    console.info(`[Applirank] Using Railway public-domain BETTER_AUTH_URL: ${previewUrl}`)
+    console.info(`[Reqcore] Using Railway public-domain BETTER_AUTH_URL: ${previewUrl}`)
     return previewUrl
   }
 
   const prNumber = env.RAILWAY_GIT_PR_NUMBER?.trim()
   if (prNumber) {
     console.warn(
-      `[Applirank] Railway PR number detected (${prNumber}) but RAILWAY_PUBLIC_DOMAIN is missing. ` +
+      `[Reqcore] Railway PR number detected (${prNumber}) but RAILWAY_PUBLIC_DOMAIN is missing. ` +
       'Set BETTER_AUTH_URL explicitly or ensure Railway generated domains are enabled.',
     )
   }
 
   if (explicitUrl) {
-    console.info('[Applirank] Using explicit BETTER_AUTH_URL in Railway PR/preview environment')
+    console.info('[Reqcore] Using explicit BETTER_AUTH_URL in Railway PR/preview environment')
     return explicitUrl
   }
 

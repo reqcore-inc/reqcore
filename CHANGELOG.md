@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Applirank are documented here, organized by date.
+All notable changes to Reqcore are documented here, organized by date.
 
 Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Added**, **Changed**, **Fixed**, **Removed**.
 
@@ -20,7 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Add
 ### Changed
 
 - **Unified Railway seeding path** — Railway predeploy now runs `db:seed` (same script as standard demo data), removing PR-specific seed divergence between preview and production-like environments
-- **Preview demo defaults aligned** — runtime preview fallbacks now target `applirank-demo` and `demo@applirank.com` to match `server/scripts/seed.ts`
+- **Preview demo defaults aligned** — runtime preview fallbacks now target `reqcore-demo` and `demo@reqcore.com` to match `server/scripts/seed.ts`
 
 ### Removed
 
@@ -40,7 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Add
 ### Changed
 
 - **Lockfile hygiene** — refreshed dependency graph with `npm install` + `npm dedupe` to remove stale vulnerable transitive entries
-- **Demo env guidance** — `.env.example` demo slug example now matches seeded demo organization slug (`applirank-demo`) to reduce configuration drift
+- **Demo env guidance** — `.env.example` demo slug example now matches seeded demo organization slug (`reqcore-demo`) to reduce configuration drift
 
 ---
 

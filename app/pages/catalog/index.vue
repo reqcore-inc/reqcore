@@ -17,14 +17,14 @@ import {
 useSeoMeta({
   title: 'Feature Catalog — Everything We\'re Building',
   description:
-    'Browse Applirank\'s complete feature catalog. See what\'s shipped, in progress, and planned — with competitor comparisons and open discussion.',
-  ogTitle: 'Applirank Feature Catalog',
+    'Browse Reqcore\'s complete feature catalog. See what\'s shipped, in progress, and planned — with competitor comparisons and open discussion.',
+  ogTitle: 'Reqcore Feature Catalog',
   ogDescription:
     'Transparent product roadmap with detailed feature descriptions, competitor comparisons, and community discussion.',
   ogType: 'website',
   ogImage: '/og-image.png',
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Applirank Feature Catalog',
+  twitterTitle: 'Reqcore Feature Catalog',
   twitterDescription:
     'Browse the complete ATS feature catalog — shipped, building, and planned.',
 })
@@ -221,7 +221,7 @@ const stats = computed(() => {
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         <NuxtLink to="/" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
           <span class="flex h-7 w-7 items-center justify-center rounded-md bg-brand-500 text-xs font-black text-white">A</span>
-          Applirank
+          Reqcore
         </NuxtLink>
         <div class="flex items-center gap-2">
           <NuxtLink
@@ -243,7 +243,7 @@ const stats = computed(() => {
             Blog
           </NuxtLink>
           <a
-            href="https://github.com/applirank/applirank"
+            href="https://github.com/reqcore/reqcore"
             target="_blank"
             rel="noopener noreferrer"
             class="hidden items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:flex"
@@ -287,7 +287,7 @@ const stats = computed(() => {
           Everything We're Building
         </h1>
         <p class="mt-3 text-[15px] leading-relaxed text-white/50 max-w-2xl mx-auto">
-          A transparent, hierarchical view of every feature in Applirank — shipped, in progress, and planned.
+          A transparent, hierarchical view of every feature in Reqcore — shipped, in progress, and planned.
           Click any feature to see its full description, competitor comparison, and join the discussion.
         </p>
 
@@ -538,7 +538,7 @@ const stats = computed(() => {
         <div class="flex items-center gap-2">
           <span>Open source on</span>
           <a
-            href="https://github.com/applirank/applirank"
+            href="https://github.com/reqcore/reqcore"
             target="_blank"
             class="inline-flex items-center gap-1 text-white/50 hover:text-white transition"
           >

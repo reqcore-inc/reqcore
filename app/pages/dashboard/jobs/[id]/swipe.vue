@@ -192,7 +192,7 @@ watch(currentApplicationId, async (id) => {
 
 useSeoMeta({
   title: computed(() =>
-    jobData.value ? `Swipe Review — ${jobData.value.title} — Applirank` : 'Swipe Review — Applirank',
+    jobData.value ? `Swipe Review — ${jobData.value.title} — Reqcore` : 'Swipe Review — Reqcore',
   ),
   robots: 'noindex, nofollow',
 })

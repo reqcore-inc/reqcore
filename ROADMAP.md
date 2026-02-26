@@ -1,4 +1,4 @@
-# Applirank — Roadmap
+# Reqcore — Roadmap
 
 > Last updated: 2026-02-15 (public roadmap page)
 >
