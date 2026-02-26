@@ -295,7 +295,8 @@ onBeforeUnmount(() => {
 })
 
 const isLoading = computed(() => {
-  return jobFetchStatus.value === 'pending' || appFetchStatus.value === 'pending'
+  return (jobFetchStatus.value === 'pending' && !jobData.value)
+    || (appFetchStatus.value === 'pending' && !appData.value)
 })
 </script>
 
