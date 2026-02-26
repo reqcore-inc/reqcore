@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql, ilike, or } from 'drizzle-orm'
 import { application, candidate, job } from '../../database/schema'
 import { applicationQuerySchema } from '../../utils/schemas/application'
 
@@ -25,6 +25,17 @@ export default defineEventHandler(async (event) => {
   if (query.status) {
     conditions.push(eq(application.status, query.status))
   }
+  if (query.search) {
+    const term = `%${query.search}%`
+    conditions.push(
+      or(
+        ilike(candidate.firstName, term),
+        ilike(candidate.lastName, term),
+        ilike(candidate.email, term),
+        ilike(job.title, term),
+      )!,
+    )
+  }
 
   const where = and(...conditions)
 
@@ -43,6 +54,7 @@ export default defineEventHandler(async (event) => {
         candidateEmail: candidate.email,
         jobId: application.jobId,
         jobTitle: job.title,
+        jobLocation: job.location,
         jobStatus: job.status,
       })
       .from(application)

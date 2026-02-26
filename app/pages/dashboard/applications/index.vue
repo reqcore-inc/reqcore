@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileText, ChevronsUpDown, ChevronUp, ChevronDown, SlidersHorizontal, X, Check } from 'lucide-vue-next'
+import { FileText, ChevronDown, X, Check, Briefcase, Clock } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'dashboard',
@@ -18,16 +18,9 @@ const router = useRouter()
 const STATUS_OPTIONS = ['new', 'screening', 'interview', 'offer', 'hired', 'rejected'] as const
 type Status = typeof STATUS_OPTIONS[number]
 
-// useState persists across navigation within the same session
 const selectedStatuses = useState<Status[]>('app-filter-statuses', () => [])
 const scoreMin = useState<number | undefined>('app-filter-score-min', () => undefined)
 const scoreMax = useState<number | undefined>('app-filter-score-max', () => undefined)
-const visibleCols = useState('app-visible-cols', () => ({
-  job: true,
-  score: true,
-  status: true,
-  createdAt: true,
-}))
 
 const statusFilter = computed(() =>
   selectedStatuses.value.length === 1 ? selectedStatuses.value[0] : undefined,
@@ -46,15 +39,22 @@ function toggleStatus(s: Status) {
   }
 }
 
-// ── Column picker panel ───────────────────────────────────────────────────────
+// ── Dropdowns ─────────────────────────────────────────────────────────────────
 
-const panelOpen = ref(false)
-const panelRef = ref<HTMLElement | null>(null)
+const statusDropdownOpen = ref(false)
+const statusDropdownRef = ref<HTMLElement | null>(null)
+const scoreDropdownOpen = ref(false)
+const scoreDropdownRef = ref<HTMLElement | null>(null)
+const sortDropdownOpen = ref(false)
+const sortDropdownRef = ref<HTMLElement | null>(null)
 
 function handleOutsideClick(e: MouseEvent) {
-  if (panelRef.value && !panelRef.value.contains(e.target as Node)) {
-    panelOpen.value = false
-  }
+  if (statusDropdownRef.value && !statusDropdownRef.value.contains(e.target as Node))
+    statusDropdownOpen.value = false
+  if (scoreDropdownRef.value && !scoreDropdownRef.value.contains(e.target as Node))
+    scoreDropdownOpen.value = false
+  if (sortDropdownRef.value && !sortDropdownRef.value.contains(e.target as Node))
+    sortDropdownOpen.value = false
 }
 onMounted(() => document.addEventListener('mousedown', handleOutsideClick))
 onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick))
@@ -71,17 +71,27 @@ const activeFilterCount = computed(() => {
 type SortKey = 'candidate' | 'job' | 'score' | 'status' | 'createdAt'
 type SortDir = 'asc' | 'desc'
 
-const sortKey = useState<SortKey>('app-sort-key', () => 'score')
+const sortKey = useState<SortKey>('app-sort-key', () => 'createdAt')
 const sortDir = useState<SortDir>('app-sort-dir', () => 'desc')
 
-function toggleSort(key: SortKey) {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-  }
-  else {
-    sortKey.value = key
-    sortDir.value = key === 'score' ? 'desc' : 'asc'
-  }
+const sortOptions: { key: SortKey, dir: SortDir, label: string }[] = [
+  { key: 'createdAt', dir: 'desc', label: 'Newest first' },
+  { key: 'createdAt', dir: 'asc', label: 'Oldest first' },
+  { key: 'score', dir: 'desc', label: 'Highest score' },
+  { key: 'score', dir: 'asc', label: 'Lowest score' },
+  { key: 'candidate', dir: 'asc', label: 'Name A–Z' },
+  { key: 'candidate', dir: 'desc', label: 'Name Z–A' },
+]
+
+const currentSortLabel = computed(() => {
+  const match = sortOptions.find(o => o.key === sortKey.value && o.dir === sortDir.value)
+  return match?.label ?? 'Newest first'
+})
+
+function setSort(key: SortKey, dir: SortDir) {
+  sortKey.value = key
+  sortDir.value = dir
+  sortDropdownOpen.value = false
 }
 
 const sorted = computed(() => {
@@ -171,124 +181,92 @@ function clearFilters() {
       </div>
     </div>
 
-    <!-- Toolbar -->
-    <div class="flex items-center gap-3 mb-4">
-      <!-- Column / filter picker -->
-      <div ref="panelRef" class="relative">
+    <!-- Filter bar -->
+    <div class="flex items-center gap-3 flex-wrap mb-5">
+      <!-- Status dropdown -->
+      <div ref="statusDropdownRef" class="relative">
         <button
-          class="inline-flex items-center gap-2 rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 hover:border-surface-300 dark:hover:border-surface-700 transition-colors"
-          @click="panelOpen = !panelOpen"
+          class="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors cursor-pointer"
+          :class="selectedStatuses.length > 0
+            ? 'border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300'
+            : 'border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-surface-300 dark:hover:border-surface-700'"
+          @click="statusDropdownOpen = !statusDropdownOpen"
         >
-          <SlidersHorizontal class="size-4" />
-          View
+          Stage
           <span
-            v-if="activeFilterCount > 0"
-            class="inline-flex items-center justify-center size-4 rounded-full bg-brand-500 text-white text-[10px] font-semibold"
+            v-if="selectedStatuses.length > 0"
+            class="inline-flex items-center justify-center size-5 rounded-full bg-brand-500 text-white text-[10px] font-semibold"
           >
-            {{ activeFilterCount }}
+            {{ selectedStatuses.length }}
           </span>
+          <ChevronDown class="size-4 opacity-50" />
         </button>
 
-        <!-- Dropdown panel -->
         <div
-          v-if="panelOpen"
-          class="absolute left-0 top-full mt-2 z-20 w-72 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-lg p-4 space-y-5"
+          v-if="statusDropdownOpen"
+          class="absolute left-0 top-full mt-1.5 z-30 w-56 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-lg py-1.5"
         >
-          <!-- Columns -->
-          <div>
-            <p class="text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-2">Columns</p>
-            <div class="space-y-1.5">
-              <label
-                v-for="col in ([
-                  { key: 'job', label: 'Job' },
-                  { key: 'score', label: 'Score' },
-                  { key: 'status', label: 'Status' },
-                  { key: 'createdAt', label: 'Applied' },
-                ] as const)"
-                :key="col.key"
-                class="flex items-center gap-2.5 cursor-pointer select-none group"
-              >
-                <input type="checkbox" class="sr-only" :checked="visibleCols[col.key]" @change="visibleCols[col.key] = !visibleCols[col.key]" />
-                <span
-                  class="size-4 shrink-0 rounded border flex items-center justify-center transition-colors"
-                  :class="visibleCols[col.key]
-                    ? 'bg-brand-500 border-brand-500'
-                    : 'bg-white dark:bg-surface-800 border-surface-300 dark:border-surface-600'"
-                >
-                  <Check v-if="visibleCols[col.key]" class="size-3 text-white" :stroke-width="3" />
-                </span>
-                <span class="text-sm text-surface-700 dark:text-surface-300 group-hover:text-surface-900 dark:group-hover:text-surface-100 transition-colors">
-                  {{ col.label }}
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div class="border-t border-surface-100 dark:border-surface-800" />
-
-          <!-- Filter by status -->
-          <div>
-            <p class="text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-2">Filter by Status</p>
-            <div class="space-y-1.5">
-              <label
-                v-for="s in STATUS_OPTIONS"
-                :key="s"
-                class="flex items-center gap-2.5 cursor-pointer select-none group"
-              >
-                <input type="checkbox" class="sr-only" :checked="selectedStatuses.includes(s)" @change="toggleStatus(s)" />
-                <span
-                  class="size-4 shrink-0 rounded border flex items-center justify-center transition-colors"
-                  :class="selectedStatuses.includes(s)
-                    ? 'bg-brand-500 border-brand-500'
-                    : 'bg-white dark:bg-surface-800 border-surface-300 dark:border-surface-600'"
-                >
-                  <Check v-if="selectedStatuses.includes(s)" class="size-3 text-white" :stroke-width="3" />
-                </span>
-                <span
-                  class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                  :class="statusBadgeClasses[s]"
-                >
-                  {{ statusLabels[s] }}
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div class="border-t border-surface-100 dark:border-surface-800" />
-
-          <!-- Score range -->
-          <div>
-            <p class="text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-2">Score Range</p>
-            <div class="flex items-center gap-2">
-              <input
-                v-model.number="scoreMin"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="Min"
-                class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-3 py-1.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              />
-              <span class="text-surface-400 text-xs shrink-0">to</span>
-              <input
-                v-model.number="scoreMax"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="Max"
-                class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-3 py-1.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              />
-            </div>
-          </div>
-
-          <!-- Clear -->
-          <button
-            v-if="activeFilterCount > 0"
-            class="inline-flex items-center gap-1.5 text-xs text-surface-400 hover:text-danger-600 transition-colors"
-            @click="clearFilters"
+          <label
+            v-for="s in STATUS_OPTIONS"
+            :key="s"
+            class="flex items-center gap-2.5 px-3 py-2 cursor-pointer select-none hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
           >
-            <X class="size-3" />
-            Clear filters
-          </button>
+            <input type="checkbox" class="sr-only" :checked="selectedStatuses.includes(s)" @change="toggleStatus(s)" />
+            <span
+              class="size-4 shrink-0 rounded border flex items-center justify-center transition-colors"
+              :class="selectedStatuses.includes(s)
+                ? 'bg-brand-500 border-brand-500'
+                : 'bg-white dark:bg-surface-800 border-surface-300 dark:border-surface-600'"
+            >
+              <Check v-if="selectedStatuses.includes(s)" class="size-3 text-white" :stroke-width="3" />
+            </span>
+            <span
+              class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+              :class="statusBadgeClasses[s]"
+            >
+              {{ statusLabels[s] }}
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Score dropdown -->
+      <div ref="scoreDropdownRef" class="relative">
+        <button
+          class="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors cursor-pointer"
+          :class="(scoreMin != null || scoreMax != null)
+            ? 'border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300'
+            : 'border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-surface-300 dark:hover:border-surface-700'"
+          @click="scoreDropdownOpen = !scoreDropdownOpen"
+        >
+          Score
+          <ChevronDown class="size-4 opacity-50" />
+        </button>
+
+        <div
+          v-if="scoreDropdownOpen"
+          class="absolute left-0 top-full mt-1.5 z-30 w-60 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-lg p-3"
+        >
+          <p class="text-xs font-medium text-surface-500 dark:text-surface-400 mb-2">Score range (0–100)</p>
+          <div class="flex items-center gap-2">
+            <input
+              v-model.number="scoreMin"
+              type="number"
+              min="0"
+              max="100"
+              placeholder="Min"
+              class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-3 py-1.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            <span class="text-surface-400 text-xs shrink-0">to</span>
+            <input
+              v-model.number="scoreMax"
+              type="number"
+              min="0"
+              max="100"
+              placeholder="Max"
+              class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-3 py-1.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+          </div>
         </div>
       </div>
 
@@ -297,33 +275,42 @@ function clearFilters() {
         <span
           v-for="s in selectedStatuses"
           :key="s"
-          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium capitalize cursor-pointer"
+          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium capitalize cursor-pointer hover:opacity-80 transition-opacity"
           :class="statusBadgeClasses[s]"
           @click="toggleStatus(s as Status)"
         >
           {{ statusLabels[s] }}
-          <X class="size-2.5" />
+          <X class="size-3" />
         </span>
       </template>
       <span
         v-if="scoreMin != null || scoreMax != null"
-        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 cursor-pointer"
+        class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 cursor-pointer hover:opacity-80 transition-opacity"
         @click="scoreMin = undefined; scoreMax = undefined"
       >
         Score {{ scoreMin ?? '0' }}–{{ scoreMax ?? '100' }}
-        <X class="size-2.5" />
+        <X class="size-3" />
       </span>
+
+      <!-- Clear all -->
+      <button
+        v-if="activeFilterCount > 0"
+        class="text-xs text-surface-400 hover:text-danger-600 dark:hover:text-danger-400 transition-colors cursor-pointer"
+        @click="clearFilters"
+      >
+        Clear all
+      </button>
     </div>
 
     <!-- Loading -->
-    <div v-if="fetchStatus === 'pending'" class="text-center py-12 text-surface-400">
+    <div v-if="fetchStatus === 'pending'" class="text-center py-16 text-surface-400">
       Loading applications…
     </div>
 
     <!-- Error -->
     <div
       v-else-if="error"
-      class="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700"
+      class="rounded-xl border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950 p-4 text-sm text-danger-700 dark:text-danger-400"
     >
       Failed to load applications. Please try again.
       <button class="underline ml-1" @click="refresh()">Retry</button>
@@ -332,7 +319,7 @@ function clearFilters() {
     <!-- Empty -->
     <div
       v-else-if="applications.length === 0"
-      class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-12 text-center"
+      class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-16 text-center"
     >
       <FileText class="size-10 text-surface-300 dark:text-surface-600 mx-auto mb-3" />
       <h3 class="text-base font-semibold text-surface-700 dark:text-surface-200 mb-1">No applications yet</h3>
@@ -341,80 +328,90 @@ function clearFilters() {
       </p>
     </div>
 
-    <!-- Table -->
-    <div v-else class="rounded-lg border border-surface-200 dark:border-surface-800 overflow-hidden">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-900">
-            <!-- Candidate always visible -->
-            <th class="px-4 py-3 text-left text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wide select-none">
-              <button
-                class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors"
-                @click="toggleSort('candidate')"
-              >
-                Candidate
-                <ChevronUp v-if="sortKey === 'candidate' && sortDir === 'asc'" class="size-3" />
-                <ChevronDown v-else-if="sortKey === 'candidate' && sortDir === 'desc'" class="size-3" />
-                <ChevronsUpDown v-else class="size-3 opacity-40" />
-              </button>
-            </th>
-            <th v-if="visibleCols.job" class="px-4 py-3 text-left text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wide select-none">
-              <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('job')">
-                Job
-                <ChevronUp v-if="sortKey === 'job' && sortDir === 'asc'" class="size-3" />
-                <ChevronDown v-else-if="sortKey === 'job' && sortDir === 'desc'" class="size-3" />
-                <ChevronsUpDown v-else class="size-3 opacity-40" />
-              </button>
-            </th>
-            <th v-if="visibleCols.score" class="px-4 py-3 text-left text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wide select-none">
-              <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('score')">
-                Score
-                <ChevronUp v-if="sortKey === 'score' && sortDir === 'asc'" class="size-3" />
-                <ChevronDown v-else-if="sortKey === 'score' && sortDir === 'desc'" class="size-3" />
-                <ChevronsUpDown v-else class="size-3 opacity-40" />
-              </button>
-            </th>
-            <th v-if="visibleCols.status" class="px-4 py-3 text-left text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wide select-none">
-              <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('status')">
-                Status
-                <ChevronUp v-if="sortKey === 'status' && sortDir === 'asc'" class="size-3" />
-                <ChevronDown v-else-if="sortKey === 'status' && sortDir === 'desc'" class="size-3" />
-                <ChevronsUpDown v-else class="size-3 opacity-40" />
-              </button>
-            </th>
-            <th v-if="visibleCols.createdAt" class="px-4 py-3 text-left text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wide select-none">
-              <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('createdAt')">
-                Applied
-                <ChevronUp v-if="sortKey === 'createdAt' && sortDir === 'asc'" class="size-3" />
-                <ChevronDown v-else-if="sortKey === 'createdAt' && sortDir === 'desc'" class="size-3" />
-                <ChevronsUpDown v-else class="size-3 opacity-40" />
-              </button>
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-surface-100 dark:divide-surface-800 bg-white dark:bg-surface-950">
-          <!-- No results after filtering -->
-          <tr v-if="sorted.length === 0">
-            <td
-              :colspan="1 + Object.values(visibleCols).filter(Boolean).length"
-              class="px-4 py-10 text-center text-sm text-surface-400"
-            >
-              No applications match the current filters.
-            </td>
-          </tr>
-          <tr
-            v-for="app in sorted"
-            :key="app.id"
-            class="hover:bg-surface-50 dark:hover:bg-surface-900 cursor-pointer transition-colors group"
-            @click="router.push(`/dashboard/applications/${app.id}`)"
+    <!-- Application list -->
+    <div v-else>
+      <!-- Results bar -->
+      <div class="flex items-center justify-between mb-0 px-1">
+        <p class="text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">
+          {{ sorted.length }} application{{ sorted.length === 1 ? '' : 's' }}
+        </p>
+
+        <!-- Sort dropdown -->
+        <div ref="sortDropdownRef" class="relative">
+          <button
+            class="inline-flex items-center gap-1.5 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 transition-colors cursor-pointer"
+            @click="sortDropdownOpen = !sortDropdownOpen"
           >
-            <td class="px-4 py-3 font-medium text-surface-900 dark:text-surface-100 group-hover:text-brand-600 transition-colors whitespace-nowrap">
+            {{ currentSortLabel }}
+            <ChevronDown class="size-3.5" />
+          </button>
+
+          <div
+            v-if="sortDropdownOpen"
+            class="absolute right-0 top-full mt-1.5 z-30 w-44 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-lg py-1.5"
+          >
+            <button
+              v-for="opt in sortOptions"
+              :key="`${opt.key}-${opt.dir}`"
+              class="w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer"
+              :class="sortKey === opt.key && sortDir === opt.dir
+                ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950 font-medium'
+                : 'text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800'"
+              @click="setSort(opt.key, opt.dir)"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column headers -->
+      <div class="grid grid-cols-[1fr_1fr] border-b border-surface-200 dark:border-surface-800 mt-3 px-5 pb-2.5">
+        <span class="text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">Candidate Information</span>
+        <span class="text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">Job Details</span>
+      </div>
+
+      <!-- Card list -->
+      <div class="divide-y divide-surface-100 dark:divide-surface-800 rounded-b-xl border-x border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-950">
+        <!-- No results after filtering -->
+        <div
+          v-if="sorted.length === 0"
+          class="px-5 py-12 text-center text-sm text-surface-400"
+        >
+          No applications match the current filters.
+        </div>
+
+        <div
+          v-for="app in sorted"
+          :key="app.id"
+          class="grid grid-cols-[1fr_1fr] gap-6 px-5 py-4 cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-900 transition-colors group"
+          @click="router.push(`/dashboard/applications/${app.id}`)"
+        >
+          <!-- Left: Candidate info -->
+          <div class="min-w-0">
+            <h3 class="text-sm font-semibold text-surface-900 dark:text-surface-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors truncate">
               {{ app.candidateFirstName }} {{ app.candidateLastName }}
-            </td>
-            <td v-if="visibleCols.job" class="px-4 py-3 text-surface-600 dark:text-surface-300 max-w-[220px] truncate">
-              {{ app.jobTitle }}
-            </td>
-            <td v-if="visibleCols.score" class="px-4 py-3">
+            </h3>
+            <div class="flex items-center gap-1.5 mt-1 text-xs text-surface-400 dark:text-surface-500">
+              <Clock class="size-3 shrink-0" />
+              <span>Applied {{ timeAgo(app.createdAt) }}</span>
+            </div>
+          </div>
+
+          <!-- Right: Job details + status + score -->
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <Briefcase class="size-3.5 text-surface-400 dark:text-surface-500 shrink-0" />
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-200 truncate">{{ app.jobTitle }}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-1.5">
+              <span
+                class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                :class="statusBadgeClasses[app.status] ?? 'bg-surface-100 text-surface-600'"
+              >
+                {{ app.status }}
+              </span>
+              <span v-if="app.score != null" class="text-surface-300 dark:text-surface-600">&middot;</span>
               <span
                 v-if="app.score != null"
                 class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums"
@@ -422,27 +419,15 @@ function clearFilters() {
               >
                 {{ app.score }}%
               </span>
-              <span v-else class="text-surface-300 dark:text-surface-600 text-xs">—</span>
-            </td>
-            <td v-if="visibleCols.status" class="px-4 py-3">
-              <span
-                class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                :class="statusBadgeClasses[app.status] ?? 'bg-surface-100 text-surface-600'"
-              >
-                {{ app.status }}
-              </span>
-            </td>
-            <td v-if="visibleCols.createdAt" class="px-4 py-3 text-surface-400 whitespace-nowrap text-xs">
-              {{ timeAgo(app.createdAt) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Footer -->
-      <div class="px-4 py-3 border-t border-surface-100 dark:border-surface-800 bg-surface-50 dark:bg-surface-900">
-        <p class="text-xs text-surface-400">
-          {{ sorted.length }} of {{ total }} application{{ total === 1 ? '' : 's' }}
+      <div class="mt-3 px-1">
+        <p class="text-xs text-surface-400 dark:text-surface-500">
+          Showing {{ sorted.length }} of {{ total }} application{{ total === 1 ? '' : 's' }}
         </p>
       </div>
     </div>

@@ -9,6 +9,7 @@ export function useApplications(options?: {
   jobId?: Ref<string | undefined> | string
   candidateId?: Ref<string | undefined> | string
   status?: Ref<string | undefined> | string
+  search?: Ref<string | undefined> | string
 }) {
   const { handlePreviewReadOnlyError } = usePreviewReadOnly()
 
@@ -16,6 +17,7 @@ export function useApplications(options?: {
     ...(toValue(options?.jobId) && { jobId: toValue(options?.jobId) }),
     ...(toValue(options?.candidateId) && { candidateId: toValue(options?.candidateId) }),
     ...(toValue(options?.status) && { status: toValue(options?.status) }),
+    ...(toValue(options?.search) && { search: toValue(options?.search) }),
   }))
 
   const { data, status: fetchStatus, error, refresh } = useFetch('/api/applications', {

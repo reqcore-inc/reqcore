@@ -25,6 +25,7 @@ export const applicationQuerySchema = z.object({
   jobId: z.string().min(1).optional(),
   candidateId: z.string().min(1).optional(),
   status: z.enum(['new', 'screening', 'interview', 'offer', 'hired', 'rejected']).optional(),
+  search: z.string().max(200).optional(),
 })
 
 /** Reusable schema for `:id` route params */
