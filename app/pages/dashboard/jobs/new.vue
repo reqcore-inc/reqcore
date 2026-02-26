@@ -160,7 +160,7 @@ function handleUpdateQuestion(data: {
   if (index === -1) return
 
   applicationForm.value.questions[index] = {
-    ...applicationForm.value.questions[index],
+    ...applicationForm.value.questions[index]!,
     label: data.label,
     type: data.type as QuestionType,
     description: data.description ?? null,
@@ -185,7 +185,7 @@ function moveQuestion(index: number, direction: 'up' | 'down') {
   const list = applicationForm.value.questions
   const targetIndex = direction === 'up' ? index - 1 : index + 1
   if (targetIndex < 0 || targetIndex >= list.length) return
-  ;[list[index], list[targetIndex]] = [list[targetIndex], list[index]]
+  ;[list[index], list[targetIndex]] = [list[targetIndex]!, list[index]!]
 }
 
 function slugifyTitle(raw: string) {
