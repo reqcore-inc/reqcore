@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ArrowLeft, Github, Calendar, User } from 'lucide-vue-next'
 
+defineI18nRoute(false)
+
 definePageMeta({
   i18n: false,
 })
@@ -72,7 +74,7 @@ const { data: session } = await authClient.useSession(useFetch)
         <div class="flex items-center gap-5 text-[13px] text-white/60">
           <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white">Roadmap</NuxtLink>
           <NuxtLink :to="$localePath('/catalog')" class="transition hover:text-white">Features</NuxtLink>
-          <NuxtLink :to="$localePath('/blog')" class="text-white transition">Blog</NuxtLink>
+          <NuxtLink to="/blog" class="text-white transition">Blog</NuxtLink>
           <a
             href="https://github.com/reqcore-inc/reqcore"
             target="_blank"
@@ -103,7 +105,7 @@ const { data: session } = await authClient.useSession(useFetch)
       <div class="mx-auto max-w-2xl px-6">
         <!-- Back link -->
         <NuxtLink
-          :to="$localePath('/blog')"
+          to="/blog"
           class="mb-8 inline-flex items-center gap-1.5 text-sm text-white/40 transition hover:text-white/70"
         >
           <ArrowLeft class="size-3.5" />

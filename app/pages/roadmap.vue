@@ -410,7 +410,7 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
             Features
           </NuxtLink>
           <NuxtLink
-            :to="$localePath('/blog')"
+            to="/blog"
             class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
           >
             Blog

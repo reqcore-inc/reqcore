@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ArrowRight, BookOpen, Github, Star, ChevronRight } from 'lucide-vue-next'
 
+defineI18nRoute(false)
+
 definePageMeta({
   i18n: false,
 })
@@ -44,7 +46,7 @@ const { data: posts } = await useAsyncData('blog-posts', () =>
         <div class="flex items-center gap-5 text-[13px] text-white/60">
           <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white">Roadmap</NuxtLink>
           <NuxtLink :to="$localePath('/catalog')" class="transition hover:text-white">Features</NuxtLink>
-          <NuxtLink :to="$localePath('/blog')" class="text-white transition">Blog</NuxtLink>
+          <NuxtLink to="/blog" class="text-white transition">Blog</NuxtLink>
           <a
             href="https://github.com/reqcore-inc/reqcore"
             target="_blank"

@@ -30,6 +30,8 @@ import {
   MoreHorizontal,
 } from 'lucide-vue-next'
 
+const { t } = useI18n()
+
 useSeoMeta({
   title: 'Open-Source Applicant Tracking System — Self-Hosted ATS',
   description:
@@ -99,25 +101,25 @@ const ctaRef = useScrollFade()
             :to="$localePath('/catalog')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
-            Features
+            {{ t('home.nav.features') }}
           </NuxtLink>
           <NuxtLink
             :to="$localePath('/jobs')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
-            Open Positions
+            {{ t('home.nav.openPositions') }}
           </NuxtLink>
           <NuxtLink
             :to="$localePath('/roadmap')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
-            Roadmap
+            {{ t('home.nav.roadmap') }}
           </NuxtLink>
           <NuxtLink
-            :to="$localePath('/blog')"
+            to="/blog"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
-            Blog
+            {{ t('home.nav.blog') }}
           </NuxtLink>
           <a
             href="https://github.com/reqcore-inc/reqcore"
@@ -126,7 +128,7 @@ const ctaRef = useScrollFade()
             class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
             <Github class="h-3.5 w-3.5" />
-            GitHub
+            {{ t('home.nav.github') }}
           </a>
         </div>
 
@@ -136,7 +138,7 @@ const ctaRef = useScrollFade()
               :to="$localePath('/dashboard')"
               class="rounded-md bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
-              Dashboard
+              {{ t('home.nav.dashboard') }}
             </NuxtLink>
           </template>
           <template v-else>
@@ -144,13 +146,13 @@ const ctaRef = useScrollFade()
               :to="$localePath('/auth/sign-in')"
               class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
             >
-              Log in
+              {{ t('home.nav.logIn') }}
             </NuxtLink>
             <NuxtLink
               :to="$localePath('/auth/sign-up')"
               class="rounded-md bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
-              Sign up
+              {{ t('home.nav.signUp') }}
             </NuxtLink>
           </template>
         </div>
@@ -174,21 +176,21 @@ const ctaRef = useScrollFade()
             class="group inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[13px] font-medium text-surface-300 transition hover:border-white/[0.15] hover:bg-white/[0.06]"
           >
             <Star class="h-3.5 w-3.5 text-brand-400" :stroke-width="2" />
-            Open Source &amp; Self-Hosted
+            {{ t('home.badge') }}
             <ChevronRight class="h-3 w-3 text-surface-500 transition group-hover:translate-x-0.5" />
           </a>
         </div>
 
         <!-- Hero heading — large & bold, Linear-inspired -->
         <h1 class="hero-animate hero-delay-2 text-[clamp(2.5rem,6.5vw,5.5rem)] leading-[1.05] font-extrabold tracking-[-0.03em]">
-          The hiring system<br />
-          <span class="bg-gradient-to-r from-brand-400 via-brand-300 to-accent-400 bg-clip-text text-transparent">you actually own</span>
+          {{ t('home.hero.titleLine1') }}<br />
+          <span class="bg-gradient-to-r from-brand-400 via-brand-300 to-accent-400 bg-clip-text text-transparent">{{ t('home.hero.titleHighlight') }}</span>
         </h1>
 
         <!-- Subtitle -->
         <p class="hero-animate hero-delay-3 mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-surface-400 sm:text-xl sm:leading-relaxed">
-          Purpose-built for recruiting teams who refuse per-seat pricing.
-          Designed for the self-hosted era.
+          {{ t('home.hero.subtitleLine1') }}
+          {{ t('home.hero.subtitleLine2') }}
         </p>
 
         <!-- CTA buttons -->
@@ -198,17 +200,17 @@ const ctaRef = useScrollFade()
             class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_rgba(99,102,241,0.25)] transition hover:bg-brand-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.35)]"
           >
             <Play class="h-3.5 w-3.5" />
-            Try live demo
+            {{ t('home.hero.ctaDemo') }}
           </NuxtLink>
           <NuxtLink
             :to="$localePath('/auth/sign-up')"
             class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.08)] transition hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.12)]"
           >
-            Get started free
+            {{ t('home.hero.ctaStart') }}
             <ArrowRight class="h-3.5 w-3.5" />
           </NuxtLink>
         </div>
-        <p class="hero-animate hero-delay-4 mt-3 text-xs text-surface-500">No sign-up needed — instant access with sample data</p>
+        <p class="hero-animate hero-delay-4 mt-3 text-xs text-surface-500">{{ t('home.hero.hint') }}</p>
       </div>
 
       <!-- ─── Product Preview (Linear-style embedded UI) ── -->
@@ -1333,7 +1335,7 @@ const ctaRef = useScrollFade()
           <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white">
             Roadmap
           </NuxtLink>
-          <NuxtLink :to="$localePath('/blog')" class="transition hover:text-white">
+          <NuxtLink to="/blog" class="transition hover:text-white">
             Blog
           </NuxtLink>
           <a
