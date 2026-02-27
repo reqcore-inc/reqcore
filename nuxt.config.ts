@@ -105,7 +105,7 @@ export default defineNuxtConfig({
       name: 'Reqcore',
       url: 'https://reqcore.com',
       logo: 'https://reqcore.com/og-image.png',
-      sameAs: ['https://github.com/reqcore/reqcore'],
+      sameAs: ['https://github.com/reqcore-inc/reqcore'],
     },
   },
 
