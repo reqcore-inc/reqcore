@@ -133,8 +133,6 @@ function handleAddQuestion(data: {
   required: boolean
   options?: string[]
 }) {
-  if (applicationForm.value.questions.length >= 5) return
-
   applicationForm.value.questions.push({
     id: `draft-${nextQuestionId.value++}`,
     label: data.label,
@@ -649,8 +647,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
                 <button
                   v-if="!showAddForm && !editingQuestion"
                   type="button"
-                  :disabled="applicationForm.questions.length >= 5"
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-surface-300 dark:border-surface-700 px-3 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:border-brand-400 dark:hover:border-brand-600 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950 transition-colors disabled:opacity-50"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-surface-300 dark:border-surface-700 px-3 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:border-brand-400 dark:hover:border-brand-600 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950 transition-colors"
                   @click="showAddForm = true"
                 >
                   <Plus class="size-4" />
