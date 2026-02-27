@@ -87,7 +87,7 @@ function isActiveTab(to: string, exact: boolean) {
     <div class="flex flex-col gap-5">
       <!-- Logo -->
       <NuxtLink to="/" class="flex items-center gap-2 px-2 no-underline">
-        <img src="/raccoon-reqcore-mascot.png" alt="Reqcore mascot" class="size-7 shrink-0 object-contain" />
+        <img src="/eagle-mascot-logo.png" alt="Reqcore mascot" class="size-7 shrink-0 object-contain" />
         <span class="text-lg font-bold text-surface-900 dark:text-surface-100">Reqcore</span>
       </NuxtLink>
 
