@@ -1,5 +1,8 @@
 {
   "common": {
-    "language": "Langue"
+    "language": "Langue",
+    "selectLanguage": "Sélectionner la langue",
+    "save": "Enregistrer",
+    "cancel": "Annuler"
   }
 }

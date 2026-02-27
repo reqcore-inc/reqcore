@@ -144,7 +144,7 @@ async function handleLocaleChange(nextLocale: string) {
 
     <select
       v-model="selectedLocaleCode"
-      aria-label="Select language"
+      :aria-label="t('common.selectLanguage')"
       class="h-8 min-w-14 rounded-md border border-surface-300/45 dark:border-surface-700/55 bg-transparent px-2 text-xs font-medium lowercase text-surface-500 dark:text-surface-400 outline-none transition-colors hover:border-surface-400/60 hover:text-surface-700 dark:hover:border-surface-600 dark:hover:text-surface-200 focus:border-brand-500/70 focus:text-surface-800 dark:focus:text-surface-100"
     >
       <option

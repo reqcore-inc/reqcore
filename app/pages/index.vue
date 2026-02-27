@@ -114,7 +114,7 @@ const ctaRef = useScrollFade()
             Roadmap
           </NuxtLink>
           <NuxtLink
-            :to="$localePath('/blog')"
+            to="/blog"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
             Blog
@@ -1333,7 +1333,7 @@ const ctaRef = useScrollFade()
           <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white">
             Roadmap
           </NuxtLink>
-          <NuxtLink :to="$localePath('/blog')" class="transition hover:text-white">
+          <NuxtLink to="/blog" class="transition hover:text-white">
             Blog
           </NuxtLink>
           <a

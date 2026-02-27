@@ -1,5 +1,8 @@
 {
   "common": {
-    "language": "Ngôn ngữ"
+    "language": "Ngôn ngữ",
+    "selectLanguage": "Chọn ngôn ngữ",
+    "save": "Lưu",
+    "cancel": "Hủy"
   }
 }

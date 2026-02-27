@@ -237,7 +237,7 @@ const stats = computed(() => {
             Features
           </NuxtLink>
           <NuxtLink
-            :to="$localePath('/blog')"
+            to="/blog"
             class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
           >
             Blog
@@ -533,7 +533,7 @@ const stats = computed(() => {
         <div class="flex items-center gap-4">
           <NuxtLink :to="$localePath('/')" class="hover:text-white/60 transition">Home</NuxtLink>
           <NuxtLink :to="$localePath('/roadmap')" class="hover:text-white/60 transition">Roadmap</NuxtLink>
-          <NuxtLink :to="$localePath('/blog')" class="hover:text-white/60 transition">Blog</NuxtLink>
+          <NuxtLink to="/blog" class="hover:text-white/60 transition">Blog</NuxtLink>
         </div>
         <div class="flex items-center gap-2">
           <span>Open source on</span>
