@@ -37,8 +37,8 @@ function getFirstPathSegment(path: string): string | null {
 
 function normalizePath(path: string | null | undefined): string {
   if (!path) return '/'
-  const [withoutQuery] = path.split('?')
-  const [withoutHash] = withoutQuery.split('#')
+  const [withoutQuery = '/'] = path.split('?')
+  const [withoutHash = '/'] = withoutQuery.split('#')
   const trimmed = withoutHash.replace(/\/+$/, '')
   return trimmed || '/'
 }
@@ -58,6 +58,10 @@ const localeOptions = computed(() => {
       label: `${localeFlags[code] ?? '🌐'} ${code.toLowerCase()}`,
     }))
 })
+
+function isSwitchLocale(code: string): code is SwitchLocale {
+  return localeOptions.value.some(option => option.code === code)
+}
 
 const resolvedLocaleCode = computed(() => {
   const currentPath = normalizePath(
@@ -121,11 +125,9 @@ const i18nProbeText = computed(() => t('common.language'))
 
 async function handleLocaleChange(nextLocale: string) {
   if (!nextLocale || nextLocale === selectedLocaleCode.value) return
+  if (!isSwitchLocale(nextLocale)) return
 
-  const selectedLocale = localeOptions.value.find(option => option.code === nextLocale)?.code
-  if (!selectedLocale) return
-
-  const switchPath = switchLocalePath(selectedLocale)
+  const switchPath = switchLocalePath(nextLocale)
   await navigateTo(switchPath || localePath('/'))
 }
 </script>
