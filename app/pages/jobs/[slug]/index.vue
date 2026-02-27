@@ -206,7 +206,7 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
         This position may no longer be available or is not currently accepting applications.
       </p>
       <NuxtLink
-        to="/jobs"
+        :to="$localePath('/jobs')"
         class="inline-flex items-center gap-1.5 rounded-xl border border-surface-300 dark:border-surface-700 px-5 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors shadow-sm"
       >
         <ArrowLeft class="size-4" />
@@ -218,7 +218,7 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
     <template v-else-if="job">
       <!-- Back link -->
       <NuxtLink
-        to="/jobs"
+        :to="$localePath('/jobs')"
         class="inline-flex items-center gap-1.5 text-sm text-surface-500 hover:text-surface-800 dark:hover:text-surface-200 transition-colors mb-6 group"
       >
         <ArrowLeft class="size-3.5 transition-transform group-hover:-translate-x-0.5" />
@@ -271,7 +271,7 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
           <!-- Apply CTA inline -->
           <div class="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-3 border-t border-surface-100 dark:border-surface-800 pt-5">
             <NuxtLink
-              :to="`/jobs/${job.slug}/apply`"
+              :to="$localePath(`/jobs/${job.slug}/apply`)"
               class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 active:scale-[0.98] transition-all shadow-sm"
             >
               Apply Now
@@ -330,7 +330,7 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
           <p class="text-sm text-surface-500 mt-0.5">Submit your application in just a few minutes.</p>
         </div>
         <NuxtLink
-          :to="`/jobs/${job.slug}/apply`"
+          :to="$localePath(`/jobs/${job.slug}/apply`)"
           class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 active:scale-[0.98] transition-all shadow-sm"
         >
           Apply for this position

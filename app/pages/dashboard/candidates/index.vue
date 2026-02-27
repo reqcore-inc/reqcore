@@ -38,7 +38,7 @@ const { candidates, total, fetchStatus, error, refresh } = useCandidates({
         </p>
       </div>
       <NuxtLink
-        to="/dashboard/candidates/new"
+        :to="$localePath('/dashboard/candidates/new')"
         class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
       >
         <Plus class="size-4" />
@@ -88,7 +88,7 @@ const { candidates, total, fetchStatus, error, refresh } = useCandidates({
       </p>
       <NuxtLink
         v-if="!debouncedSearch"
-        to="/dashboard/candidates/new"
+        :to="$localePath('/dashboard/candidates/new')"
         class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
       >
         <Plus class="size-4" />
@@ -101,7 +101,7 @@ const { candidates, total, fetchStatus, error, refresh } = useCandidates({
       <NuxtLink
         v-for="c in candidates"
         :key="c.id"
-        :to="`/dashboard/candidates/${c.id}`"
+        :to="$localePath(`/dashboard/candidates/${c.id}`)"
         class="flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-3 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all group"
       >
         <div class="min-w-0 flex-1">

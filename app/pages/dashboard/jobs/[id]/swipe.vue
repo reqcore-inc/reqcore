@@ -379,7 +379,7 @@ const isLoading = computed(() => {
       class="m-6 rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700"
     >
       {{ jobError ? 'Job not found or failed to load.' : 'Failed to load applications.' }}
-      <NuxtLink to="/dashboard/jobs" class="ml-1 underline">Back to Jobs</NuxtLink>
+      <NuxtLink :to="$localePath('/dashboard/jobs')" class="ml-1 underline">Back to Jobs</NuxtLink>
     </div>
 
     <template v-else-if="jobData">
@@ -679,7 +679,7 @@ const isLoading = computed(() => {
                 <!-- Quick links -->
                 <div class="flex items-center gap-4 pt-1">
                   <NuxtLink
-                    :to="`/dashboard/applications/${currentSummary.id}`"
+                    :to="$localePath(`/dashboard/applications/${currentSummary.id}`)"
                     class="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium transition-colors"
                   >
                     <ExternalLink class="size-3.5" />

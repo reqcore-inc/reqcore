@@ -385,32 +385,32 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
     <!-- ─── Navbar ─────────────────────────────────────── -->
     <nav class="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl">
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <NuxtLink to="/" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
+        <NuxtLink :to="$localePath('/')" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
           <span class="flex h-7 w-7 items-center justify-center rounded-md bg-brand-500 text-xs font-black text-white">A</span>
           Reqcore
         </NuxtLink>
 
         <div class="flex items-center gap-2">
           <NuxtLink
-            to="/jobs"
+            :to="$localePath('/jobs')"
             class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
           >
             Open Positions
           </NuxtLink>
           <NuxtLink
-            to="/roadmap"
+            :to="$localePath('/roadmap')"
             class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-white transition sm:inline-flex"
           >
             Roadmap
           </NuxtLink>
           <NuxtLink
-            to="/catalog"
+            :to="$localePath('/catalog')"
             class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
           >
             Features
           </NuxtLink>
           <NuxtLink
-            to="/blog"
+            :to="$localePath('/blog')"
             class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
           >
             Blog
@@ -427,7 +427,7 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
 
           <template v-if="session">
             <NuxtLink
-              to="/dashboard"
+              :to="$localePath('/dashboard')"
               class="rounded-md bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
               Dashboard
@@ -435,13 +435,13 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
           </template>
           <template v-else>
             <NuxtLink
-              to="/auth/sign-in"
+              :to="$localePath('/auth/sign-in')"
               class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
             >
               Sign In
             </NuxtLink>
             <NuxtLink
-              to="/auth/sign-up"
+              :to="$localePath('/auth/sign-up')"
               class="rounded-md bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
               Get Started
@@ -780,7 +780,7 @@ const upcomingItems = computed(() => items.filter(item => item.status !== 'shipp
               Open an Issue
             </a>
             <NuxtLink
-              to="/auth/sign-up"
+              :to="$localePath('/auth/sign-up')"
               class="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-surface-300 transition hover:border-white/[0.2] hover:bg-white/[0.06] hover:text-white"
             >
               Get Started

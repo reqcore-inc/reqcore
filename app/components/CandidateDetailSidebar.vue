@@ -538,14 +538,14 @@ const responsesCount = computed(() => application.value?.responses?.length ?? 0)
             <!-- Quick links -->
             <div class="flex items-center gap-4 pt-1">
               <NuxtLink
-                :to="`/dashboard/candidates/${application.candidate.id}`"
+                :to="$localePath(`/dashboard/candidates/${application.candidate.id}`)"
                 class="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium transition-colors"
               >
                 <ExternalLink class="size-3.5" />
                 Full candidate profile
               </NuxtLink>
               <NuxtLink
-                :to="`/dashboard/applications/${application.id}`"
+                :to="$localePath(`/dashboard/applications/${application.id}`)"
                 class="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-medium transition-colors"
               >
                 <ExternalLink class="size-3.5" />

@@ -107,7 +107,7 @@ const isLoading = computed(() => jobFetchStatus.value === 'pending' || appFetchS
       class="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700"
     >
       Job not found or failed to load.
-      <NuxtLink to="/dashboard/jobs" class="underline ml-1">Back to Jobs</NuxtLink>
+      <NuxtLink :to="$localePath('/dashboard/jobs')" class="underline ml-1">Back to Jobs</NuxtLink>
     </div>
 
     <template v-else-if="jobData">

@@ -4,8 +4,9 @@
  */
 export default defineNuxtRouteMiddleware(async () => {
   const { data: session } = await authClient.useSession(useFetch)
+  const localePath = useLocalePath()
 
   if (session.value && !session.value.session.activeOrganizationId) {
-    return navigateTo('/onboarding/create-org')
+    return navigateTo(localePath('/onboarding/create-org'))
   }
 })

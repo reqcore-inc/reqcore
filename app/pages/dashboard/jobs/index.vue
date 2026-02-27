@@ -71,7 +71,7 @@ const typeLabels: Record<string, string> = {
         </p>
       </div>
       <NuxtLink
-        to="/dashboard/jobs/new"
+        :to="$localePath('/dashboard/jobs/new')"
         class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
       >
         <Plus class="size-4" />
@@ -145,7 +145,7 @@ const typeLabels: Record<string, string> = {
         Create your first job posting to start building your recruitment pipeline.
       </p>
       <NuxtLink
-        to="/dashboard/jobs/new"
+        :to="$localePath('/dashboard/jobs/new')"
         class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
       >
         <Plus class="size-4" />
@@ -158,7 +158,7 @@ const typeLabels: Record<string, string> = {
       <NuxtLink
         v-for="j in jobs"
         :key="j.id"
-        :to="`/dashboard/jobs/${j.id}`"
+        :to="$localePath(`/dashboard/jobs/${j.id}`)"
         class="flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-3 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all group"
       >
         <div class="min-w-0 flex-1">
@@ -195,7 +195,7 @@ const typeLabels: Record<string, string> = {
       <NuxtLink
         v-for="j in jobs"
         :key="j.id"
-        :to="`/dashboard/jobs/${j.id}`"
+        :to="$localePath(`/dashboard/jobs/${j.id}`)"
         class="
           flex flex-col rounded-lg border border-surface-200 dark:border-surface-800
           bg-white dark:bg-surface-900 p-4

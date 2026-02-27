@@ -6,6 +6,8 @@
  * Must be called in `<script setup>` context.
  */
 export function useCurrentOrg() {
+  const localePath = useLocalePath()
+
   // ═══════════════════════════════════════════
   // 1. ORG LIST — reactive hook from Better Auth
   // ═══════════════════════════════════════════
@@ -31,7 +33,7 @@ export function useCurrentOrg() {
     await authClient.organization.setActive({ organizationId: orgId })
     // Hard navigation ensures all component state is fully reset.
     // reloadNuxtApp() without force can soft-reload and leak stale state.
-    window.location.href = '/dashboard'
+    window.location.href = localePath('/dashboard')
   }
 
   /**
@@ -49,7 +51,7 @@ export function useCurrentOrg() {
     }
 
     // Better Auth sets the new org as active by default
-    await navigateTo('/dashboard')
+    await navigateTo(localePath('/dashboard'))
   }
 
   // ═══════════════════════════════════════════

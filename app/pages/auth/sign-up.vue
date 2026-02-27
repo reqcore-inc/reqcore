@@ -16,6 +16,7 @@ const password = ref('')
 const confirmPassword = ref('')
 const error = ref('')
 const isLoading = ref(false)
+const localePath = useLocalePath()
 
 async function handleSignUp() {
   error.value = ''
@@ -50,7 +51,7 @@ async function handleSignUp() {
   }
 
   clearNuxtData()
-  await navigateTo('/onboarding/create-org')
+  await navigateTo(localePath('/onboarding/create-org'))
 }
 </script>
 
@@ -115,9 +116,8 @@ async function handleSignUp() {
 
     <p class="text-center text-sm text-surface-500 dark:text-surface-400">
       Already have an account?
-      <NuxtLink to="/auth/sign-in" class="text-brand-600 dark:text-brand-400 hover:underline">Sign in</NuxtLink>
+      <NuxtLink :to="$localePath('/auth/sign-in')" class="text-brand-600 dark:text-brand-400 hover:underline">Sign in</NuxtLink>
     </p>
   </form>
 </template>
-
 

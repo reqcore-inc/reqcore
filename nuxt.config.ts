@@ -3,6 +3,28 @@ import tailwindcss from '@tailwindcss/vite'
 
 const railwayEnvironmentName = process.env.RAILWAY_ENVIRONMENT_NAME?.toLowerCase() ?? ''
 const railwayPublicDomain = process.env.RAILWAY_PUBLIC_DOMAIN?.toLowerCase() ?? ''
+const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://reqcore.com'
+const i18nDefaultLocale = 'en'
+const i18nLocales = [
+  { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
+  { code: 'es', language: 'es-ES', name: 'Español', file: 'es.json' },
+  { code: 'fr', language: 'fr-FR', name: 'Français', file: 'fr.json' },
+  { code: 'de', language: 'de-DE', name: 'Deutsch', file: 'de.json' },
+]
+
+const localizedPublicRouteRules = Object.fromEntries(
+  i18nLocales
+    .filter(locale => locale.code !== i18nDefaultLocale)
+    .flatMap(locale => ([
+      [`/${locale.code}`, { prerender: true }],
+      [`/${locale.code}/`, { prerender: true }],
+      [`/${locale.code}/roadmap`, { prerender: true }],
+      [`/${locale.code}/catalog`, { prerender: true }],
+      [`/${locale.code}/jobs`, { isr: 3600 }],
+      [`/${locale.code}/jobs/**`, { isr: 3600 }],
+    ])),
+)
+
 const isRailwayPreview =
   railwayEnvironmentName.startsWith('pr')
   || railwayEnvironmentName.includes('pr-')
@@ -15,18 +37,32 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  modules: ['@nuxtjs/seo', '@nuxt/content'],
+  modules: ['@nuxtjs/i18n', '@nuxtjs/seo', '@nuxt/content'],
 
   css: ['~/assets/css/main.css'],
+
+  i18n: {
+    baseUrl: siteUrl,
+    defaultLocale: i18nDefaultLocale,
+    strategy: 'prefix_except_default',
+    locales: i18nLocales,
+    langDir: 'locales',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'reqcore_i18n_redirected',
+      redirectOn: 'root',
+    },
+    vueI18n: './i18n.config.ts',
+  },
 
   // ─────────────────────────────────────────────
   // Site config — shared across all SEO modules
   // ─────────────────────────────────────────────
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'https://reqcore.com',
+    url: siteUrl,
     name: 'Reqcore',
     description: 'Open-source applicant tracking system with transparent AI, no per-seat pricing, and full data ownership. Self-host on your own infrastructure.',
-    defaultLocale: 'en',
+    defaultLocale: i18nDefaultLocale,
   },
 
   // ─────────────────────────────────────────────
@@ -34,7 +70,6 @@ export default defineNuxtConfig({
   // ─────────────────────────────────────────────
   app: {
     head: {
-      htmlAttrs: { lang: 'en' },
       titleTemplate: '%s — Reqcore',
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
@@ -96,7 +131,15 @@ export default defineNuxtConfig({
   // Robots — block crawlers from authenticated/API routes
   // ─────────────────────────────────────────────
   robots: {
-    disallow: ['/dashboard/', '/auth/', '/api/', '/onboarding/'],
+    disallow: [
+      '/dashboard/',
+      '/auth/',
+      '/api/',
+      '/onboarding/',
+      '/*/dashboard/',
+      '/*/auth/',
+      '/*/onboarding/',
+    ],
   },
 
   // ─────────────────────────────────────────────
@@ -137,6 +180,7 @@ export default defineNuxtConfig({
     '/catalog': { prerender: true },
     '/jobs': { isr: 3600 },
     '/jobs/**': { isr: 3600 },
+    ...localizedPublicRouteRules,
   },
 
   // ─────────────────────────────────────────────

@@ -402,7 +402,7 @@ const statusLabels: Record<Status, string> = {
       <NuxtLink
         v-for="app in filteredApplications"
         :key="app.id"
-        :to="`/dashboard/applications/${app.id}`"
+        :to="$localePath(`/dashboard/applications/${app.id}`)"
         class="flex items-start gap-4 rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-4 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all group"
       >
         <!-- Avatar -->

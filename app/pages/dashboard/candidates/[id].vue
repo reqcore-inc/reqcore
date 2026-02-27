@@ -261,7 +261,7 @@ function formatFileSize(bytes: number | null | undefined): string {
   <div class="mx-auto max-w-3xl">
     <!-- Back link -->
     <NuxtLink
-      to="/dashboard/candidates"
+      :to="$localePath('/dashboard/candidates')"
       class="inline-flex items-center gap-1 text-sm text-surface-500 hover:text-surface-700 mb-6 transition-colors"
     >
       <ArrowLeft class="size-4" />
@@ -279,7 +279,7 @@ function formatFileSize(bytes: number | null | undefined): string {
       class="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700"
     >
       {{ error.statusCode === 404 ? 'Candidate not found.' : 'Failed to load candidate.' }}
-      <NuxtLink to="/dashboard/candidates" class="underline ml-1">Back to Candidates</NuxtLink>
+      <NuxtLink :to="$localePath('/dashboard/candidates')" class="underline ml-1">Back to Candidates</NuxtLink>
     </div>
 
     <!-- Candidate detail -->
@@ -406,7 +406,7 @@ function formatFileSize(bytes: number | null | undefined): string {
             <NuxtLink
               v-for="app in candidate.applications"
               :key="app.id"
-              :to="`/dashboard/applications/${app.id}`"
+              :to="$localePath(`/dashboard/applications/${app.id}`)"
               class="flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-3 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all group"
             >
               <div class="min-w-0 flex-1">

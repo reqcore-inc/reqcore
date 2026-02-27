@@ -246,6 +246,14 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full deployment architecture diag
 | `npm run db:generate` | Generate migrations from schema changes |
 | `npm run db:seed` | Seed database with demo data |
 | `npm run db:studio` | Open Drizzle Studio (database browser) |
+| `npm run i18n:crowdin:upload` | Upload source locale file to Crowdin |
+| `npm run i18n:crowdin:download` | Download latest translations from Crowdin |
+| `npm run i18n:crowdin:sync` | Upload sources and then download translations |
+
+## Internationalization
+
+Reqcore uses Nuxt i18n (`@nuxtjs/i18n`) with Crowdin for translation management.
+Implementation details and setup steps (including Crowdin native GitHub integration) are documented in [I18N.md](I18N.md).
 
 ## Roadmap
 

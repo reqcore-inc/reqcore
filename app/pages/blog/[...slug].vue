@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ArrowLeft, Github, Calendar, User } from 'lucide-vue-next'
 
+definePageMeta({
+  i18n: false,
+})
+
 const route = useRoute()
 
 // Build the content path from the slug segments
@@ -64,11 +68,11 @@ const { data: session } = await authClient.useSession(useFetch)
       class="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl"
     >
       <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-        <NuxtLink to="/" class="text-[15px] font-semibold tracking-tight">Reqcore</NuxtLink>
+        <NuxtLink :to="$localePath('/')" class="text-[15px] font-semibold tracking-tight">Reqcore</NuxtLink>
         <div class="flex items-center gap-5 text-[13px] text-white/60">
-          <NuxtLink to="/roadmap" class="transition hover:text-white">Roadmap</NuxtLink>
-          <NuxtLink to="/catalog" class="transition hover:text-white">Features</NuxtLink>
-          <NuxtLink to="/blog" class="text-white transition">Blog</NuxtLink>
+          <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white">Roadmap</NuxtLink>
+          <NuxtLink :to="$localePath('/catalog')" class="transition hover:text-white">Features</NuxtLink>
+          <NuxtLink :to="$localePath('/blog')" class="text-white transition">Blog</NuxtLink>
           <a
             href="https://github.com/reqcore-inc/reqcore"
             target="_blank"
@@ -78,14 +82,14 @@ const { data: session } = await authClient.useSession(useFetch)
           </a>
           <NuxtLink
             v-if="session?.user"
-            to="/dashboard"
+            :to="$localePath('/dashboard')"
             class="rounded-md bg-white/10 px-3 py-1 text-white transition hover:bg-white/15"
           >
             Dashboard
           </NuxtLink>
           <NuxtLink
             v-else
-            to="/auth/sign-in"
+            :to="$localePath('/auth/sign-in')"
             class="rounded-md bg-white/10 px-3 py-1 text-white transition hover:bg-white/15"
           >
             Sign In
@@ -99,7 +103,7 @@ const { data: session } = await authClient.useSession(useFetch)
       <div class="mx-auto max-w-2xl px-6">
         <!-- Back link -->
         <NuxtLink
-          to="/blog"
+          :to="$localePath('/blog')"
           class="mb-8 inline-flex items-center gap-1.5 text-sm text-white/40 transition hover:text-white/70"
         >
           <ArrowLeft class="size-3.5" />
@@ -146,13 +150,13 @@ const { data: session } = await authClient.useSession(useFetch)
           </p>
           <div class="mt-5 flex items-center justify-center gap-3">
             <NuxtLink
-              to="/auth/sign-in"
+              :to="$localePath('/auth/sign-in')"
               class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_rgba(99,102,241,0.25)] transition hover:bg-brand-400"
             >
               Try live demo
             </NuxtLink>
             <NuxtLink
-              to="/"
+              :to="$localePath('/')"
               class="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/[0.08]"
             >
               Learn more
@@ -167,8 +171,8 @@ const { data: session } = await authClient.useSession(useFetch)
       <div class="mx-auto max-w-5xl px-6 flex items-center justify-between text-xs text-white/30">
         <span>&copy; {{ new Date().getFullYear() }} Reqcore</span>
         <div class="flex items-center gap-4">
-          <NuxtLink to="/" class="transition hover:text-white/60">Home</NuxtLink>
-          <NuxtLink to="/roadmap" class="transition hover:text-white/60">Roadmap</NuxtLink>
+          <NuxtLink :to="$localePath('/')" class="transition hover:text-white/60">Home</NuxtLink>
+          <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white/60">Roadmap</NuxtLink>
           <a
             href="https://github.com/reqcore-inc/reqcore"
             target="_blank"

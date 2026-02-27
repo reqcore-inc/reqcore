@@ -88,7 +88,7 @@ const ctaRef = useScrollFade()
     <!-- ─── Navbar ─────────────────────────────────────── -->
     <nav class="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl">
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <NuxtLink to="/" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
+        <NuxtLink :to="$localePath('/')" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
           <img src="/eagle-mascot-logo.png" alt="Reqcore mascot" class="h-7 w-7 object-contain" />
           Reqcore
         </NuxtLink>
@@ -96,25 +96,25 @@ const ctaRef = useScrollFade()
         <!-- Center nav links -->
         <div class="hidden items-center gap-1 md:flex">
           <NuxtLink
-            to="/catalog"
+            :to="$localePath('/catalog')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
             Features
           </NuxtLink>
           <NuxtLink
-            to="/jobs"
+            :to="$localePath('/jobs')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
             Open Positions
           </NuxtLink>
           <NuxtLink
-            to="/roadmap"
+            :to="$localePath('/roadmap')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
             Roadmap
           </NuxtLink>
           <NuxtLink
-            to="/blog"
+            :to="$localePath('/blog')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
             Blog
@@ -133,7 +133,7 @@ const ctaRef = useScrollFade()
         <div class="flex items-center gap-2">
           <template v-if="session">
             <NuxtLink
-              to="/dashboard"
+              :to="$localePath('/dashboard')"
               class="rounded-md bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
               Dashboard
@@ -141,13 +141,13 @@ const ctaRef = useScrollFade()
           </template>
           <template v-else>
             <NuxtLink
-              to="/auth/sign-in"
+              :to="$localePath('/auth/sign-in')"
               class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
             >
               Log in
             </NuxtLink>
             <NuxtLink
-              to="/auth/sign-up"
+              :to="$localePath('/auth/sign-up')"
               class="rounded-md bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
               Sign up
@@ -194,14 +194,14 @@ const ctaRef = useScrollFade()
         <!-- CTA buttons -->
         <div class="hero-animate hero-delay-4 mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <NuxtLink
-            to="/auth/sign-in?live=1"
+            :to="$localePath('/auth/sign-in?live=1')"
             class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_rgba(99,102,241,0.25)] transition hover:bg-brand-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.35)]"
           >
             <Play class="h-3.5 w-3.5" />
             Try live demo
           </NuxtLink>
           <NuxtLink
-            to="/auth/sign-up"
+            :to="$localePath('/auth/sign-up')"
             class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.08)] transition hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.12)]"
           >
             Get started free
@@ -723,7 +723,7 @@ const ctaRef = useScrollFade()
         <!-- Inline CTA -->
         <div class="mt-10 flex justify-center">
           <NuxtLink
-            to="/auth/sign-up"
+            :to="$localePath('/auth/sign-up')"
             class="group inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-6 py-3 text-sm font-semibold text-white transition hover:border-white/[0.2] hover:bg-white/[0.08]"
           >
             Join the mission
@@ -1267,7 +1267,7 @@ const ctaRef = useScrollFade()
           <!-- CTA -->
           <div class="mt-10 flex justify-center">
             <NuxtLink
-              to="/roadmap"
+              :to="$localePath('/roadmap')"
               class="group inline-flex items-center gap-2.5 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
             >
               <Map class="h-4 w-4" />
@@ -1303,7 +1303,7 @@ const ctaRef = useScrollFade()
         </p>
         <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <NuxtLink
-            to="/auth/sign-up"
+            :to="$localePath('/auth/sign-up')"
             class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
           >
             Get started
@@ -1330,10 +1330,10 @@ const ctaRef = useScrollFade()
           &copy; {{ new Date().getFullYear() }} Reqcore. Open source under AGPL-3.0.
         </div>
         <div class="flex gap-6 text-[13px] text-surface-500">
-          <NuxtLink to="/roadmap" class="transition hover:text-white">
+          <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white">
             Roadmap
           </NuxtLink>
-          <NuxtLink to="/blog" class="transition hover:text-white">
+          <NuxtLink :to="$localePath('/blog')" class="transition hover:text-white">
             Blog
           </NuxtLink>
           <a

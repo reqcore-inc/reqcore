@@ -268,7 +268,7 @@ const applicantsInWindow = computed(() =>
       class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950 p-4 text-sm text-danger-700 dark:text-danger-400"
     >
       {{ error.statusCode === 404 ? 'Job not found.' : 'Failed to load job.' }}
-      <NuxtLink to="/dashboard/jobs" class="underline ml-1">Back to Jobs</NuxtLink>
+      <NuxtLink :to="$localePath('/dashboard/jobs')" class="underline ml-1">Back to Jobs</NuxtLink>
     </div>
 
     <!-- Job detail -->

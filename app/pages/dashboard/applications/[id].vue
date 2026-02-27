@@ -130,7 +130,7 @@ function formatResponseValue(value: unknown): string {
   <div class="mx-auto max-w-3xl">
     <!-- Back link -->
     <NuxtLink
-      to="/dashboard/applications"
+      :to="$localePath('/dashboard/applications')"
       class="mb-4 inline-flex items-center gap-1 rounded-full border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-3 py-1.5 text-sm text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
     >
       <ArrowLeft class="size-4" />
@@ -148,7 +148,7 @@ function formatResponseValue(value: unknown): string {
       class="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700"
     >
       {{ error.statusCode === 404 ? 'Application not found.' : 'Failed to load application.' }}
-      <NuxtLink to="/dashboard/applications" class="underline ml-1">Back to Applications</NuxtLink>
+      <NuxtLink :to="$localePath('/dashboard/applications')" class="underline ml-1">Back to Applications</NuxtLink>
     </div>
 
     <!-- Application detail -->
@@ -164,7 +164,7 @@ function formatResponseValue(value: unknown): string {
           </h1>
           <span class="text-surface-400">→</span>
           <NuxtLink
-            :to="`/dashboard/jobs/${application.job.id}`"
+            :to="$localePath(`/dashboard/jobs/${application.job.id}`)"
             class="text-xl text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 truncate transition-colors"
           >
             {{ application.job.title }}
@@ -219,7 +219,7 @@ function formatResponseValue(value: unknown): string {
               <dt class="text-surface-400">Name</dt>
               <dd class="text-surface-700 dark:text-surface-200 font-medium">
                 <NuxtLink
-                  :to="`/dashboard/candidates/${application.candidate.id}`"
+                  :to="$localePath(`/dashboard/candidates/${application.candidate.id}`)"
                   class="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors"
                 >
                   {{ application.candidate.firstName }} {{ application.candidate.lastName }}
@@ -248,7 +248,7 @@ function formatResponseValue(value: unknown): string {
               <dt class="text-surface-400">Title</dt>
               <dd class="text-surface-700 dark:text-surface-200 font-medium">
                 <NuxtLink
-                  :to="`/dashboard/jobs/${application.job.id}`"
+                  :to="$localePath(`/dashboard/jobs/${application.job.id}`)"
                   class="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors"
                 >
                   {{ application.job.title }}

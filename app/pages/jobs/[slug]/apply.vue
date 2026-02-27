@@ -205,7 +205,7 @@ const typeLabels: Record<string, string> = {
         This position may have been filled or is no longer accepting applications.
       </p>
       <NuxtLink
-        to="/"
+        :to="$localePath('/')"
         class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors shadow-sm"
       >
         Back to Home
@@ -217,7 +217,7 @@ const typeLabels: Record<string, string> = {
 
       <!-- Back link -->
       <NuxtLink
-        :to="`/jobs/${jobSlug}`"
+        :to="$localePath(`/jobs/${jobSlug}`)"
         class="inline-flex items-center gap-1.5 text-sm text-surface-500 hover:text-surface-800 dark:hover:text-surface-200 transition-colors mb-6 group"
       >
         <svg class="size-3.5 transition-transform group-hover:-translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
