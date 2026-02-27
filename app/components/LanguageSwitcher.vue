@@ -2,6 +2,7 @@
 const { locale, availableLocales } = useI18n()
 const localePath = useLocalePath()
 const switchLocalePath = useSwitchLocalePath()
+type SwitchLocale = Parameters<typeof switchLocalePath>[0]
 
 const localeFlags: Record<string, string> = {
   en: '🇺🇸',
@@ -14,7 +15,7 @@ const localeFlags: Record<string, string> = {
 
 const localeOptions = computed(() => {
   return availableLocales.map(code => ({
-    code,
+    code: code as SwitchLocale,
     label: `${localeFlags[code] ?? '🌐'} ${code.toLowerCase()}`,
   }))
 })
@@ -25,7 +26,10 @@ async function handleLocaleChange(event: Event) {
 
   if (!nextLocale || nextLocale === locale.value) return
 
-  const switchPath = switchLocalePath(nextLocale)
+  const selectedLocale = localeOptions.value.find(option => option.code === nextLocale)?.code
+  if (!selectedLocale) return
+
+  const switchPath = switchLocalePath(selectedLocale)
   await navigateTo(switchPath || localePath('/'))
 }
 </script>
