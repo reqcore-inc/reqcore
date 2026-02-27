@@ -365,18 +365,20 @@ async function seed() {
   // ─────────────────────────────────────────────
   // Clean up legacy applirank.com seed data
   // ─────────────────────────────────────────────
-  const [legacyOrg] = await db
-    .select({ id: schema.organization.id })
-    .from(schema.organization)
-    .where(eq(schema.organization.slug, LEGACY_ORG_SLUG))
-    .limit(1)
-
-  const [legacyUser] = await db
-    .select({ id: schema.user.id })
-    .from(schema.user)
-    .where(eq(schema.user.email, LEGACY_DEMO_EMAIL))
-    .limit(1)
-
+  const [legacyOrgResult, legacyUserResult] = await Promise.all([
+    db
+      .select({ id: schema.organization.id })
+      .from(schema.organization)
+      .where(eq(schema.organization.slug, LEGACY_ORG_SLUG))
+      .limit(1),
+    db
+      .select({ id: schema.user.id })
+      .from(schema.user)
+      .where(eq(schema.user.email, LEGACY_DEMO_EMAIL))
+      .limit(1),
+  ])
+  const [legacyOrg] = legacyOrgResult
+  const [legacyUser] = legacyUserResult
   if (legacyOrg || legacyUser) {
     console.log('🧹 Removing legacy applirank.com demo data...')
 
@@ -394,47 +396,84 @@ async function seed() {
     }
   }
 
-  // Check if demo org already exists
-  const existingOrg = await db
-    .select()
+  // ─────────────────────────────────────────────
+  // Upsert demo user (handles email rename scenarios)
+  // ─────────────────────────────────────────────
+  const [existingDemoUser] = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(eq(schema.user.email, DEMO_EMAIL))
+    .limit(1)
+
+  const hashedPassword = await hashPassword(DEMO_PASSWORD)
+  let userId: string
+
+  if (existingDemoUser) {
+    userId = existingDemoUser.id
+    // Ensure password is up to date in case it changed
+    await db
+      .update(schema.account)
+      .set({ password: hashedPassword, updatedAt: new Date() })
+      .where(eq(schema.account.userId, userId))
+    console.log(`✅ Demo user already exists: ${DEMO_EMAIL}`)
+  }
+  else {
+    userId = id()
+    await db.insert(schema.user).values({
+      id: userId,
+      name: 'Demo Recruiter',
+      email: DEMO_EMAIL,
+      emailVerified: true,
+      createdAt: daysAgo(30),
+      updatedAt: daysAgo(30),
+    })
+    await db.insert(schema.account).values({
+      id: id(),
+      userId,
+      accountId: userId,
+      providerId: 'credential',
+      password: hashedPassword,
+      createdAt: daysAgo(30),
+      updatedAt: daysAgo(30),
+    })
+    console.log(`✅ Created demo user: ${DEMO_EMAIL}`)
+  }
+
+  // ─────────────────────────────────────────────
+  // Upsert demo org (handles partial migration)
+  // ─────────────────────────────────────────────
+  const [existingOrg] = await db
+    .select({ id: schema.organization.id })
     .from(schema.organization)
     .where(eq(schema.organization.slug, DEMO_ORG_SLUG))
     .limit(1)
 
-  if (existingOrg.length > 0) {
-    console.log('⚠️  Demo organization already exists. Skipping seed.')
-    console.log('   To re-seed, delete the organization first or reset the database.')
+  if (existingOrg) {
+    // Org exists — ensure the demo user is a member, then stop
+    const [existingMember] = await db
+      .select({ id: schema.member.id })
+      .from(schema.member)
+      .where(eq(schema.member.userId, userId))
+      .limit(1)
+
+    if (!existingMember) {
+      await db.insert(schema.member).values({
+        id: id(),
+        userId,
+        organizationId: existingOrg.id,
+        role: 'owner',
+        createdAt: daysAgo(30),
+      })
+      console.log('✅ Linked demo user to existing org as owner')
+    }
+
+    console.log('⚠️  Demo organization already exists. Skipping full seed.')
+    console.log('   To re-seed all data, delete the organization first or reset the database.')
     await client.end()
     return
   }
 
-  // 1. Create demo user
-  const userId = id()
-  const hashedPassword = await hashPassword(DEMO_PASSWORD)
-
-  await db.insert(schema.user).values({
-    id: userId,
-    name: 'Demo Recruiter',
-    email: DEMO_EMAIL,
-    emailVerified: true,
-    createdAt: daysAgo(30),
-    updatedAt: daysAgo(30),
-  })
-
-  // Create account (email/password provider)
-  await db.insert(schema.account).values({
-    id: id(),
-    userId,
-    accountId: userId,
-    providerId: 'credential',
-    password: hashedPassword,
-    createdAt: daysAgo(30),
-    updatedAt: daysAgo(30),
-  })
-
-  console.log(`✅ Created demo user: ${DEMO_EMAIL}`)
-
-  // 2. Create organization
+  // 2. Create organization (fresh seed path)
   const orgId = id()
 
   await db.insert(schema.organization).values({
