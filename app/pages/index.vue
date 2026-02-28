@@ -30,6 +30,8 @@ import {
   MoreHorizontal,
 } from 'lucide-vue-next'
 
+const { t } = useI18n()
+
 useSeoMeta({
   title: 'Open-Source Applicant Tracking System — Self-Hosted ATS',
   description:
@@ -71,6 +73,14 @@ useHead({
   bodyAttrs: {
     style: 'background-color: #09090b;',
   },
+  link: [
+    {
+      rel: 'preload',
+      as: 'image',
+      href: '/eagle-mascot-logo-128.png',
+      fetchpriority: 'high',
+    },
+  ],
 })
 
 // ─── Scroll-triggered fade-in refs ───────────────────
@@ -88,36 +98,45 @@ const ctaRef = useScrollFade()
     <!-- ─── Navbar ─────────────────────────────────────── -->
     <nav class="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl">
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <NuxtLink to="/" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
-          <img src="/eagle-mascot-logo.png" alt="Reqcore mascot" class="h-7 w-7 object-contain" />
+        <NuxtLink :to="$localePath('/')" class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
+          <img
+            src="/eagle-mascot-logo-128.png"
+            alt="Reqcore mascot"
+            width="28"
+            height="28"
+            loading="eager"
+            decoding="sync"
+            fetchpriority="high"
+            class="h-7 w-7 object-contain"
+          />
           Reqcore
         </NuxtLink>
 
         <!-- Center nav links -->
         <div class="hidden items-center gap-1 md:flex">
           <NuxtLink
-            to="/catalog"
+            :to="$localePath('/catalog')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
-            Features
+            {{ t('home.nav.features') }}
           </NuxtLink>
           <NuxtLink
-            to="/jobs"
+            :to="$localePath('/jobs')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
-            Open Positions
+            {{ t('home.nav.openPositions') }}
           </NuxtLink>
           <NuxtLink
-            to="/roadmap"
+            :to="$localePath('/roadmap')"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
-            Roadmap
+            {{ t('home.nav.roadmap') }}
           </NuxtLink>
           <NuxtLink
             to="/blog"
             class="rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
-            Blog
+            {{ t('home.nav.blog') }}
           </NuxtLink>
           <a
             href="https://github.com/reqcore-inc/reqcore"
@@ -126,31 +145,31 @@ const ctaRef = useScrollFade()
             class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white"
           >
             <Github class="h-3.5 w-3.5" />
-            GitHub
+            {{ t('home.nav.github') }}
           </a>
         </div>
 
         <div class="flex items-center gap-2">
           <template v-if="session">
             <NuxtLink
-              to="/dashboard"
+              :to="$localePath('/dashboard')"
               class="rounded-md bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
-              Dashboard
+              {{ t('home.nav.dashboard') }}
             </NuxtLink>
           </template>
           <template v-else>
             <NuxtLink
-              to="/auth/sign-in"
+              :to="$localePath('/auth/sign-in')"
               class="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-surface-400 transition hover:text-white sm:inline-flex"
             >
-              Log in
+              {{ t('home.nav.logIn') }}
             </NuxtLink>
             <NuxtLink
-              to="/auth/sign-up"
+              :to="$localePath('/auth/sign-up')"
               class="rounded-md bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
-              Sign up
+              {{ t('home.nav.signUp') }}
             </NuxtLink>
           </template>
         </div>
@@ -174,41 +193,41 @@ const ctaRef = useScrollFade()
             class="group inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[13px] font-medium text-surface-300 transition hover:border-white/[0.15] hover:bg-white/[0.06]"
           >
             <Star class="h-3.5 w-3.5 text-brand-400" :stroke-width="2" />
-            Open Source &amp; Self-Hosted
+            {{ t('home.badge') }}
             <ChevronRight class="h-3 w-3 text-surface-500 transition group-hover:translate-x-0.5" />
           </a>
         </div>
 
         <!-- Hero heading — large & bold, Linear-inspired -->
         <h1 class="hero-animate hero-delay-2 text-[clamp(2.5rem,6.5vw,5.5rem)] leading-[1.05] font-extrabold tracking-[-0.03em]">
-          The hiring system<br />
-          <span class="bg-gradient-to-r from-brand-400 via-brand-300 to-accent-400 bg-clip-text text-transparent">you actually own</span>
+          {{ t('home.hero.titleLine1') }}<br />
+          <span class="bg-gradient-to-r from-brand-400 via-brand-300 to-accent-400 bg-clip-text text-transparent">{{ t('home.hero.titleHighlight') }}</span>
         </h1>
 
         <!-- Subtitle -->
         <p class="hero-animate hero-delay-3 mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-surface-400 sm:text-xl sm:leading-relaxed">
-          Purpose-built for recruiting teams who refuse per-seat pricing.
-          Designed for the self-hosted era.
+          {{ t('home.hero.subtitleLine1') }}
+          {{ t('home.hero.subtitleLine2') }}
         </p>
 
         <!-- CTA buttons -->
         <div class="hero-animate hero-delay-4 mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <NuxtLink
-            to="/auth/sign-in?live=1"
+            :to="$localePath('/auth/sign-in?live=1')"
             class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_rgba(99,102,241,0.25)] transition hover:bg-brand-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.35)]"
           >
             <Play class="h-3.5 w-3.5" />
-            Try live demo
+            {{ t('home.hero.ctaDemo') }}
           </NuxtLink>
           <NuxtLink
-            to="/auth/sign-up"
+            :to="$localePath('/auth/sign-up')"
             class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.08)] transition hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.12)]"
           >
-            Get started free
+            {{ t('home.hero.ctaStart') }}
             <ArrowRight class="h-3.5 w-3.5" />
           </NuxtLink>
         </div>
-        <p class="hero-animate hero-delay-4 mt-3 text-xs text-surface-500">No sign-up needed — instant access with sample data</p>
+        <p class="hero-animate hero-delay-4 mt-3 text-xs text-surface-500">{{ t('home.hero.hint') }}</p>
       </div>
 
       <!-- ─── Product Preview (Linear-style embedded UI) ── -->
@@ -712,7 +731,7 @@ const ctaRef = useScrollFade()
 
           <!-- Separator + attribution -->
           <div class="mt-8 flex items-center gap-4 border-t border-white/[0.06] pt-8">
-            <img src="/eagle-mascot-logo.png" alt="Reqcore mascot" class="h-10 w-10 object-contain" />
+            <img src="/eagle-mascot-logo-128.png" alt="Reqcore mascot" class="h-10 w-10 object-contain" />
             <div>
               <div class="text-sm font-semibold text-white">The Reqcore Team</div>
               <div class="text-[13px] text-surface-500">Building the open-source applicant tracking system</div>
@@ -723,7 +742,7 @@ const ctaRef = useScrollFade()
         <!-- Inline CTA -->
         <div class="mt-10 flex justify-center">
           <NuxtLink
-            to="/auth/sign-up"
+            :to="$localePath('/auth/sign-up')"
             class="group inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-6 py-3 text-sm font-semibold text-white transition hover:border-white/[0.2] hover:bg-white/[0.08]"
           >
             Join the mission
@@ -1267,7 +1286,7 @@ const ctaRef = useScrollFade()
           <!-- CTA -->
           <div class="mt-10 flex justify-center">
             <NuxtLink
-              to="/roadmap"
+              :to="$localePath('/roadmap')"
               class="group inline-flex items-center gap-2.5 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
             >
               <Map class="h-4 w-4" />
@@ -1289,7 +1308,7 @@ const ctaRef = useScrollFade()
       <div class="relative mx-auto max-w-3xl px-6 text-center">
         <div class="mb-8 flex justify-center">
           <img
-            src="/eagle-mascot-logo.png"
+            src="/eagle-mascot-logo-128.png"
             alt="Reqcore mascot"
             class="h-20 w-20 object-contain drop-shadow-[0_0_40px_rgba(59,130,246,0.5)]"
           />
@@ -1303,7 +1322,7 @@ const ctaRef = useScrollFade()
         </p>
         <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <NuxtLink
-            to="/auth/sign-up"
+            :to="$localePath('/auth/sign-up')"
             class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-[#09090b] shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
           >
             Get started
@@ -1326,11 +1345,11 @@ const ctaRef = useScrollFade()
     <footer class="border-t border-white/[0.06] py-8">
       <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
         <div class="flex items-center gap-2 text-[13px] text-surface-500">
-          <img src="/eagle-mascot-logo.png" alt="Reqcore mascot" class="h-5 w-5 object-contain" />
+          <img src="/eagle-mascot-logo-128.png" alt="Reqcore mascot" class="h-5 w-5 object-contain" />
           &copy; {{ new Date().getFullYear() }} Reqcore. Open source under AGPL-3.0.
         </div>
         <div class="flex gap-6 text-[13px] text-surface-500">
-          <NuxtLink to="/roadmap" class="transition hover:text-white">
+          <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white">
             Roadmap
           </NuxtLink>
           <NuxtLink to="/blog" class="transition hover:text-white">

@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ArrowRight, BookOpen, Github, Star, ChevronRight } from 'lucide-vue-next'
 
+defineI18nRoute(false)
+
+definePageMeta({
+  i18n: false,
+})
+
 useSeoMeta({
   title: 'Blog — Recruitment, ATS, and Hiring Insights',
   description:
@@ -36,10 +42,10 @@ const { data: posts } = await useAsyncData('blog-posts', () =>
       class="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl"
     >
       <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-        <NuxtLink to="/" class="text-[15px] font-semibold tracking-tight">Reqcore</NuxtLink>
+        <NuxtLink :to="$localePath('/')" class="text-[15px] font-semibold tracking-tight">Reqcore</NuxtLink>
         <div class="flex items-center gap-5 text-[13px] text-white/60">
-          <NuxtLink to="/roadmap" class="transition hover:text-white">Roadmap</NuxtLink>
-          <NuxtLink to="/catalog" class="transition hover:text-white">Features</NuxtLink>
+          <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white">Roadmap</NuxtLink>
+          <NuxtLink :to="$localePath('/catalog')" class="transition hover:text-white">Features</NuxtLink>
           <NuxtLink to="/blog" class="text-white transition">Blog</NuxtLink>
           <a
             href="https://github.com/reqcore-inc/reqcore"
@@ -50,14 +56,14 @@ const { data: posts } = await useAsyncData('blog-posts', () =>
           </a>
           <NuxtLink
             v-if="session?.user"
-            to="/dashboard"
+            :to="$localePath('/dashboard')"
             class="rounded-md bg-white/10 px-3 py-1 text-white transition hover:bg-white/15"
           >
             Dashboard
           </NuxtLink>
           <NuxtLink
             v-else
-            to="/auth/sign-in"
+            :to="$localePath('/auth/sign-in')"
             class="rounded-md bg-white/10 px-3 py-1 text-white transition hover:bg-white/15"
           >
             Sign In
@@ -137,8 +143,8 @@ const { data: posts } = await useAsyncData('blog-posts', () =>
       <div class="mx-auto max-w-5xl px-6 flex items-center justify-between text-xs text-white/30">
         <span>&copy; {{ new Date().getFullYear() }} Reqcore</span>
         <div class="flex items-center gap-4">
-          <NuxtLink to="/" class="transition hover:text-white/60">Home</NuxtLink>
-          <NuxtLink to="/roadmap" class="transition hover:text-white/60">Roadmap</NuxtLink>
+          <NuxtLink :to="$localePath('/')" class="transition hover:text-white/60">Home</NuxtLink>
+          <NuxtLink :to="$localePath('/roadmap')" class="transition hover:text-white/60">Roadmap</NuxtLink>
           <a
             href="https://github.com/reqcore-inc/reqcore"
             target="_blank"

@@ -61,7 +61,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
         </button>
 
         <NuxtLink
-          to="/onboarding/create-org"
+          :to="$localePath('/onboarding/create-org')"
           class="block w-full px-3 py-2 border-t border-surface-200 dark:border-surface-700 text-xs text-surface-500 dark:text-surface-400 text-left cursor-pointer no-underline hover:text-surface-900 dark:hover:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
           @click="isOpen = false"
         >

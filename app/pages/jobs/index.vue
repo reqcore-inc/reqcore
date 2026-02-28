@@ -160,7 +160,7 @@ function formatDate(dateStr: string) {
       <NuxtLink
         v-for="j in jobs"
         :key="j.id"
-        :to="`/jobs/${j.slug}`"
+        :to="$localePath(`/jobs/${j.slug}`)"
         class="block rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-5 py-4 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all group"
       >
         <div class="flex items-start justify-between gap-4">

@@ -6,6 +6,8 @@ import {
 } from 'lucide-vue-next'
 
 const route = useRoute()
+const localePath = useLocalePath()
+const getRouteBaseName = useRouteBaseName()
 const { data: session } = await authClient.useSession(useFetch)
 const isSigningOut = ref(false)
 const { isDark, toggle: toggleColorMode } = useColorMode()
@@ -19,7 +21,7 @@ async function handleSignOut() {
   isSigningOut.value = true
   await authClient.signOut()
   clearNuxtData()
-  await navigateTo('/auth/sign-in')
+  await navigateTo(localePath('/auth/sign-in'))
 }
 
 const navItems = [
@@ -34,9 +36,11 @@ const navItems = [
 // ─────────────────────────────────────────────
 
 const activeJobId = computed(() => {
-  const match = route.path.match(/^\/dashboard\/jobs\/([^/]+)/)
-  if (match && match[1] !== 'new') return match[1]
-  return null
+  const baseName = getRouteBaseName(route)
+  if (typeof baseName !== 'string' || !baseName.startsWith('dashboard-jobs-id')) return null
+  const idParam = route.params.id
+  if (typeof idParam !== 'string' || idParam === 'new') return null
+  return idParam
 })
 
 const showJobsList = computed(() => {
@@ -74,8 +78,9 @@ const jobTabs = computed(() => {
 })
 
 function isActiveTab(to: string, exact: boolean) {
-  if (exact) return route.path === to
-  return route.path.startsWith(to)
+  const localizedTo = localePath(to)
+  if (exact) return route.path === localizedTo
+  return route.path === localizedTo || route.path.startsWith(`${localizedTo}/`)
 }
 </script>
 
@@ -86,10 +91,14 @@ function isActiveTab(to: string, exact: boolean) {
     <!-- Top -->
     <div class="flex flex-col gap-5">
       <!-- Logo -->
-      <NuxtLink to="/" class="flex items-center gap-2 px-2 no-underline">
+      <NuxtLink :to="$localePath('/')" class="flex items-center gap-2 px-2 no-underline">
         <img src="/eagle-mascot-logo.png" alt="Reqcore mascot" class="size-7 shrink-0 object-contain" />
         <span class="text-lg font-bold text-surface-900 dark:text-surface-100">Reqcore</span>
       </NuxtLink>
+
+      <div class="px-2">
+        <LanguageSwitcher />
+      </div>
 
       <!-- Org Switcher -->
       <div>
@@ -101,7 +110,7 @@ function isActiveTab(to: string, exact: boolean) {
         <NuxtLink
           v-for="item in navItems"
           :key="item.to"
-          :to="item.to"
+          :to="$localePath(item.to)"
           class="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100 transition-colors no-underline"
           :class="isActiveTab(item.to, item.exact)
             ? 'bg-surface-100 dark:bg-surface-800 text-surface-900 dark:text-surface-100 font-medium'
@@ -126,7 +135,7 @@ function isActiveTab(to: string, exact: boolean) {
           <NuxtLink
             v-for="job in sidebarJobs"
             :key="job.id"
-            :to="`/dashboard/jobs/${job.id}`"
+            :to="$localePath(`/dashboard/jobs/${job.id}`)"
             class="px-3 py-2 rounded-md text-sm text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100 transition-colors no-underline truncate"
             :title="job.title"
           >
@@ -141,7 +150,7 @@ function isActiveTab(to: string, exact: boolean) {
 
       <div v-if="activeJobId" class="border-t border-surface-200 dark:border-surface-800 pt-4">
         <NuxtLink
-          to="/dashboard/jobs"
+          :to="$localePath('/dashboard/jobs')"
           class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 transition-colors no-underline mb-2"
         >
           <ChevronLeft class="size-3.5" />
@@ -152,7 +161,7 @@ function isActiveTab(to: string, exact: boolean) {
           <NuxtLink
             v-for="tab in jobTabs"
             :key="tab.to"
-            :to="tab.to"
+            :to="$localePath(tab.to)"
             class="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100 transition-colors no-underline"
             :class="isActiveTab(tab.to, tab.exact)
               ? 'bg-surface-100 dark:bg-surface-800 text-surface-900 dark:text-surface-100 font-medium'

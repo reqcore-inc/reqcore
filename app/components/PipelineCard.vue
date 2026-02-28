@@ -38,7 +38,7 @@ const transitionClasses: Record<string, string> = {
 <template>
   <div class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-3 shadow-sm">
     <NuxtLink
-      :to="`/dashboard/applications/${id}`"
+      :to="$localePath(`/dashboard/applications/${id}`)"
       class="block mb-2 group"
     >
       <h4 class="text-sm font-semibold text-surface-900 dark:text-surface-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors truncate">

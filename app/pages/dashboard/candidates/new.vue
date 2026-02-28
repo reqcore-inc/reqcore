@@ -12,6 +12,7 @@ useSeoMeta({
   description: 'Add a new candidate to your talent pool',
 })
 
+const localePath = useLocalePath()
 const { createCandidate } = useCandidates()
 
 // Form state
@@ -59,7 +60,7 @@ async function handleSubmit() {
       email: form.value.email,
       phone: form.value.phone || undefined,
     })
-    await navigateTo('/dashboard/candidates')
+    await navigateTo(localePath('/dashboard/candidates'))
   } catch (err: any) {
     const message = err.data?.statusMessage ?? 'Something went wrong'
     // Show email conflict as a field-level error
@@ -78,7 +79,7 @@ async function handleSubmit() {
   <div class="mx-auto max-w-2xl">
     <!-- Back link -->
     <NuxtLink
-      to="/dashboard/candidates"
+      :to="$localePath('/dashboard/candidates')"
       class="inline-flex items-center gap-1 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 mb-6 transition-colors"
     >
       <ArrowLeft class="size-4" />
@@ -168,7 +169,7 @@ async function handleSubmit() {
           {{ isSubmitting ? 'Adding…' : 'Add Candidate' }}
         </button>
         <NuxtLink
-          to="/dashboard/candidates"
+          :to="$localePath('/dashboard/candidates')"
           class="rounded-lg border border-surface-300 dark:border-surface-700 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
         >
           Cancel

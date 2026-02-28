@@ -160,14 +160,14 @@ const isEmpty = computed(() =>
       </div>
       <div class="flex items-center gap-2">
         <NuxtLink
-          to="/dashboard/jobs/new"
+          :to="$localePath('/dashboard/jobs/new')"
           class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
         >
           <Plus class="size-4" />
           Create Job
         </NuxtLink>
         <NuxtLink
-          to="/dashboard/candidates/new"
+          :to="$localePath('/dashboard/candidates/new')"
           class="inline-flex items-center gap-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
         >
           <UserPlus class="size-4" />
@@ -226,7 +226,7 @@ const isEmpty = computed(() =>
           Get started by creating your first job posting. Candidates and applications will appear here as they come in.
         </p>
         <NuxtLink
-          to="/dashboard/jobs/new"
+          :to="$localePath('/dashboard/jobs/new')"
           class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
         >
           <Plus class="size-4" />
@@ -242,7 +242,7 @@ const isEmpty = computed(() =>
         <NuxtLink
           v-for="card in statCards"
           :key="card.label"
-          :to="card.to"
+          :to="$localePath(card.to)"
           class="group rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all no-underline"
         >
           <div class="flex items-center justify-between mb-3">
@@ -274,7 +274,7 @@ const isEmpty = computed(() =>
               </span>
             </div>
             <NuxtLink
-              to="/dashboard/applications"
+              :to="$localePath('/dashboard/applications')"
               class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors no-underline"
             >
               View all
@@ -288,7 +288,7 @@ const isEmpty = computed(() =>
               <NuxtLink
                 v-for="segment in pipelineSegments"
                 :key="segment.status"
-                :to="`/dashboard/applications?status=${segment.status}`"
+                :to="$localePath(`/dashboard/applications?status=${segment.status}`)"
                 :title="`${segment.label}: ${segment.count} (${segment.pct}%)`"
                 class="transition-all duration-200 hover:opacity-80 hover:scale-y-110 origin-center no-underline first:rounded-l-lg last:rounded-r-lg"
                 :class="segment.bg"
@@ -301,7 +301,7 @@ const isEmpty = computed(() =>
               <NuxtLink
                 v-for="(config, status) in applicationStatusConfig"
                 :key="status"
-                :to="`/dashboard/applications?status=${status}`"
+                :to="$localePath(`/dashboard/applications?status=${status}`)"
                 class="group/stage relative rounded-lg border border-surface-100 dark:border-surface-800 p-3 hover:border-surface-300 dark:hover:border-surface-600 hover:shadow-sm transition-all no-underline"
               >
                 <!-- Subtle top accent line -->
@@ -345,7 +345,7 @@ const isEmpty = computed(() =>
           <div class="flex items-center justify-between mb-5">
             <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">Jobs</h2>
             <NuxtLink
-              to="/dashboard/jobs"
+              :to="$localePath('/dashboard/jobs')"
               class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors no-underline"
             >
               View all
@@ -356,7 +356,7 @@ const isEmpty = computed(() =>
             <NuxtLink
               v-for="(s, index) in (['open', 'draft', 'closed', 'archived'] as const)"
               :key="s"
-              :to="`/dashboard/jobs?status=${s}`"
+              :to="$localePath(`/dashboard/jobs?status=${s}`)"
               class="flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors no-underline"
             >
               <div class="flex items-center gap-2.5">
@@ -382,7 +382,7 @@ const isEmpty = computed(() =>
           <div class="flex items-center justify-between mb-5">
             <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">Recent Applications</h2>
             <NuxtLink
-              to="/dashboard/applications"
+              :to="$localePath('/dashboard/applications')"
               class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors no-underline"
             >
               View all
@@ -393,7 +393,7 @@ const isEmpty = computed(() =>
             <NuxtLink
               v-for="app in recentApplications"
               :key="app.id"
-              :to="`/dashboard/applications/${app.id}`"
+              :to="$localePath(`/dashboard/applications/${app.id}`)"
               class="flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors no-underline group"
             >
               <div class="min-w-0 flex-1 mr-3">
@@ -434,7 +434,7 @@ const isEmpty = computed(() =>
           <div class="flex items-center justify-between mb-5">
             <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">Active Jobs</h2>
             <NuxtLink
-              to="/dashboard/jobs?status=open"
+              :to="$localePath('/dashboard/jobs?status=open')"
               class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors no-underline"
             >
               View all
@@ -445,7 +445,7 @@ const isEmpty = computed(() =>
             <NuxtLink
               v-for="j in topJobs"
               :key="j.id"
-              :to="`/dashboard/jobs/${j.id}`"
+              :to="$localePath(`/dashboard/jobs/${j.id}`)"
               class="flex items-center justify-between rounded-lg px-3 py-3 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors no-underline group"
             >
               <div class="min-w-0 flex-1 mr-3">
@@ -471,7 +471,7 @@ const isEmpty = computed(() =>
             <Briefcase class="size-8 text-surface-300 dark:text-surface-600 mx-auto mb-2" />
             <p class="text-sm text-surface-400 dark:text-surface-500 mb-3">No open jobs.</p>
             <NuxtLink
-              to="/dashboard/jobs/new"
+              :to="$localePath('/dashboard/jobs/new')"
               class="inline-flex items-center gap-1.5 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors no-underline"
             >
               <Plus class="size-4" />

@@ -23,6 +23,7 @@ useSeoMeta({
   description: 'Create a new job posting',
 })
 
+const localePath = useLocalePath()
 const { createJob } = useJobs()
 
 type QuestionType =
@@ -274,7 +275,7 @@ async function handleSubmit() {
       )
     }
 
-    await navigateTo('/dashboard/jobs')
+    await navigateTo(localePath('/dashboard/jobs'))
   } catch (err: any) {
     submitError.value = err?.data?.statusMessage ?? 'Something went wrong'
   } finally {
@@ -308,7 +309,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
         <NuxtLink
-          to="/dashboard/jobs"
+          :to="$localePath('/dashboard/jobs')"
           class="inline-flex items-center gap-1 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 mb-2 transition-colors"
         >
           <ArrowLeft class="size-4" />
@@ -734,7 +735,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
             <!-- Actions Footer -->
             <div class="flex items-center justify-between mt-12 pt-8 border-t border-surface-100 dark:border-surface-800">
               <NuxtLink
-                to="/dashboard/jobs"
+                :to="$localePath('/dashboard/jobs')"
                 class="px-6 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
               >
                 Cancel

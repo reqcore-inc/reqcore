@@ -6,6 +6,7 @@ import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
  * Wraps `useFetch('/api/candidates/:id')` with a reactive key.
  */
 export function useCandidate(id: MaybeRefOrGetter<string>) {
+  const localePath = useLocalePath()
   const { handlePreviewReadOnlyError } = usePreviewReadOnly()
   const candidateId = computed(() => toValue(id))
 
@@ -47,7 +48,7 @@ export function useCandidate(id: MaybeRefOrGetter<string>) {
       throw error
     }
     await refreshNuxtData('candidates')
-    await navigateTo('/dashboard/candidates')
+    await navigateTo(localePath('/dashboard/candidates'))
   }
 
   return { candidate, status, error, refresh, updateCandidate, deleteCandidate }

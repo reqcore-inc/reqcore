@@ -42,13 +42,13 @@ useSeoMeta({
 
     <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
       <NuxtLink
-        to="/jobs"
+        :to="$localePath('/jobs')"
         class="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
       >
         Browse more positions
       </NuxtLink>
       <NuxtLink
-        to="/"
+        :to="$localePath('/')"
         class="inline-flex items-center rounded-lg border border-surface-300 dark:border-surface-700 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
       >
         Back to Home

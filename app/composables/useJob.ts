@@ -5,6 +5,7 @@ import type { MaybeRefOrGetter } from 'vue'
  * Wraps `useFetch('/api/jobs/:id')` with a reactive key.
  */
 export function useJob(id: MaybeRefOrGetter<string>) {
+  const localePath = useLocalePath()
   const { handlePreviewReadOnlyError } = usePreviewReadOnly()
   const jobId = computed(() => toValue(id))
 
@@ -47,7 +48,7 @@ export function useJob(id: MaybeRefOrGetter<string>) {
       throw error
     }
     await refreshNuxtData('jobs')
-    await navigateTo('/dashboard/jobs')
+    await navigateTo(localePath('/dashboard/jobs'))
   }
 
   return { job, status, error, refresh, updateJob, deleteJob }
