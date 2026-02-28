@@ -44,7 +44,9 @@ jobs:
 
       - name: Audit dependencies (high severity+)
         id: audit
+        shell: bash
         run: |
+          set -euo pipefail
           npm audit --audit-level=high 2>&1 | tee audit-output.txt
 
       - name: Build
@@ -56,7 +58,7 @@ jobs:
           echo "build_duration=$((end - start))" >> "$GITHUB_ENV"
 
       - name: PR Validation Summary
-        if: ${{ !cancelled() }}
+        if: ${{ always() && !cancelled() }}
         run: |
           echo "## PR Validation Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
