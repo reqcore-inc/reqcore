@@ -113,7 +113,26 @@ test.describe('Candidate Application Flow', () => {
     // ── Verify application appears in recruiter dashboard ─
     // Navigate to the job's candidates page
     await page.goto(`/dashboard/jobs/${jobId}/candidates`)
-    await expect(page.getByRole('cell', { name: `${APPLICANT.firstName} ${APPLICANT.lastName}` })).toBeVisible({ timeout: 10_000 })
+    await page.waitForLoadState('networkidle')
+
+    // Verify the page header shows the job title and at least 1 candidate
+    await expect(page.getByRole('heading', { name: JOB_TITLE })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('1 candidate applied')).toBeVisible()
+
+    // Verify the candidate row shows name, email, and "New" status
+    const nameCell = page.getByRole('cell', { name: `${APPLICANT.firstName} ${APPLICANT.lastName}` })
+    await expect(nameCell).toBeVisible({ timeout: 10_000 })
     await expect(page.getByRole('cell', { name: APPLICANT.email })).toBeVisible()
+    // New applications should have "new" status badge
+    await expect(page.locator('tbody').getByText('new', { exact: true })).toBeVisible()
+
+    // Click on the candidate row to open the detail sidebar
+    await nameCell.click()
+
+    // Verify the sidebar shows the candidate's full details
+    const sidebar = page.locator('[class*="fixed"]').filter({ hasText: APPLICANT.firstName })
+    await expect(sidebar.getByRole('heading', { name: `${APPLICANT.firstName} ${APPLICANT.lastName}` })).toBeVisible({ timeout: 10_000 })
+    await expect(sidebar.getByRole('definition').filter({ hasText: APPLICANT.email })).toBeVisible()
+    await expect(sidebar.getByRole('definition').filter({ hasText: APPLICANT.phone })).toBeVisible()
   })
 })
