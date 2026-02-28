@@ -46,7 +46,7 @@ test.describe('Candidate Application Flow', () => {
 
     // Publish the job
     await page.getByRole('button', { name: 'Publish' }).click()
-    await expect(page.getByText('open', { exact: false })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('open').first()).toBeVisible({ timeout: 10_000 })
 
     // Get job slug via API
     const jobDetailUrl = page.url()

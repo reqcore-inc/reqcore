@@ -52,7 +52,7 @@ test.describe('Job Creation Flow', () => {
     await publishButton.click()
 
     // Wait for status to update
-    await expect(page.getByText('open', { exact: false })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('open').first()).toBeVisible({ timeout: 10_000 })
 
     // ── Verify on public jobs page ───────────────────────
     // Get the job slug from the URL or page content
