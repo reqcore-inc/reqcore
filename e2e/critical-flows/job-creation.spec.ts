@@ -74,7 +74,7 @@ test.describe('Job Creation Flow', () => {
     await expect(page.getByRole('heading', { name: JOB_TITLE })).toBeVisible()
     await expect(page.getByText(JOB_LOCATION)).toBeVisible()
 
-    // Verify the "Apply" link/button is present
-    await expect(page.getByRole('link', { name: /apply/i })).toBeVisible()
+    // Verify the "Apply" link/button is present (use .first() because the page has two apply links)
+    await expect(page.getByRole('link', { name: /apply/i }).first()).toBeVisible()
   })
 })

@@ -68,8 +68,8 @@ test.describe('Candidate Application Flow', () => {
     await candidatePage.goto(`/jobs/${jobSlug}`)
     await expect(candidatePage.getByRole('heading', { name: JOB_TITLE })).toBeVisible()
 
-    // Click Apply
-    await candidatePage.getByRole('link', { name: /apply/i }).click()
+    // Click Apply (use .first() because the page has both "Apply Now" and "Apply for this position" links)
+    await candidatePage.getByRole('link', { name: /apply/i }).first().click()
     await candidatePage.waitForURL(`**/jobs/${jobSlug}/apply`, { waitUntil: 'commit' })
 
     // ── Fill in application form ─────────────────────────

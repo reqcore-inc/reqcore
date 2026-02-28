@@ -44,11 +44,20 @@ export const test = base.extend<Fixtures>({
   authenticatedPage: async ({ page, testAccount }, use) => {
     // Sign up
     await page.goto('/auth/sign-up')
+    await page.waitForLoadState('networkidle')
     await page.getByLabel('Name').fill(testAccount.name)
     await page.getByLabel('Email').fill(testAccount.email)
     await page.getByLabel('Password', { exact: true }).fill(testAccount.password)
     await page.getByLabel('Confirm password').fill(testAccount.password)
-    await page.getByRole('button', { name: 'Sign up' }).click()
+
+    // Click sign-up and wait for the auth API response before expecting navigation
+    await Promise.all([
+      page.waitForResponse(
+        resp => resp.url().includes('/api/auth/sign-up') && resp.status() === 200,
+        { timeout: 30_000 },
+      ),
+      page.getByRole('button', { name: 'Sign up' }).click(),
+    ])
 
     // Wait for SPA navigation to the onboarding page after sign-up
     await page.waitForURL('**/onboarding/**', { waitUntil: 'commit', timeout: 30_000 })
