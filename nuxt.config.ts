@@ -74,8 +74,8 @@ export default defineNuxtConfig({
     head: {
       titleTemplate: '%s — Reqcore',
       link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'icon', type: 'image/png', href: '/eagle-mascot-logo.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
       ],
       meta: [
