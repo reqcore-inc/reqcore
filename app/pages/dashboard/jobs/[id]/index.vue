@@ -837,8 +837,27 @@ const isLoading = computed(() => {
           </div>
 
           <template v-else>
+            <!-- Sticky status transitions (stays visible on scroll) -->
+            <div v-if="allowedTransitions.length > 0" class="shrink-0 border-b border-surface-200/80 bg-white/95 backdrop-blur-sm px-6 py-2.5 dark:border-surface-800/60 dark:bg-surface-900/95">
+              <div class="mx-auto max-w-4xl flex flex-wrap items-center gap-2">
+                <button
+                  v-for="nextStatus in allowedTransitions"
+                  :key="nextStatus"
+                  :disabled="isMutating"
+                  class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  :class="transitionClasses[nextStatus] ?? 'border border-surface-300 text-surface-600 hover:bg-surface-50'"
+                  @click="changeStatus(nextStatus)"
+                >
+                  {{ transitionLabels[nextStatus] ?? nextStatus }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Scrollable container: header + tabs + content -->
+            <div ref="detailScrollContainer" class="flex-1 overflow-y-auto" @scroll="handleDetailScroll">
+
             <!-- Candidate header -->
-            <div class="shrink-0 border-b border-surface-200 bg-surface-50 px-6 py-6 dark:border-surface-800 dark:bg-surface-900/80">
+            <div class="border-b border-surface-200 bg-surface-50 px-6 py-6 dark:border-surface-800 dark:bg-surface-900/80">
               <div class="mx-auto max-w-4xl">
               <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4 min-w-0">
@@ -905,24 +924,11 @@ const isLoading = computed(() => {
                   </NuxtLink>
                 </div>
               </div>
-              <!-- Status transitions -->
-              <div v-if="allowedTransitions.length > 0" class="mt-4 flex flex-wrap items-center gap-2">
-                <button
-                  v-for="nextStatus in allowedTransitions"
-                  :key="nextStatus"
-                  :disabled="isMutating"
-                  class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                  :class="transitionClasses[nextStatus] ?? 'border border-surface-300 text-surface-600 hover:bg-surface-50'"
-                  @click="changeStatus(nextStatus)"
-                >
-                  {{ transitionLabels[nextStatus] ?? nextStatus }}
-                </button>
-              </div>
               </div>
             </div>
 
             <!-- Detail tabs (scroll-to-section navigation) -->
-            <div class="sticky top-0 z-10 shrink-0 border-b border-surface-200/80 bg-white px-6 dark:border-surface-800/60 dark:bg-surface-900">
+            <div class="border-b border-surface-200/80 bg-white px-6 dark:border-surface-800/60 dark:bg-surface-900">
               <div class="mx-auto max-w-4xl flex gap-1 -mb-px">
                 <button
                   class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2"
@@ -961,8 +967,8 @@ const isLoading = computed(() => {
               </div>
             </div>
 
-            <!-- Detail content (all sections on one scrollable page) -->
-            <div ref="detailScrollContainer" class="flex-1 overflow-y-auto bg-surface-50/80 dark:bg-surface-950/80 px-6 py-8" @scroll="handleDetailScroll">
+            <!-- Detail content -->
+            <div class="bg-surface-50/80 dark:bg-surface-950/80 px-6 py-8">
               <div v-if="detailFetchStatus === 'pending' && !resolvedCurrentApplication" class="flex flex-col items-center justify-center py-12">
                 <div class="size-8 rounded-full border-2 border-brand-200 border-t-brand-600 dark:border-brand-800 dark:border-t-brand-400 animate-spin" />
                 <p class="mt-3 text-sm text-surface-400">Loading details…</p>
@@ -1145,6 +1151,7 @@ const isLoading = computed(() => {
               </div>
 
               </template>
+            </div>
             </div>
           </template>
         </div>
