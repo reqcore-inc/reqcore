@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   ArrowLeft, ArrowRight, Briefcase, Clock, Hash, UserRound, Mail, MessageSquare,
-  Kanban, FileText, Paperclip, Download, Eye, Phone, Search, ExternalLink,
+  FileText, Paperclip, Download, Eye, Phone, Search, ExternalLink,
   UserPlus, Pencil, Trash2, MoreHorizontal, Globe, ChevronDown,
 } from 'lucide-vue-next'
 import { z } from 'zod'
@@ -577,126 +577,94 @@ const isLoading = computed(() => {
     </div>
 
     <template v-else-if="jobData">
-      <!-- ═══════════════════════════════════════ -->
-      <!-- TOP HEADER with job info + quick actions -->
-      <!-- ═══════════════════════════════════════ -->
-      <div class="shrink-0 border-b border-surface-200/80 bg-gradient-to-r from-white via-white to-surface-50/50 px-6 py-4 dark:border-surface-800/60 dark:from-surface-900 dark:via-surface-900 dark:to-surface-950/50">
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-3.5 min-w-0">
-            <div class="flex size-9 items-center justify-center rounded-xl bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-950/60 dark:ring-brand-900/40">
-              <Kanban class="size-4.5 text-brand-600 dark:text-brand-400" />
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2.5">
-                <h1 class="text-lg font-semibold tracking-tight text-surface-900 dark:text-surface-50 truncate">
-                  {{ jobData.title }}
-                </h1>
-                <span
-                  class="inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize ring-1 ring-inset"
-                  :class="{
-                    'bg-surface-50 text-surface-600 ring-surface-200 dark:bg-surface-800/60 dark:text-surface-400 dark:ring-surface-700': jobData.status === 'draft',
-                    'bg-success-50 text-success-700 ring-success-200 dark:bg-success-950/60 dark:text-success-400 dark:ring-success-800': jobData.status === 'open',
-                    'bg-warning-50 text-warning-700 ring-warning-200 dark:bg-warning-950/60 dark:text-warning-400 dark:ring-warning-800': jobData.status === 'closed',
-                    'bg-surface-50 text-surface-400 ring-surface-200 dark:bg-surface-800/60 dark:text-surface-500 dark:ring-surface-700': jobData.status === 'archived',
-                  }"
-                >
-                  {{ jobData.status }}
-                </span>
-              </div>
-              <p class="mt-0.5 text-[13px] text-surface-500 dark:text-surface-400">
-                {{ applications.length }} application{{ applications.length === 1 ? '' : 's' }}
-              </p>
-            </div>
-          </div>
+      <!-- Quick actions teleported to sub-nav bar -->
+      <Teleport to="#job-sub-nav-actions">
+        <div class="flex items-center gap-2">
+          <!-- Add Candidate -->
+          <button
+            class="hidden sm:inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-surface-200 dark:border-surface-700/80 px-2.5 py-1 text-[11px] font-medium text-surface-600 dark:text-surface-300 hover:bg-white hover:border-surface-300 dark:hover:bg-surface-800 dark:hover:border-surface-600 transition-all duration-150"
+            @click="showApplyModal = true"
+          >
+            <UserPlus class="size-3" />
+            Add Candidate
+          </button>
 
-          <!-- Quick actions -->
-          <div class="flex items-center gap-2 shrink-0">
-            <!-- Add Candidate -->
+          <!-- Primary job action (e.g., Publish) -->
+          <button
+            v-if="primaryJobTransition"
+            :disabled="isJobTransitioning"
+            class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            :class="jobTransitionClasses[primaryJobTransition] ?? 'border border-surface-300 text-surface-600 hover:bg-surface-50'"
+            @click="handleJobTransition(primaryJobTransition)"
+          >
+            {{ jobTransitionLabels[primaryJobTransition] ?? primaryJobTransition }}
+          </button>
+
+          <!-- More menu -->
+          <div ref="moreMenuRef" class="relative">
             <button
-              class="hidden sm:inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-surface-200 dark:border-surface-700/80 px-3 py-1.5 text-xs font-medium text-surface-600 dark:text-surface-300 hover:bg-surface-50 hover:border-surface-300 dark:hover:bg-surface-800 dark:hover:border-surface-600 transition-all duration-150 shadow-sm"
-              @click="showApplyModal = true"
+              class="inline-flex cursor-pointer items-center justify-center rounded-md border border-surface-200 dark:border-surface-700/80 p-1 text-surface-500 hover:bg-white hover:text-surface-700 dark:hover:bg-surface-800 dark:hover:text-surface-300 transition-all duration-150"
+              @click="showMoreMenu = !showMoreMenu"
             >
-              <UserPlus class="size-3.5" />
-              Add Candidate
+              <MoreHorizontal class="size-3.5" />
             </button>
 
-            <!-- Primary job action (e.g., Publish) -->
-            <button
-              v-if="primaryJobTransition"
-              :disabled="isJobTransitioning"
-              class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-              :class="jobTransitionClasses[primaryJobTransition] ?? 'border border-surface-300 text-surface-600 hover:bg-surface-50'"
-              @click="handleJobTransition(primaryJobTransition)"
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 scale-95 -translate-y-1"
+              enter-to-class="opacity-100 scale-100 translate-y-0"
+              leave-active-class="transition duration-100 ease-in"
+              leave-from-class="opacity-100 scale-100 translate-y-0"
+              leave-to-class="opacity-0 scale-95 -translate-y-1"
             >
-              {{ jobTransitionLabels[primaryJobTransition] ?? primaryJobTransition }}
-            </button>
-
-            <!-- More menu -->
-            <div ref="moreMenuRef" class="relative">
-              <button
-                class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-surface-200 dark:border-surface-700/80 p-1.5 text-surface-500 hover:bg-surface-50 hover:text-surface-700 dark:hover:bg-surface-800 dark:hover:text-surface-300 transition-all duration-150 shadow-sm"
-                @click="showMoreMenu = !showMoreMenu"
+              <div
+                v-if="showMoreMenu"
+                class="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-900 shadow-xl shadow-surface-900/5 dark:shadow-black/20 py-1.5 origin-top-right"
               >
-                <MoreHorizontal class="size-4" />
-              </button>
-
-              <Transition
-                enter-active-class="transition duration-150 ease-out"
-                enter-from-class="opacity-0 scale-95 -translate-y-1"
-                enter-to-class="opacity-100 scale-100 translate-y-0"
-                leave-active-class="transition duration-100 ease-in"
-                leave-from-class="opacity-100 scale-100 translate-y-0"
-                leave-to-class="opacity-0 scale-95 -translate-y-1"
-              >
-                <div
-                  v-if="showMoreMenu"
-                  class="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-900 shadow-xl shadow-surface-900/5 dark:shadow-black/20 py-1.5 origin-top-right"
+                <button
+                  class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors"
+                  @click="startEdit"
                 >
-                  <button
-                    class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors"
-                    @click="startEdit"
-                  >
-                    <Pencil class="size-3.5 text-surface-400" />
-                    Edit Job
-                  </button>
-                  <button
-                    class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors sm:hidden"
-                    @click="showApplyModal = true; showMoreMenu = false"
-                  >
-                    <UserPlus class="size-3.5 text-surface-400" />
-                    Add Candidate
-                  </button>
-                  <template v-if="secondaryJobTransitions.length > 0">
-                    <div class="border-t border-surface-100 dark:border-surface-800 my-1.5 mx-2" />
-                    <button
-                      v-for="t in secondaryJobTransitions"
-                      :key="t"
-                      :disabled="isJobTransitioning"
-                      class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors disabled:opacity-50"
-                      @click="handleJobTransition(t); showMoreMenu = false"
-                    >
-                      {{ jobTransitionLabels[t] ?? t }}
-                    </button>
-                  </template>
+                  <Pencil class="size-3.5 text-surface-400" />
+                  Edit Job
+                </button>
+                <button
+                  class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors sm:hidden"
+                  @click="showApplyModal = true; showMoreMenu = false"
+                >
+                  <UserPlus class="size-3.5 text-surface-400" />
+                  Add Candidate
+                </button>
+                <template v-if="secondaryJobTransitions.length > 0">
                   <div class="border-t border-surface-100 dark:border-surface-800 my-1.5 mx-2" />
                   <button
-                    class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-950/60 transition-colors"
-                    @click="showDeleteConfirm = true; showMoreMenu = false"
+                    v-for="t in secondaryJobTransitions"
+                    :key="t"
+                    :disabled="isJobTransitioning"
+                    class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors disabled:opacity-50"
+                    @click="handleJobTransition(t); showMoreMenu = false"
                   >
-                    <Trash2 class="size-3.5" />
-                    Delete Job
+                    {{ jobTransitionLabels[t] ?? t }}
                   </button>
-                </div>
-              </Transition>
-            </div>
+                </template>
+                <div class="border-t border-surface-100 dark:border-surface-800 my-1.5 mx-2" />
+                <button
+                  class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-950/60 transition-colors"
+                  @click="showDeleteConfirm = true; showMoreMenu = false"
+                >
+                  <Trash2 class="size-3.5" />
+                  Delete Job
+                </button>
+              </div>
+            </Transition>
+          </div>
 
-            <div class="hidden sm:flex items-center gap-1 rounded-lg bg-surface-100/80 px-2.5 py-1 text-[11px] font-medium text-surface-400 dark:bg-surface-800/60 dark:text-surface-500">
-              <span class="font-mono text-[10px]">↑↓</span>
-              <span>navigate</span>
-            </div>
+          <div class="hidden sm:flex items-center gap-1 rounded-md bg-surface-100/80 px-2 py-0.5 text-[10px] font-medium text-surface-400 dark:bg-surface-800/60 dark:text-surface-500">
+            <span class="font-mono text-[10px]">↑↓</span>
+            <span>navigate</span>
           </div>
         </div>
-      </div>
+      </Teleport>
 
       <!-- ═══════════════════════════════════════ -->
       <!-- PIPELINE STATUS TABS                     -->

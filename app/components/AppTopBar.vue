@@ -66,6 +66,19 @@ const activeJobTitle = computed(() => {
   return found?.title ?? 'Job'
 })
 
+const activeJobStatus = computed(() => {
+  if (!activeJobId.value) return null
+  const found = sidebarJobs.value.find((j: any) => j.id === activeJobId.value)
+  return (found as any)?.status ?? null
+})
+
+const jobStatusBadgeClasses: Record<string, string> = {
+  draft: 'bg-surface-50 text-surface-600 ring-surface-200 dark:bg-surface-800/60 dark:text-surface-400 dark:ring-surface-700',
+  open: 'bg-success-50 text-success-700 ring-success-200 dark:bg-success-950/60 dark:text-success-400 dark:ring-success-800',
+  closed: 'bg-warning-50 text-warning-700 ring-warning-200 dark:bg-warning-950/60 dark:text-warning-400 dark:ring-warning-800',
+  archived: 'bg-surface-50 text-surface-400 ring-surface-200 dark:bg-surface-800/60 dark:text-surface-500 dark:ring-surface-700',
+}
+
 const { data: feedbackConfig } = useFetch('/api/feedback/config', {
   key: 'feedback-config',
   headers: useRequestHeaders(['cookie']),
@@ -303,6 +316,13 @@ onUnmounted(() => document.removeEventListener('click', onClickOutsideUser))
             <span class="text-sm font-semibold text-surface-900 dark:text-surface-100 truncate max-w-48">
               {{ activeJobTitle }}
             </span>
+            <span
+              v-if="activeJobStatus"
+              class="inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset"
+              :class="jobStatusBadgeClasses[activeJobStatus] ?? 'bg-surface-50 text-surface-600 ring-surface-200'"
+            >
+              {{ activeJobStatus }}
+            </span>
           </div>
 
           <nav class="flex items-center gap-0.5 ml-2">
@@ -319,6 +339,10 @@ onUnmounted(() => document.removeEventListener('click', onClickOutsideUser))
               {{ tab.label }}
             </NuxtLink>
           </nav>
+
+          <div class="ml-auto flex items-center gap-2">
+            <div id="job-sub-nav-actions" />
+          </div>
         </div>
       </div>
     </Transition>

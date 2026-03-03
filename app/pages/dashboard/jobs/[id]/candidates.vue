@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Table2, Users, SlidersHorizontal, X, Check, ChevronsUpDown, ChevronUp, ChevronDown, UserRound } from 'lucide-vue-next'
+import { Users, SlidersHorizontal, X, Check, ChevronsUpDown, ChevronUp, ChevronDown, UserRound } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'dashboard',
@@ -248,21 +248,6 @@ const isLoading = computed(() => jobFetchStatus.value === 'pending' || appFetchS
     </div>
 
     <template v-else-if="jobData">
-      <!-- Header -->
-      <div class="flex items-center gap-3.5 mb-6">
-        <div class="flex size-9 items-center justify-center rounded-xl bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-950/60 dark:ring-brand-900/40">
-          <Table2 class="size-4.5 text-brand-600 dark:text-brand-400" />
-        </div>
-        <div>
-          <h1 class="text-lg font-semibold tracking-tight text-surface-900 dark:text-surface-50">
-            {{ jobData.title }}
-          </h1>
-          <p class="mt-0.5 text-[13px] text-surface-500 dark:text-surface-400">
-            {{ total }} candidate{{ total === 1 ? '' : 's' }} applied
-          </p>
-        </div>
-      </div>
-
       <!-- Toolbar -->
       <div class="flex items-center gap-3 mb-4">
         <!-- Column / filter picker -->
