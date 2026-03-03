@@ -2,6 +2,15 @@ import { eq, and, desc, count, inArray } from 'drizzle-orm'
 import { job, application } from '../../database/schema'
 import { jobQuerySchema } from '../../utils/schemas/job'
 
+interface PipelineCounts {
+  new: number
+  screening: number
+  interview: number
+  offer: number
+  hired: number
+  rejected: number
+}
+
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { job: ['read'] })
   const orgId = session.session.activeOrganizationId
@@ -35,7 +44,7 @@ export default defineEventHandler(async (event) => {
 
   // Fetch pipeline counts (application status breakdown) for returned jobs
   const jobIds = data.map((j) => j.id)
-  let pipelineMap: Record<string, Record<string, number>> = {}
+  let pipelineMap: Record<string, PipelineCounts> = {}
 
   if (jobIds.length > 0) {
     const pipelineRows = await db
@@ -52,10 +61,8 @@ export default defineEventHandler(async (event) => {
       .groupBy(application.jobId, application.status)
 
     for (const row of pipelineRows) {
-      if (!pipelineMap[row.jobId]) {
-        pipelineMap[row.jobId] = { new: 0, screening: 0, interview: 0, offer: 0, hired: 0, rejected: 0 }
-      }
-      pipelineMap[row.jobId][row.status] = row.count
+      const entry = (pipelineMap[row.jobId] ??= { new: 0, screening: 0, interview: 0, offer: 0, hired: 0, rejected: 0 })
+      entry[row.status as keyof PipelineCounts] = row.count
     }
   }
 
