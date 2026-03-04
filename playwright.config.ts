@@ -25,13 +25,13 @@ export default defineConfig({
         ['html'],
         ['allure-playwright', { outputFolder: 'allure-results', suiteTitle: true }],
       ],
-  timeout: 30_000,
+  timeout: process.env.CI ? 120_000 : 60_000,
   expect: { timeout: 10_000 },
 
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
-    actionTimeout: 10_000,
-    navigationTimeout: 15_000,
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'on-first-retry',

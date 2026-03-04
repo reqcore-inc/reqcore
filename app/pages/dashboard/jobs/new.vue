@@ -447,7 +447,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
         </div>
 
         <div class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-sm overflow-hidden">
-          <form @submit.prevent="handleSubmit" class="p-6 md:p-8">
+          <form @submit.prevent="() => handleSubmit()" class="p-6 md:p-8">
             <!-- Step 1: Job details -->
             <section v-if="currentStep === 1" class="space-y-10">
               <!-- Section: Job title and department -->
