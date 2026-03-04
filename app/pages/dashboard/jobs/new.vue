@@ -447,7 +447,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
         </div>
 
         <div class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-sm overflow-hidden">
-          <form @submit.prevent="() => handleSubmit()" class="p-6 md:p-8">
+          <form @submit.prevent="handleSubmit" class="p-6 md:p-8">
             <!-- Step 1: Job details -->
             <section v-if="currentStep === 1" class="space-y-10">
               <!-- Section: Job title and department -->
@@ -972,7 +972,6 @@ const questionTypeLabels: Record<QuestionType, string> = {
                   :disabled="isSubmitting"
                   class="inline-flex items-center gap-2 px-8 py-2.5 text-sm font-medium text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   :class="publishChoice === 'publish' ? 'bg-brand-600 hover:bg-brand-700' : 'bg-surface-600 hover:bg-surface-700'"
-                  @click="handleSubmit()"
                 >
                   <Rocket v-if="publishChoice === 'publish'" class="size-4" />
                   <FileEdit v-else class="size-4" />

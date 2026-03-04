@@ -85,6 +85,8 @@ function validate(): boolean {
   // Validate required cover letter
   if (job.value?.requireCoverLetter && !coverLetterText.value.trim()) {
     errors.value.coverLetter = 'Cover letter is required'
+  } else if (coverLetterText.value.length > 10_000) {
+    errors.value.coverLetter = 'Cover letter must be 10,000 characters or fewer.'
   }
 
   // Validate resume file size
@@ -457,6 +459,7 @@ const typeLabels: Record<string, string> = {
                     id="coverLetterText"
                     v-model="coverLetterText"
                     rows="6"
+                    maxlength="10000"
                     placeholder="Tell us why you're interested in this role…"
                     class="w-full rounded-xl border px-4 py-3 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
                     :class="errors.coverLetter ? 'border-danger-300 dark:border-danger-700' : 'border-surface-300 dark:border-surface-700'"

@@ -162,6 +162,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 422, statusMessage: 'Resume/CV is required for this position' })
   }
 
+  // Validate required cover letter
+  if (existingJob.requireCoverLetter && !coverLetterText?.trim()) {
+    throw createError({ statusCode: 422, statusMessage: 'Cover letter is required for this position' })
+  }
+
   const orgId = existingJob.organizationId
   const jobId = existingJob.id
 
@@ -481,6 +486,7 @@ export default defineEventHandler(async (event) => {
         console.error('[Reqcore] Failed to clean up orphaned S3 object:', storageKey, cleanupError)
       }
       console.error('[Reqcore] Resume upload failed during application:', uploadError)
+      throw createError({ statusCode: 502, statusMessage: 'Failed to store resume. Please retry.' })
     }
   }
 

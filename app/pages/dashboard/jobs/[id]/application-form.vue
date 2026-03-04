@@ -48,6 +48,7 @@ const requireResume = ref(false)
 const requireCoverLetter = ref(false)
 const isSavingRequirements = ref(false)
 const requirementsSaved = ref(false)
+const requirementsError = ref<string | null>(null)
 
 // Sync with fetched job data
 watch(job, (j) => {
@@ -59,10 +60,13 @@ watch(job, (j) => {
 
 async function saveRequirements() {
   isSavingRequirements.value = true
+  requirementsError.value = null
   try {
     await updateJob({ requireResume: requireResume.value, requireCoverLetter: requireCoverLetter.value })
     requirementsSaved.value = true
     setTimeout(() => { requirementsSaved.value = false }, 2000)
+  } catch (err: any) {
+    requirementsError.value = err?.data?.statusMessage ?? 'Failed to save requirements.'
   } finally {
     isSavingRequirements.value = false
   }
@@ -182,6 +186,9 @@ async function saveRequirements() {
         >
           {{ requirementsSaved ? 'Saved!' : isSavingRequirements ? 'Saving…' : 'Save requirements' }}
         </button>
+        <p v-if="requirementsError" class="mt-2 text-xs text-danger-600 dark:text-danger-400">
+          {{ requirementsError }}
+        </p>
       </div>
 
       <!-- Application Form Questions -->
