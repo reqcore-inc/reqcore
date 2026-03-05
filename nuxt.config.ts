@@ -191,7 +191,7 @@ export default defineNuxtConfig({
   content: {
     // content.config.ts handles collection definitions
     highlight: {
-      theme: 'one-dark-pro',
+      theme: 'github-dark-high-contrast',
     },
   },
 

@@ -230,7 +230,7 @@ const nextDoc = computed(() =>
 
           <!-- Rendered content -->
           <div
-            class="docs-prose prose prose-invert max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-headings:border-0 prose-headings:border-b-0 prose-headings:text-white prose-p:text-white/65 prose-p:leading-relaxed prose-a:text-brand-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-white prose-code:text-brand-300 prose-code:bg-white/[0.08] prose-code:rounded prose-code:px-1.5 prose-code:py-0.5 prose-code:text-[0.8125em] prose-code:font-medium prose-pre:!bg-[#282c34] prose-pre:border prose-pre:border-white/[0.12] prose-pre:rounded-xl prose-pre:shadow-xl prose-pre:shadow-black/60 prose-hr:border-white/[0.08] prose-blockquote:border-l-brand-500/50 prose-blockquote:text-white/55 prose-blockquote:not-italic prose-li:text-white/65 prose-td:px-3 prose-td:py-2 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-table:border-collapse prose-tr:border-b prose-tr:border-white/[0.06]"
+            class="docs-prose prose prose-invert max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-headings:border-0 prose-headings:border-b-0 prose-headings:text-white prose-p:text-white/65 prose-p:leading-relaxed prose-a:text-brand-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-white prose-code:text-brand-300 prose-code:bg-white/[0.08] prose-code:rounded prose-code:px-1.5 prose-code:py-0.5 prose-code:text-[0.8125em] prose-code:font-medium prose-pre:!bg-[#0a0c10] prose-pre:border prose-pre:border-white/[0.12] prose-pre:rounded-xl prose-pre:shadow-xl prose-pre:shadow-black/60 prose-hr:border-white/[0.08] prose-blockquote:border-l-brand-500/50 prose-blockquote:text-white/55 prose-blockquote:not-italic prose-li:text-white/65 prose-td:px-3 prose-td:py-2 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-table:border-collapse prose-tr:border-b prose-tr:border-white/[0.06]"
           >
             <ContentRenderer v-if="page" :value="page" />
           </div>
@@ -312,11 +312,11 @@ const nextDoc = computed(() =>
   padding-bottom: 0 !important;
 }
 
-/* ── Premium code block: one-dark-pro bg is #282c34 ── */
+/* ── Premium code block: github-dark-high-contrast bg is #0a0c10 ── */
 .docs-prose :deep(pre) {
   position: relative;
   overflow-x: auto;
-  background-color: #282c34 !important;
+  background-color: #0a0c10 !important;
 }
 
 /* Shiki outputs <span> tags with inline color — reset code wrapper only ── */
@@ -326,7 +326,12 @@ const nextDoc = computed(() =>
   border-radius: 0 !important;
   font-size: 0.875rem;
   line-height: 1.7;
-  color: #abb2bf; /* one-dark-pro base text fallback */
+  color: #f0f3f6; /* github-dark-high-contrast base text */
+}
+
+/* Force full opacity on all Shiki token spans ── */
+.docs-prose :deep(pre code span) {
+  opacity: 1 !important;
 }
 
 /* ── Refined table styling ── */
