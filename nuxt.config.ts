@@ -178,6 +178,8 @@ export default defineNuxtConfig({
     '/blog': { prerender: true },
     '/blog/**': { prerender: true },
     '/catalog': { prerender: true },
+    '/docs': { prerender: true },
+    '/docs/**': { prerender: true },
     '/jobs': { isr: 3600 },
     '/jobs/**': { isr: 3600 },
     ...localizedPublicRouteRules,
