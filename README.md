@@ -2,7 +2,7 @@
 
 # Reqcore
 
-**The open-source ATS built for developer teams. Self-hosted. No per-seat fees. Hackable.**
+**The open-source ATS built for developers. Self-hosted. No per-seat fees.**
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![E2E Tests](https://github.com/reqcore-inc/reqcore/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/reqcore-inc/reqcore/actions/workflows/e2e-tests.yml)
