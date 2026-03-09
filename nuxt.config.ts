@@ -39,9 +39,32 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  modules: ['@nuxtjs/i18n', '@nuxtjs/seo', '@nuxt/content'],
+  modules: ['@nuxtjs/i18n', '@nuxtjs/seo', '@nuxt/content', '@posthog/nuxt'],
 
   css: ['~/assets/css/main.css'],
+
+  // ─────────────────────────────────────────────
+  // PostHog — privacy-focused product analytics & feature flags
+  // ─────────────────────────────────────────────
+  posthogConfig: {
+    publicKey: process.env.POSTHOG_PUBLIC_KEY || '',
+    host: process.env.POSTHOG_HOST || 'https://eu.i.posthog.com',
+    clientConfig: {
+      // ── Privacy: disable invasive features ──
+      autocapture: false,
+      disable_session_recording: true,
+      enable_recording_console_log: false,
+      disable_surveys: true,
+      opt_out_capturing_by_default: false,
+      respect_dnt: true,
+      secure_cookie: true,
+      capture_pageview: true,
+      capture_pageleave: true,
+      // ── Persistence ──
+      persistence: 'localStorage+cookie',
+      cross_subdomain_cookie: false,
+    },
+  },
 
   i18n: {
     baseUrl: siteUrl,
@@ -81,13 +104,7 @@ export default defineNuxtConfig({
       meta: [
         { name: 'theme-color', content: '#09090b' },
       ],
-      script: [
-        {
-          defer: true,
-          'data-domain': 'reqcore.com',
-          src: 'https://test-plausible.kjadfu.easypanel.host/js/script.js',
-        },
-      ],
+      // Plausible removed — PostHog handles all analytics
     },
   },
 
