@@ -10,7 +10,13 @@ export default defineNuxtPlugin({
   name: 'posthog-identity',
   parallel: true,
   setup() {
-    const posthog = usePostHog()
+    // usePostHog() is auto-imported by @posthog/nuxt, but the module is
+    // conditionally loaded (only when POSTHOG_PUBLIC_KEY is set).  In CI and
+    // local-dev without the key the auto-import doesn't exist, so we replicate
+    // its safe accessor here: $posthog is a function provided by the module's
+    // plugin — when the module isn't loaded it simply won't be on NuxtApp.
+    const $ph = (useNuxtApp() as Record<string, unknown>).$posthog as (() => import('posthog-js').PostHog) | undefined
+    const posthog = $ph?.()
     if (!posthog) return
 
     // ── Privacy: strip query params and hashes from captured URLs ──

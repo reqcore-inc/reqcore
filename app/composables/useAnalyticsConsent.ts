@@ -12,7 +12,11 @@ const CONSENT_KEY = 'reqcore-analytics-consent'
 type ConsentState = 'granted' | 'denied' | null
 
 export function useAnalyticsConsent() {
-  const posthog = usePostHog()
+  // usePostHog() is auto-imported by @posthog/nuxt, but the module is
+  // conditionally loaded.  Replicate the safe accessor so this composable
+  // works even when PostHog is not configured (CI, self-hosted without key).
+  const posthog = (useNuxtApp() as Record<string, unknown>).$posthog as ((() => { opt_in_capturing: () => void, opt_out_capturing: () => void }) | undefined)
+  const ph = posthog?.()
 
   const consentState = useState<ConsentState>('analytics-consent', () => {
     if (import.meta.server) return null
@@ -28,7 +32,7 @@ export function useAnalyticsConsent() {
     if (import.meta.client) {
       localStorage.setItem(CONSENT_KEY, 'granted')
     }
-    posthog?.opt_in_capturing()
+    ph?.opt_in_capturing()
   }
 
   function declineAnalytics() {
@@ -36,12 +40,12 @@ export function useAnalyticsConsent() {
     if (import.meta.client) {
       localStorage.setItem(CONSENT_KEY, 'denied')
     }
-    posthog?.opt_out_capturing()
+    ph?.opt_out_capturing()
   }
 
   // Apply stored consent on mount
   if (import.meta.client && consentState.value === 'denied') {
-    posthog?.opt_out_capturing()
+    ph?.opt_out_capturing()
   }
 
   return {
