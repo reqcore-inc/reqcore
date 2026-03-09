@@ -39,7 +39,14 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  modules: ['@nuxtjs/i18n', '@nuxtjs/seo', '@nuxt/content', '@posthog/nuxt'],
+  modules: [
+    '@nuxtjs/i18n',
+    '@nuxtjs/seo',
+    '@nuxt/content',
+    // Only load PostHog module when the API key is available;
+    // the SDK crashes during prerender/build if the key is empty.
+    ...(process.env.POSTHOG_PUBLIC_KEY ? ['@posthog/nuxt' as const] : []),
+  ],
 
   css: ['~/assets/css/main.css'],
 
