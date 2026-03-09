@@ -32,11 +32,9 @@ export async function usePostHogIdentity() {
       const previousUser = (prev?.[0] as typeof session.value)?.user
 
       if (user?.id && consented) {
-        ($posthogIdentifyUser as (user: { id: string, name?: string, createdAt?: string }) => void)({
-          id: user.id,
-          name: user.name || undefined,
-          createdAt: user.createdAt ? String(user.createdAt) : undefined,
-        })
+        // Only the user ID is forwarded — name and createdAt are intentionally
+        // omitted so PostHog receives the minimal data needed for analytics.
+        ;($posthogIdentifyUser as (userId: string) => void)(user.id)
       }
       else if (previousUser?.id && !user?.id) {
         // Always reset on log-out regardless of consent state so that
@@ -53,10 +51,10 @@ export async function usePostHogIdentity() {
     ([org, consented]) => {
       if (consented) {
         if (org?.id) {
-          ($posthogSetOrganization as (org: { id: string, name?: string, slug?: string }) => void)({
+          // Only org id and name are forwarded; slug is omitted to minimise data.
+          ;($posthogSetOrganization as (org: { id: string, name?: string }) => void)({
             id: org.id,
             name: org.name || undefined,
-            slug: org.slug || undefined,
           })
         }
         else {

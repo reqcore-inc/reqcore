@@ -18,12 +18,20 @@ export function useAnalyticsConsent() {
   const posthog = (useNuxtApp() as Record<string, unknown>).$posthog as ((() => { opt_in_capturing: () => void, opt_out_capturing: () => void }) | undefined)
   const ph = posthog?.()
 
-  const consentState = useState<ConsentState>('analytics-consent', () => {
-    if (import.meta.server) return null
+  const consentState = useState<ConsentState>('analytics-consent', () => null)
+
+  // The useState factory only runs on the server: Nuxt serialises the `null`
+  // result into the SSR payload and restores it on the client without ever
+  // calling the factory again.  We must therefore re-hydrate the persisted
+  // choice here — outside the factory — so that returning visitors don't see
+  // the banner a second time and PostHog's opt-in/out state is correct on the
+  // very first client render.
+  if (import.meta.client && consentState.value === null) {
     const stored = localStorage.getItem(CONSENT_KEY)
-    if (stored === 'granted' || stored === 'denied') return stored
-    return null
-  })
+    if (stored === 'granted' || stored === 'denied') {
+      consentState.value = stored
+    }
+  }
 
   const hasConsented = computed(() => consentState.value === 'granted')
   const hasDeclined = computed(() => consentState.value === 'denied')

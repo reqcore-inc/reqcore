@@ -15,7 +15,9 @@
 const CONSENT_STORAGE_KEY = 'reqcore-analytics-consent'
 
 // URL properties that may carry tokens or invitation IDs — always sanitized.
-const SENSITIVE_URL_PROPS = ['$current_url', '$initial_current_url'] as const
+// Includes referrer properties: if a user navigated from /jobs?invite_token=xxx,
+// the next page's $referrer would expose that token without sanitization.
+const SENSITIVE_URL_PROPS = ['$current_url', '$initial_current_url', '$referrer', '$initial_referrer'] as const
 
 export default defineNuxtPlugin({
   name: 'posthog-identity',
@@ -67,16 +69,17 @@ export default defineNuxtPlugin({
     // after the app has mounted and auth session is available.
     return {
       provide: {
-        posthogIdentifyUser: (user: { id: string, name?: string, createdAt?: string }) => {
-          posthog.identify(user.id, {
-            name: user.name || undefined,
-            createdAt: user.createdAt || undefined,
-          })
+        // Only the user ID (UUID) is sent — name and createdAt are omitted to
+        // satisfy GDPR data minimisation (Art. 5(1)(c)): a stable distinct_id
+        // is sufficient for product analytics without exposing personal data.
+        posthogIdentifyUser: (userId: string) => {
+          posthog.identify(userId)
         },
-        posthogSetOrganization: (org: { id: string, name?: string, slug?: string }) => {
+        // Only id and human-readable name are forwarded.  slug is redundant
+        // for analytics purposes and is omitted to minimise data collection.
+        posthogSetOrganization: (org: { id: string, name?: string }) => {
           posthog.group('organization', org.id, {
             name: org.name || undefined,
-            slug: org.slug || undefined,
           })
         },
         posthogReset: () => {
