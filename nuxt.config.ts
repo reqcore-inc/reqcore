@@ -117,6 +117,11 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
+      /** PostHog public key and host for server-side event capture */
+      posthog: {
+        publicKey: process.env.POSTHOG_PUBLIC_KEY || '',
+        host: process.env.POSTHOG_HOST || 'https://eu.i.posthog.com',
+      },
       /** When set, the dashboard shows a read-only demo banner for this org slug */
       demoOrgSlug: process.env.DEMO_ORG_SLUG || (isRailwayPreview ? 'reqcore-demo' : ''),
       /** Public live-demo account email used to prefill sign-in */
