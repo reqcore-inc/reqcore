@@ -3,7 +3,8 @@ import {
   ArrowLeft, ArrowRight, Briefcase, Calendar, Clock, Hash, UserRound, Mail, MessageSquare,
   FileText, Paperclip, Download, Eye, Phone, Search, ExternalLink,
   UserPlus, Pencil, Trash2, MoreHorizontal, Globe, ChevronDown, X,
-  Video, Building2, Code2, UsersRound,
+  Video, Building2, Code2, UsersRound, Save, Check, MapPin, Users, Plus,
+  CheckCircle2, XCircle, AlertTriangle,
 } from 'lucide-vue-next'
 import { z } from 'zod'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
@@ -338,6 +339,7 @@ function openInterviewScheduler() {
 
 async function handleInterviewScheduled() {
   showInterviewSidebar.value = false
+  const scheduledApplicationId = interviewTargetApplication.value?.id ?? currentSummary.value?.id
   interviewTargetApplication.value = null
 
   // Refresh the interviews list
@@ -348,6 +350,14 @@ async function handleInterviewScheduled() {
     const allowed = APPLICATION_STATUS_TRANSITIONS[currentSummary.value.status] ?? []
     if (allowed.includes('interview')) {
       await changeStatus('interview')
+
+      // Follow the candidate to the interview column so the user sees the scheduled interview
+      if (scheduledApplicationId) {
+        focusStatus.value = 'interview'
+        await nextTick()
+        const idx = filteredApplications.value.findIndex(a => a.id === scheduledApplicationId)
+        if (idx !== -1) currentIndex.value = idx
+      }
     }
   }
 }
@@ -402,6 +412,202 @@ function formatInterviewDateTime(dateStr: string) {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
     + ' at '
     + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatInterviewDateTimeFull(dateStr: string) {
+  return new Date(dateStr).toLocaleString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
+function isInterviewUpcoming(dateStr: string) {
+  return new Date(dateStr) > new Date()
+}
+
+// ─────────────────────────────────────────────
+// Interview inline editing
+// ─────────────────────────────────────────────
+
+type InterviewStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show'
+
+const INTERVIEW_STATUS_TRANSITIONS: Record<InterviewStatus, InterviewStatus[]> = {
+  scheduled: ['completed', 'cancelled', 'no_show'],
+  completed: [],
+  cancelled: ['scheduled'],
+  no_show: ['scheduled'],
+}
+
+const interviewTransitionClasses: Record<InterviewStatus, string> = {
+  scheduled: 'border border-surface-300 dark:border-surface-700 text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800',
+  completed: 'bg-success-600 text-white hover:bg-success-700',
+  cancelled: 'bg-surface-500 text-white hover:bg-surface-600',
+  no_show: 'bg-danger-600 text-white hover:bg-danger-700',
+}
+
+const interviewTransitionLabels: Record<InterviewStatus, string> = {
+  scheduled: 'Re-schedule',
+  completed: 'Completed',
+  cancelled: 'Cancel',
+  no_show: 'No Show',
+}
+
+const interviewStatusIcons: Record<InterviewStatus, any> = {
+  scheduled: Calendar,
+  completed: CheckCircle2,
+  cancelled: XCircle,
+  no_show: AlertTriangle,
+}
+
+const expandedInterviewId = ref<string | null>(null)
+const editingInterviewId = ref<string | null>(null)
+const interviewEditForm = reactive({
+  title: '',
+  type: 'video' as string,
+  location: '',
+  notes: '',
+  interviewers: [''] as string[],
+})
+const interviewEditErrors = ref<Record<string, string>>({})
+const isInterviewSaving = ref(false)
+const isInterviewTransitioning = ref(false)
+
+// Reschedule state
+const rescheduleInterviewId = ref<string | null>(null)
+const rescheduleForm = reactive({
+  date: '',
+  time: '',
+  duration: 60,
+})
+const isRescheduling = ref(false)
+const rescheduleError = ref('')
+
+function toggleInterviewExpand(id: string) {
+  if (expandedInterviewId.value === id) {
+    expandedInterviewId.value = null
+    editingInterviewId.value = null
+    rescheduleInterviewId.value = null
+  } else {
+    expandedInterviewId.value = id
+    editingInterviewId.value = null
+    rescheduleInterviewId.value = null
+  }
+}
+
+function startInterviewEdit(iv: Interview) {
+  editingInterviewId.value = iv.id
+  interviewEditForm.title = iv.title
+  interviewEditForm.type = iv.type
+  interviewEditForm.location = iv.location ?? ''
+  interviewEditForm.notes = iv.notes ?? ''
+  interviewEditForm.interviewers = iv.interviewers?.length ? [...iv.interviewers] : ['']
+  interviewEditErrors.value = {}
+}
+
+function cancelInterviewEdit() {
+  editingInterviewId.value = null
+  interviewEditErrors.value = {}
+}
+
+function addEditInterviewer() {
+  interviewEditForm.interviewers.push('')
+}
+
+function removeEditInterviewer(idx: number) {
+  interviewEditForm.interviewers.splice(idx, 1)
+}
+
+async function saveInterviewEdit() {
+  interviewEditErrors.value = {}
+  if (!interviewEditForm.title.trim()) {
+    interviewEditErrors.value.title = 'Title is required'
+    return
+  }
+
+  isInterviewSaving.value = true
+  try {
+    const filteredInterviewers = interviewEditForm.interviewers.filter(i => i.trim())
+    await $fetch(`/api/interviews/${editingInterviewId.value}`, {
+      method: 'PATCH',
+      body: {
+        title: interviewEditForm.title.trim(),
+        type: interviewEditForm.type,
+        location: interviewEditForm.location.trim() || null,
+        notes: interviewEditForm.notes.trim() || null,
+        interviewers: filteredInterviewers.length > 0 ? filteredInterviewers : null,
+      },
+    })
+    editingInterviewId.value = null
+    await refreshJobInterviews()
+  } catch (err: any) {
+    if (handlePreviewReadOnlyError(err)) return
+    interviewEditErrors.value.submit = err?.data?.statusMessage ?? 'Failed to save changes'
+  } finally {
+    isInterviewSaving.value = false
+  }
+}
+
+async function handleInterviewTransition(interviewId: string, newStatus: InterviewStatus) {
+  isInterviewTransitioning.value = true
+  try {
+    await $fetch(`/api/interviews/${interviewId}`, {
+      method: 'PATCH',
+      body: { status: newStatus },
+    })
+    await refreshJobInterviews()
+  } catch (err: any) {
+    if (handlePreviewReadOnlyError(err)) return
+    alert(err?.data?.statusMessage ?? 'Failed to update status')
+  } finally {
+    isInterviewTransitioning.value = false
+  }
+}
+
+function openReschedule(iv: Interview) {
+  rescheduleInterviewId.value = iv.id
+  const d = new Date(iv.scheduledAt)
+  rescheduleForm.date = d.toISOString().slice(0, 10)
+  rescheduleForm.time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  rescheduleForm.duration = iv.duration
+  rescheduleError.value = ''
+}
+
+function cancelReschedule() {
+  rescheduleInterviewId.value = null
+  rescheduleError.value = ''
+}
+
+async function handleReschedule() {
+  rescheduleError.value = ''
+  if (!rescheduleForm.date || !rescheduleForm.time) {
+    rescheduleError.value = 'Date and time are required'
+    return
+  }
+
+  isRescheduling.value = true
+  try {
+    const scheduledAt = new Date(`${rescheduleForm.date}T${rescheduleForm.time}`).toISOString()
+    await $fetch(`/api/interviews/${rescheduleInterviewId.value}`, {
+      method: 'PATCH',
+      body: {
+        scheduledAt,
+        duration: rescheduleForm.duration,
+        status: 'scheduled',
+      },
+    })
+    rescheduleInterviewId.value = null
+    await refreshJobInterviews()
+  } catch (err: any) {
+    if (handlePreviewReadOnlyError(err)) return
+    rescheduleError.value = err?.data?.statusMessage ?? 'Failed to reschedule'
+  } finally {
+    isRescheduling.value = false
+  }
 }
 
 async function changeStatus(status: string) {
@@ -1039,7 +1245,6 @@ function closeDocPreview() {
                   Profile
                 </button>
                 <button
-                  v-if="currentApplicationInterviews.length > 0"
                   class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px"
                   :class="detailTab === 'interviews'
                     ? 'border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300'
@@ -1047,7 +1252,10 @@ function closeDocPreview() {
                   @click="scrollToSection('interviews')"
                 >
                   Interviews
-                  <span class="ml-1 text-xs text-surface-400">
+                  <span
+                    v-if="currentApplicationInterviews.length > 0"
+                    class="ml-1 text-xs text-surface-400"
+                  >
                     ({{ currentApplicationInterviews.length }})
                   </span>
                 </button>
@@ -1187,41 +1395,322 @@ function closeDocPreview() {
               </div>
 
               <!-- INTERVIEWS SECTION -->
-              <div v-if="currentApplicationInterviews.length > 0" ref="interviewsRef" class="space-y-3 max-w-4xl mx-auto mt-10 scroll-mt-4">
-                <h2 class="text-sm font-semibold text-surface-800 dark:text-surface-200 flex items-center gap-2 mb-3">
-                  <Calendar class="size-4 text-surface-400 dark:text-surface-500" />
-                  Interviews
-                </h2>
-                <div class="space-y-3">
-                  <NuxtLink
+              <div ref="interviewsRef" class="space-y-3 max-w-4xl mx-auto mt-10 scroll-mt-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h2 class="text-sm font-semibold text-surface-800 dark:text-surface-200 flex items-center gap-2">
+                    <Calendar class="size-4 text-surface-400 dark:text-surface-500" />
+                    Interviews
+                  </h2>
+                  <button
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-surface-200 dark:border-surface-700/80 px-2.5 py-1.5 text-xs font-medium text-surface-600 dark:text-surface-300 hover:bg-white hover:border-surface-300 dark:hover:bg-surface-800 dark:hover:border-surface-600 transition-all duration-150"
+                    @click="openInterviewScheduler"
+                  >
+                    <Plus class="size-3.5" />
+                    Schedule Interview
+                  </button>
+                </div>
+
+                <div v-if="currentApplicationInterviews.length > 0" class="space-y-3">
+                  <div
                     v-for="iv in currentApplicationInterviews"
                     :key="iv.id"
-                    :to="$localePath(`/dashboard/interviews/${iv.id}`)"
-                    class="group flex items-center justify-between gap-4 rounded-xl border border-surface-200/80 bg-white px-5 py-4 shadow-sm shadow-surface-900/[0.03] dark:border-surface-800/60 dark:bg-surface-900 dark:shadow-none transition-all duration-150 hover:border-brand-300 dark:hover:border-brand-700 hover:shadow-md"
+                    class="rounded-xl border bg-white shadow-sm shadow-surface-900/[0.03] dark:bg-surface-900 dark:shadow-none transition-all duration-200"
+                    :class="expandedInterviewId === iv.id
+                      ? 'border-brand-300 dark:border-brand-700 shadow-md'
+                      : 'border-surface-200/80 dark:border-surface-800/60 hover:border-surface-300 dark:hover:border-surface-700'"
                   >
-                    <div class="flex items-center gap-3.5 min-w-0">
-                      <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950/40">
-                        <component :is="interviewTypeIcons[iv.type] ?? Calendar" class="size-4.5 text-brand-600 dark:text-brand-400" />
+                    <!-- Interview card header (always visible) -->
+                    <button
+                      class="flex w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left"
+                      @click="toggleInterviewExpand(iv.id)"
+                    >
+                      <div class="flex items-center gap-3.5 min-w-0">
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950/40">
+                          <component :is="interviewTypeIcons[iv.type] ?? Calendar" class="size-4.5 text-brand-600 dark:text-brand-400" />
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium text-surface-800 dark:text-surface-100 truncate">
+                            {{ iv.title }}
+                          </p>
+                          <p class="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
+                            {{ formatInterviewDateTime(iv.scheduledAt) }} · {{ iv.duration }} min · {{ interviewTypeLabels[iv.type] ?? iv.type }}
+                          </p>
+                        </div>
                       </div>
-                      <div class="min-w-0">
-                        <p class="text-sm font-medium text-surface-800 dark:text-surface-100 truncate">
-                          {{ iv.title }}
-                        </p>
-                        <p class="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
-                          {{ formatInterviewDateTime(iv.scheduledAt) }} · {{ iv.duration }} min · {{ interviewTypeLabels[iv.type] ?? iv.type }}
-                        </p>
+                      <div class="flex items-center gap-2.5 shrink-0">
+                        <span
+                          class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
+                          :class="interviewStatusClasses[iv.status] ?? 'bg-surface-100 text-surface-500 ring-surface-200'"
+                        >
+                          <component :is="interviewStatusIcons[iv.status as InterviewStatus] ?? Calendar" class="size-3" />
+                          {{ iv.status === 'no_show' ? 'No Show' : iv.status }}
+                        </span>
+                        <ChevronDown
+                          class="size-4 text-surface-400 transition-transform duration-200"
+                          :class="{ 'rotate-180': expandedInterviewId === iv.id }"
+                        />
+                      </div>
+                    </button>
+
+                    <!-- Expanded interview detail -->
+                    <div v-if="expandedInterviewId === iv.id" class="border-t border-surface-200/80 dark:border-surface-800/60">
+                      <!-- Status transition buttons -->
+                      <div v-if="(INTERVIEW_STATUS_TRANSITIONS[iv.status as InterviewStatus] ?? []).length > 0" class="px-5 pt-4 pb-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="text-[11px] font-medium text-surface-400 dark:text-surface-500 mr-1">Actions:</span>
+                          <button
+                            v-for="nextStatus in (INTERVIEW_STATUS_TRANSITIONS[iv.status as InterviewStatus] ?? [])"
+                            :key="nextStatus"
+                            :disabled="isInterviewTransitioning"
+                            class="cursor-pointer rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                            :class="interviewTransitionClasses[nextStatus]"
+                            @click.stop="nextStatus === 'scheduled' ? openReschedule(iv) : handleInterviewTransition(iv.id, nextStatus)"
+                          >
+                            {{ interviewTransitionLabels[nextStatus] }}
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Reschedule form (inline) -->
+                      <div v-if="rescheduleInterviewId === iv.id" class="px-5 py-4 border-t border-surface-100 dark:border-surface-800/60">
+                        <h4 class="text-xs font-semibold text-surface-700 dark:text-surface-300 mb-3 flex items-center gap-1.5">
+                          <Calendar class="size-3.5" />
+                          Reschedule Interview
+                        </h4>
+                        <div class="grid grid-cols-3 gap-3">
+                          <div>
+                            <label class="block text-[11px] font-medium text-surface-500 dark:text-surface-400 mb-1">Date</label>
+                            <input
+                              v-model="rescheduleForm.date"
+                              type="date"
+                              class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-2.5 py-1.5 text-sm text-surface-900 dark:text-surface-100 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                              @click.stop
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-[11px] font-medium text-surface-500 dark:text-surface-400 mb-1">Time</label>
+                            <input
+                              v-model="rescheduleForm.time"
+                              type="time"
+                              class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-2.5 py-1.5 text-sm text-surface-900 dark:text-surface-100 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                              @click.stop
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-[11px] font-medium text-surface-500 dark:text-surface-400 mb-1">Duration (min)</label>
+                            <input
+                              v-model.number="rescheduleForm.duration"
+                              type="number"
+                              min="5"
+                              max="480"
+                              class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-2.5 py-1.5 text-sm text-surface-900 dark:text-surface-100 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                              @click.stop
+                            />
+                          </div>
+                        </div>
+                        <p v-if="rescheduleError" class="mt-2 text-xs text-danger-600 dark:text-danger-400">{{ rescheduleError }}</p>
+                        <div class="flex items-center justify-end gap-2 mt-3">
+                          <button
+                            class="cursor-pointer rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-1.5 text-xs font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
+                            @click.stop="cancelReschedule"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            :disabled="isRescheduling"
+                            class="cursor-pointer rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            @click.stop="handleReschedule"
+                          >
+                            {{ isRescheduling ? 'Saving…' : 'Reschedule' }}
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Interview details / edit form -->
+                      <div class="px-5 py-4">
+                        <!-- View mode -->
+                        <template v-if="editingInterviewId !== iv.id">
+                          <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                            <div>
+                              <dt class="text-[11px] font-medium text-surface-400 dark:text-surface-500 mb-0.5">Date & Time</dt>
+                              <dd class="text-surface-800 dark:text-surface-200 font-medium text-[13px]">
+                                {{ formatInterviewDateTimeFull(iv.scheduledAt) }}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt class="text-[11px] font-medium text-surface-400 dark:text-surface-500 mb-0.5">Duration</dt>
+                              <dd class="text-surface-800 dark:text-surface-200 font-medium text-[13px] flex items-center gap-1.5">
+                                <Clock class="size-3.5 text-surface-400" />
+                                {{ iv.duration }} minutes
+                              </dd>
+                            </div>
+                            <div>
+                              <dt class="text-[11px] font-medium text-surface-400 dark:text-surface-500 mb-0.5">Type</dt>
+                              <dd class="text-surface-800 dark:text-surface-200 font-medium text-[13px] flex items-center gap-1.5">
+                                <component :is="interviewTypeIcons[iv.type] ?? Calendar" class="size-3.5 text-surface-400" />
+                                {{ interviewTypeLabels[iv.type] ?? iv.type }}
+                              </dd>
+                            </div>
+                            <div v-if="iv.location">
+                              <dt class="text-[11px] font-medium text-surface-400 dark:text-surface-500 mb-0.5">Location</dt>
+                              <dd class="text-surface-800 dark:text-surface-200 font-medium text-[13px] flex items-center gap-1.5">
+                                <MapPin class="size-3.5 text-surface-400" />
+                                {{ iv.location }}
+                              </dd>
+                            </div>
+                            <div v-if="iv.interviewers?.length" class="col-span-2">
+                              <dt class="text-[11px] font-medium text-surface-400 dark:text-surface-500 mb-0.5">Interviewers</dt>
+                              <dd class="text-surface-800 dark:text-surface-200 font-medium text-[13px] flex items-center gap-1.5">
+                                <Users class="size-3.5 text-surface-400" />
+                                {{ iv.interviewers.join(', ') }}
+                              </dd>
+                            </div>
+                            <div v-if="iv.notes" class="col-span-2">
+                              <dt class="text-[11px] font-medium text-surface-400 dark:text-surface-500 mb-0.5">Notes</dt>
+                              <dd class="text-surface-700 dark:text-surface-300 text-[13px] leading-relaxed whitespace-pre-wrap">
+                                {{ iv.notes }}
+                              </dd>
+                            </div>
+                          </dl>
+                          <div class="flex items-center gap-3 mt-4 pt-3 border-t border-surface-100 dark:border-surface-800/60">
+                            <button
+                              class="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors"
+                              @click.stop="startInterviewEdit(iv)"
+                            >
+                              <Pencil class="size-3" />
+                              Edit Details
+                            </button>
+                            <NuxtLink
+                              :to="$localePath(`/dashboard/interviews/${iv.id}`)"
+                              class="inline-flex items-center gap-1.5 text-xs font-medium text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-300 transition-colors"
+                              @click.stop
+                            >
+                              <ExternalLink class="size-3" />
+                              Full Page
+                            </NuxtLink>
+                          </div>
+                        </template>
+
+                        <!-- Edit mode -->
+                        <template v-else>
+                          <div class="space-y-3">
+                            <div>
+                              <label class="block text-[11px] font-medium text-surface-500 dark:text-surface-400 mb-1">Title</label>
+                              <input
+                                v-model="interviewEditForm.title"
+                                type="text"
+                                class="w-full rounded-lg border px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors"
+                                :class="interviewEditErrors.title ? 'border-danger-300 dark:border-danger-600' : 'border-surface-200 dark:border-surface-700'"
+                                @click.stop
+                              />
+                              <p v-if="interviewEditErrors.title" class="mt-1 text-[11px] text-danger-600 dark:text-danger-400">{{ interviewEditErrors.title }}</p>
+                            </div>
+
+                            <div>
+                              <label class="block text-[11px] font-medium text-surface-500 dark:text-surface-400 mb-1">Type</label>
+                              <select
+                                v-model="interviewEditForm.type"
+                                class="w-full rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors"
+                                @click.stop
+                              >
+                                <option value="video">Video Call</option>
+                                <option value="phone">Phone</option>
+                                <option value="in_person">In Person</option>
+                                <option value="technical">Technical</option>
+                                <option value="panel">Panel</option>
+                                <option value="take_home">Take Home</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label class="block text-[11px] font-medium text-surface-500 dark:text-surface-400 mb-1">Location / Link</label>
+                              <input
+                                v-model="interviewEditForm.location"
+                                type="text"
+                                placeholder="Zoom link, office address…"
+                                class="w-full rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors"
+                                @click.stop
+                              />
+                            </div>
+
+                            <div>
+                              <label class="block text-[11px] font-medium text-surface-500 dark:text-surface-400 mb-1">Notes</label>
+                              <textarea
+                                v-model="interviewEditForm.notes"
+                                rows="3"
+                                placeholder="Interview notes…"
+                                class="w-full rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors"
+                                @click.stop
+                              />
+                            </div>
+
+                            <div>
+                              <label class="block text-[11px] font-medium text-surface-500 dark:text-surface-400 mb-1.5">Interviewers</label>
+                              <div class="space-y-2">
+                                <div v-for="(_, idx) in interviewEditForm.interviewers" :key="idx" class="flex items-center gap-2">
+                                  <input
+                                    v-model="interviewEditForm.interviewers[idx]"
+                                    type="text"
+                                    placeholder="Name or email"
+                                    class="flex-1 rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-1.5 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors"
+                                    @click.stop
+                                  />
+                                  <button
+                                    v-if="interviewEditForm.interviewers.length > 1"
+                                    class="cursor-pointer rounded-md p-1 text-surface-400 hover:text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-950/40 transition-colors"
+                                    @click.stop="removeEditInterviewer(idx)"
+                                  >
+                                    <X class="size-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              <button
+                                class="mt-2 inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors"
+                                @click.stop="addEditInterviewer"
+                              >
+                                <Plus class="size-3" />
+                                Add interviewer
+                              </button>
+                            </div>
+
+                            <p v-if="interviewEditErrors.submit" class="text-xs text-danger-600 dark:text-danger-400">{{ interviewEditErrors.submit }}</p>
+
+                            <div class="flex items-center justify-end gap-2 pt-2">
+                              <button
+                                class="cursor-pointer rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-1.5 text-xs font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
+                                @click.stop="cancelInterviewEdit"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                :disabled="isInterviewSaving"
+                                class="cursor-pointer rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                @click.stop="saveInterviewEdit"
+                              >
+                                {{ isInterviewSaving ? 'Saving…' : 'Save Changes' }}
+                              </button>
+                            </div>
+                          </div>
+                        </template>
                       </div>
                     </div>
-                    <div class="flex items-center gap-2.5 shrink-0">
-                      <span
-                        class="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
-                        :class="interviewStatusClasses[iv.status] ?? 'bg-surface-100 text-surface-500 ring-surface-200'"
-                      >
-                        {{ iv.status === 'no_show' ? 'No Show' : iv.status }}
-                      </span>
-                      <ExternalLink class="size-3.5 text-surface-400 group-hover:text-brand-500 transition-colors" />
-                    </div>
-                  </NuxtLink>
+                  </div>
+                </div>
+
+                <!-- Empty state -->
+                <div v-else class="rounded-xl border border-surface-200/80 bg-white p-10 text-center shadow-sm shadow-surface-900/[0.03] dark:border-surface-800/60 dark:bg-surface-900 dark:shadow-none">
+                  <div class="flex size-14 items-center justify-center rounded-2xl bg-surface-100 dark:bg-surface-800/60 mx-auto mb-3">
+                    <Calendar class="size-6 text-surface-400 dark:text-surface-500" />
+                  </div>
+                  <p class="text-sm font-medium text-surface-600 dark:text-surface-300">No interviews scheduled</p>
+                  <p class="mt-1 text-xs text-surface-400 dark:text-surface-500">Schedule an interview to start the process.</p>
+                  <button
+                    class="mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors shadow-sm"
+                    @click="openInterviewScheduler"
+                  >
+                    <Plus class="size-3.5" />
+                    Schedule Interview
+                  </button>
                 </div>
               </div>
 

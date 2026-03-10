@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from 'drizzle-orm'
+import { and, count, desc, eq, gte, lte } from 'drizzle-orm'
 import { interview, application, candidate, job } from '../../database/schema'
 import { interviewQuerySchema } from '../../utils/schemas/interview'
 
@@ -58,7 +58,14 @@ export default defineEventHandler(async (event) => {
       .orderBy(desc(interview.scheduledAt))
       .limit(query.limit)
       .offset((query.page - 1) * query.limit),
-    db.$count(interview, whereClause),
+    db
+      .select({ count: count() })
+      .from(interview)
+      .innerJoin(application, eq(application.id, interview.applicationId))
+      .innerJoin(candidate, eq(candidate.id, application.candidateId))
+      .innerJoin(job, eq(job.id, application.jobId))
+      .where(whereClause)
+      .then(rows => rows[0]?.count ?? 0),
   ])
 
   return { data, total, page: query.page, limit: query.limit }
