@@ -15,6 +15,7 @@ definePageMeta({
 const route = useRoute()
 const interviewId = route.params.id as string
 const { handlePreviewReadOnlyError } = usePreviewReadOnly()
+const { activeOrg } = useCurrentOrg()
 
 const { interview, status: fetchStatus, error, updateInterview, deleteInterview, refresh } = useInterview(interviewId)
 
@@ -75,13 +76,8 @@ const typeLabels: Record<string, string> = {
   take_home: 'Take Home',
 }
 
-// ─── Status transitions ─────────────────────────────────────────
-const INTERVIEW_STATUS_TRANSITIONS: Record<InterviewStatus, InterviewStatus[]> = {
-  scheduled: ['completed', 'cancelled', 'no_show'],
-  completed: [],
-  cancelled: ['scheduled'],
-  no_show: ['scheduled'],
-}
+// ─── Status transitions (from shared single source of truth) ────
+import { INTERVIEW_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
 
 const transitionClasses: Record<InterviewStatus, string> = {
   scheduled: 'border border-surface-300 dark:border-surface-700 bg-white/80 dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-surface-400 dark:hover:border-surface-600 hover:bg-surface-50 dark:hover:bg-surface-800',
@@ -91,8 +87,8 @@ const transitionClasses: Record<InterviewStatus, string> = {
 }
 
 const allowedTransitions = computed(() => {
-  if (!interview.value) return []
-  return INTERVIEW_STATUS_TRANSITIONS[interview.value.status as InterviewStatus] ?? []
+  if (!interview.value) return [] as InterviewStatus[]
+  return (INTERVIEW_STATUS_TRANSITIONS[interview.value.status] ?? []) as InterviewStatus[]
 })
 
 const isTransitioning = ref(false)
@@ -312,7 +308,7 @@ const emailPreviewVariables = computed(() => {
     } as Record<string, string>)[interview.value.type] ?? interview.value.type,
     interviewLocation: interview.value.location ?? 'To be confirmed',
     interviewers: interview.value.interviewers?.join(', ') ?? 'To be confirmed',
-    organizationName: 'Your Organization',
+    organizationName: activeOrg.value?.name ?? 'Your Organization',
   }
 })
 

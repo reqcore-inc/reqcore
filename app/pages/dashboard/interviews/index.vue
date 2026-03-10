@@ -38,7 +38,7 @@ type InterviewStatus = typeof STATUS_OPTIONS[number]
 const activeStatus = ref<InterviewStatus | undefined>(undefined)
 const activeView = ref<'list' | 'calendar'>('list')
 
-const { interviews, total, status: fetchStatus, error, refresh } = useInterviews({
+const { interviews, total, status: fetchStatus, error, refresh, updateInterview, deleteInterviewById } = useInterviews({
   status: activeStatus,
   limit: 100,
 })
@@ -211,22 +211,18 @@ async function handleSaveEdit() {
 
   isSaving.value = true
   try {
-    await $fetch(`/api/interviews/${editingInterview.value!.id}`, {
-      method: 'PATCH',
-      body: {
-        title: editForm.title.trim(),
-        type: editForm.type,
-        status: editForm.status,
-        scheduledAt,
-        duration: editForm.duration,
-        location: editForm.location.trim() || null,
-        notes: editForm.notes.trim() || null,
-        interviewers: filteredInterviewers.length > 0 ? filteredInterviewers : null,
-      },
+    await updateInterview(editingInterview.value!.id, {
+      title: editForm.title.trim(),
+      type: editForm.type as any,
+      status: editForm.status as any,
+      scheduledAt,
+      duration: editForm.duration,
+      location: editForm.location.trim() || null,
+      notes: editForm.notes.trim() || null,
+      interviewers: filteredInterviewers.length > 0 ? filteredInterviewers : null,
     })
     showEditModal.value = false
     editingInterview.value = null
-    await refresh()
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
     editErrors.value.submit = err?.data?.statusMessage ?? 'Failed to update interview'
@@ -249,10 +245,9 @@ async function handleDelete() {
   if (!deletingInterview.value) return
   isDeleting.value = true
   try {
-    await $fetch(`/api/interviews/${deletingInterview.value.id}`, { method: 'DELETE' })
+    await deleteInterviewById(deletingInterview.value.id)
     showDeleteConfirm.value = false
     deletingInterview.value = null
-    await refresh()
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
     alert(err?.data?.statusMessage ?? 'Failed to delete interview')
@@ -262,20 +257,15 @@ async function handleDelete() {
 }
 
 // ─── Quick status change ─────────────────────────────────────────
-const INTERVIEW_STATUS_TRANSITIONS: Record<InterviewStatus, InterviewStatus[]> = {
-  scheduled: ['completed', 'cancelled', 'no_show'],
-  completed: [],
-  cancelled: ['scheduled'],
-  no_show: ['scheduled'],
+import { INTERVIEW_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
+
+function getAllowedTransitions(status: string): InterviewStatus[] {
+  return (INTERVIEW_STATUS_TRANSITIONS[status] ?? []) as InterviewStatus[]
 }
 
 async function quickStatusChange(interviewItem: typeof interviews.value[number], newStatus: InterviewStatus) {
   try {
-    await $fetch(`/api/interviews/${interviewItem.id}`, {
-      method: 'PATCH',
-      body: { status: newStatus },
-    })
-    await refresh()
+    await updateInterview(interviewItem.id, { status: newStatus })
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
     alert(err?.data?.statusMessage ?? 'Failed to update status')
@@ -549,7 +539,7 @@ const statusCounts = computed(() => {
                       <Pencil class="size-3.5 text-surface-400" />
                       Edit
                     </button>
-                    <template v-for="nextStatus in (INTERVIEW_STATUS_TRANSITIONS[interviewItem.status] ?? [])" :key="nextStatus">
+                    <template v-for="nextStatus in getAllowedTransitions(interviewItem.status)" :key="nextStatus">
                       <button
                         class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors"
                         @click="quickStatusChange(interviewItem, nextStatus); openMenuId = null"

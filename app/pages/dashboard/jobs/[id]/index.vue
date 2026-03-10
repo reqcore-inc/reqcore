@@ -8,8 +8,7 @@ import {
 } from 'lucide-vue-next'
 import { z } from 'zod'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
-import { APPLICATION_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
-import { JOB_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
+import { APPLICATION_STATUS_TRANSITIONS, JOB_STATUS_TRANSITIONS, INTERVIEW_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
 
 definePageMeta({
   layout: 'dashboard',
@@ -556,11 +555,8 @@ function isInterviewUpcoming(dateStr: string) {
 
 type InterviewStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show'
 
-const INTERVIEW_STATUS_TRANSITIONS: Record<InterviewStatus, InterviewStatus[]> = {
-  scheduled: ['completed', 'cancelled', 'no_show'],
-  completed: [],
-  cancelled: ['scheduled'],
-  no_show: ['scheduled'],
+function getAllowedInterviewTransitions(status: string): InterviewStatus[] {
+  return (INTERVIEW_STATUS_TRANSITIONS[status] ?? []) as InterviewStatus[]
 }
 
 const interviewTransitionClasses: Record<InterviewStatus, string> = {
@@ -1714,11 +1710,11 @@ function closeDocPreview() {
                     <!-- Expanded interview detail -->
                     <div v-if="expandedInterviewId === iv.id" class="border-t border-surface-200/80 dark:border-surface-800/60">
                       <!-- Status transition buttons -->
-                      <div v-if="(INTERVIEW_STATUS_TRANSITIONS[iv.status as InterviewStatus] ?? []).length > 0" class="px-5 pt-4 pb-2">
+                      <div v-if="getAllowedInterviewTransitions(iv.status).length > 0" class="px-5 pt-4 pb-2">
                         <div class="flex flex-wrap items-center gap-2">
                           <span class="text-[11px] font-medium text-surface-400 dark:text-surface-500 mr-1">Actions:</span>
                           <button
-                            v-for="nextStatus in (INTERVIEW_STATUS_TRANSITIONS[iv.status as InterviewStatus] ?? [])"
+                            v-for="nextStatus in getAllowedInterviewTransitions(iv.status)"
                             :key="nextStatus"
                             :disabled="isInterviewTransitioning"
                             class="cursor-pointer rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"

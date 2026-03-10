@@ -71,8 +71,17 @@ export function useInterviews(options?: {
     return q
   })
 
+  const fetchKey = computed(() => {
+    const parts = ['interviews']
+    const q = query.value
+    for (const [k, v] of Object.entries(q)) {
+      parts.push(`${k}:${v}`)
+    }
+    return parts.join('-')
+  })
+
   const { data, status, error, refresh } = useFetch<InterviewListResponse>('/api/interviews', {
-    key: 'interviews',
+    key: fetchKey,
     query,
     headers: useRequestHeaders(['cookie']),
   })
@@ -103,7 +112,40 @@ export function useInterviews(options?: {
     }
   }
 
-  return { interviews, total, status, error, refresh, createInterview }
+  async function updateInterview(id: string, payload: Partial<{
+    title: string
+    type: Interview['type']
+    status: Interview['status']
+    scheduledAt: string
+    duration: number
+    location: string | null
+    notes: string | null
+    interviewers: string[] | null
+  }>) {
+    try {
+      const updated = await $fetch(`/api/interviews/${id}`, {
+        method: 'PATCH',
+        body: payload,
+      })
+      await refresh()
+      return updated
+    } catch (error) {
+      handlePreviewReadOnlyError(error)
+      throw error
+    }
+  }
+
+  async function deleteInterviewById(id: string) {
+    try {
+      await $fetch(`/api/interviews/${id}`, { method: 'DELETE' })
+      await refresh()
+    } catch (error) {
+      handlePreviewReadOnlyError(error)
+      throw error
+    }
+  }
+
+  return { interviews, total, status, error, refresh, createInterview, updateInterview, deleteInterviewById }
 }
 
 /**
@@ -137,7 +179,7 @@ export function useInterview(id: MaybeRefOrGetter<string>) {
         body: payload,
       })
       await refresh()
-      await refreshNuxtData('interviews')
+      await refreshNuxtData(key => typeof key === 'string' && key.startsWith('interviews'))
       return updated
     } catch (error) {
       handlePreviewReadOnlyError(error)
@@ -150,7 +192,7 @@ export function useInterview(id: MaybeRefOrGetter<string>) {
       await $fetch(`/api/interviews/${interviewId.value}`, {
         method: 'DELETE',
       })
-      await refreshNuxtData('interviews')
+      await refreshNuxtData(key => typeof key === 'string' && key.startsWith('interviews'))
     } catch (error) {
       handlePreviewReadOnlyError(error)
       throw error

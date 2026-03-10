@@ -17,82 +17,7 @@ const emit = defineEmits<{
 
 const { templates, createTemplate, deleteTemplate, sendInvitation } = useEmailTemplates()
 
-// ─── System templates (embedded, not from DB) ─────────────────────
-const systemTemplates = [
-  {
-    id: 'system-standard',
-    name: 'Standard Interview Invitation',
-    subject: 'Interview Invitation: {{jobTitle}} at {{organizationName}}',
-    body: `Dear {{candidateName}},
-
-We are pleased to invite you to an interview for the {{jobTitle}} position at {{organizationName}}.
-
-Interview Details:
-- Date: {{interviewDate}}
-- Time: {{interviewTime}}
-- Duration: {{interviewDuration}} minutes
-- Type: {{interviewType}}
-- Location: {{interviewLocation}}
-
-Interviewers: {{interviewers}}
-
-Please confirm your availability by replying to this email. If you need to reschedule, let us know as soon as possible.
-
-We look forward to speaking with you!
-
-Best regards,
-{{organizationName}}`,
-  },
-  {
-    id: 'system-friendly',
-    name: 'Friendly & Casual',
-    subject: "Let's chat! Interview for {{jobTitle}}",
-    body: `Hi {{candidateFirstName}},
-
-Great news — we'd love to meet you for the {{jobTitle}} role at {{organizationName}}!
-
-Here are the details:
-- When: {{interviewDate}} at {{interviewTime}} ({{interviewDuration}} min)
-- How: {{interviewType}}
-- Where: {{interviewLocation}}
-
-You'll be speaking with: {{interviewers}}
-
-If this time doesn't work for you, just let us know and we'll find something that does.
-
-Looking forward to it!
-
-The {{organizationName}} Team`,
-  },
-  {
-    id: 'system-technical',
-    name: 'Technical Interview',
-    subject: 'Technical Interview: {{jobTitle}} — {{organizationName}}',
-    body: `Dear {{candidateName}},
-
-Thank you for your interest in the {{jobTitle}} position at {{organizationName}}. We'd like to invite you to a technical interview.
-
-Interview Details:
-- Title: {{interviewTitle}}
-- Date: {{interviewDate}}
-- Time: {{interviewTime}}
-- Duration: {{interviewDuration}} minutes
-- Format: {{interviewType}}
-- Location: {{interviewLocation}}
-
-Your interviewer(s): {{interviewers}}
-
-To help you prepare:
-- Be ready to discuss your technical experience and problem-solving approach
-- You may be asked to write or review code during the session
-- Feel free to ask questions about our tech stack and development practices
-
-Please confirm your attendance by replying to this email.
-
-Best regards,
-{{organizationName}}`,
-  },
-]
+// ─── System templates (from shared utility — auto-imported) ────
 
 // ─── State ────────────────────────────────────────────────────────
 type Tab = 'template' | 'custom' | 'manage'
@@ -117,13 +42,15 @@ const templateSaveError = ref('')
 
 // ─── Computed ─────────────────────────────────────────────────────
 const allTemplates = computed(() => [
-  ...systemTemplates.map(t => ({ ...t, isSystem: true as const })),
+  ...SYSTEM_TEMPLATES.map(t => ({ ...t, isSystem: true as const })),
   ...(templates.value ?? []).map(t => ({ ...t, isSystem: false as const })),
 ])
 
 const selectedTemplate = computed(() =>
   allTemplates.value.find(t => t.id === selectedTemplateId.value),
 )
+
+const { activeOrg } = useCurrentOrg()
 
 const previewVariables: Record<string, string> = {
   candidateName: `${props.interview.candidateFirstName} ${props.interview.candidateLastName}`,
@@ -145,23 +72,17 @@ const previewVariables: Record<string, string> = {
   }[props.interview.type] ?? props.interview.type,
   interviewLocation: props.interview.location ?? 'To be confirmed',
   interviewers: props.interview.interviewers?.join(', ') ?? 'To be confirmed',
-  organizationName: 'Your Organization',
-}
-
-function renderPreview(template: string): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => {
-    return key in previewVariables ? (previewVariables[key] ?? match) : match
-  })
+  organizationName: activeOrg.value?.name ?? 'Your Organization',
 }
 
 const previewSubject = computed(() => {
-  if (activeTab.value === 'custom') return renderPreview(customSubject.value)
-  return selectedTemplate.value ? renderPreview(selectedTemplate.value.subject) : ''
+  if (activeTab.value === 'custom') return renderTemplatePreview(customSubject.value, previewVariables)
+  return selectedTemplate.value ? renderTemplatePreview(selectedTemplate.value.subject, previewVariables) : ''
 })
 
 const previewBody = computed(() => {
-  if (activeTab.value === 'custom') return renderPreview(customBody.value)
-  return selectedTemplate.value ? renderPreview(selectedTemplate.value.body) : ''
+  if (activeTab.value === 'custom') return renderTemplatePreview(customBody.value, previewVariables)
+  return selectedTemplate.value ? renderTemplatePreview(selectedTemplate.value.body, previewVariables) : ''
 })
 
 // ─── Actions ──────────────────────────────────────────────────────
@@ -227,18 +148,7 @@ const canSend = computed(() => {
   return !!selectedTemplateId.value
 })
 
-const availableVariables = [
-  { key: '{{candidateName}}', desc: 'Full name' },
-  { key: '{{candidateFirstName}}', desc: 'First name' },
-  { key: '{{jobTitle}}', desc: 'Job title' },
-  { key: '{{interviewDate}}', desc: 'Interview date' },
-  { key: '{{interviewTime}}', desc: 'Interview time' },
-  { key: '{{interviewDuration}}', desc: 'Duration (min)' },
-  { key: '{{interviewType}}', desc: 'Interview type' },
-  { key: '{{interviewLocation}}', desc: 'Location/link' },
-  { key: '{{interviewers}}', desc: 'Interviewer names' },
-  { key: '{{organizationName}}', desc: 'Your org name' },
-]
+// Use AVAILABLE_VARIABLES from auto-imported ~/utils/system-templates
 </script>
 
 <template>
@@ -403,7 +313,7 @@ const availableVariables = [
                 <p class="text-[10px] uppercase tracking-wider font-semibold text-surface-400 mb-2">Available Variables</p>
                 <div class="flex flex-wrap gap-1.5">
                   <span
-                    v-for="v in availableVariables"
+                    v-for="v in AVAILABLE_VARIABLES"
                     :key="v.key"
                     class="inline-flex items-center gap-1 rounded-md bg-brand-50 dark:bg-brand-950/30 px-2 py-1 text-[11px] font-mono text-brand-700 dark:text-brand-300"
                     :title="v.desc"
@@ -529,7 +439,7 @@ const availableVariables = [
                 <p class="text-[10px] uppercase tracking-wider font-semibold text-surface-400 mb-2">Available Variables</p>
                 <div class="flex flex-wrap gap-1.5">
                   <span
-                    v-for="v in availableVariables"
+                    v-for="v in AVAILABLE_VARIABLES"
                     :key="v.key"
                     class="inline-flex items-center gap-1 rounded-md bg-brand-50 dark:bg-brand-950/30 px-2 py-1 text-[11px] font-mono text-brand-700 dark:text-brand-300"
                     :title="v.desc"

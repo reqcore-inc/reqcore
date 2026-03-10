@@ -36,3 +36,16 @@ export const JOB_STATUS_TRANSITIONS: Record<string, string[]> = {
   closed: ['open', 'archived'],
   archived: ['draft', 'open'],
 }
+
+// ─── Interview status transitions ──────────────────────────────────
+/**
+ * Allowed status transitions for interviews.
+ * `completed` is terminal — no forward transitions.
+ * `cancelled` and `no_show` can be rescheduled back to `scheduled`.
+ */
+export const INTERVIEW_STATUS_TRANSITIONS: Record<string, string[]> = {
+  scheduled: ['completed', 'cancelled', 'no_show'],
+  completed: [],
+  cancelled: ['scheduled'],
+  no_show: ['scheduled'],
+}
