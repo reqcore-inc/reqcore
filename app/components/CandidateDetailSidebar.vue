@@ -300,6 +300,12 @@ function formatResponseValue(value: unknown): string {
 }
 
 const responsesCount = computed(() => application.value?.responses?.length ?? 0)
+
+// ─────────────────────────────────────────────
+// Interview scheduling
+// ─────────────────────────────────────────────
+
+const showScheduleSidebar = ref(false)
 </script>
 
 <template>
@@ -336,13 +342,24 @@ const responsesCount = computed(() => application.value?.responses?.length ?? 0)
         <div v-else class="min-w-0">
           <h2 class="text-lg font-semibold text-surface-400">Loading…</h2>
         </div>
-        <button
-          class="rounded-md p-1.5 text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:text-surface-300 dark:hover:bg-surface-800 transition-colors shrink-0 ml-3"
-          title="Close (Esc)"
-          @click="emit('close')"
-        >
-          <X class="size-5" />
-        </button>
+        <div class="flex items-center gap-1 shrink-0 ml-3">
+          <button
+            v-if="application"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-surface-300 dark:border-surface-700 px-2.5 py-1.5 text-sm font-medium text-surface-600 dark:text-surface-400 hover:border-brand-400 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30 hover:text-brand-700 dark:hover:text-brand-300 transition-all cursor-pointer"
+            title="Schedule Interview"
+            @click="showScheduleSidebar = true"
+          >
+            <Calendar class="size-3.5" />
+            Schedule
+          </button>
+          <button
+            class="rounded-md p-1.5 text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:text-surface-300 dark:hover:bg-surface-800 transition-colors"
+            title="Close (Esc)"
+            @click="emit('close')"
+          >
+            <X class="size-5" />
+          </button>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -763,6 +780,16 @@ const responsesCount = computed(() => application.value?.responses?.length ?? 0)
       </div>
     </aside>
   </Transition>
+
+  <!-- Interview Schedule Sidebar -->
+  <InterviewScheduleSidebar
+    v-if="showScheduleSidebar && application"
+    :application-id="props.applicationId"
+    :candidate-name="`${application.candidate.firstName} ${application.candidate.lastName}`"
+    :job-title="application.job?.title ?? ''"
+    @close="showScheduleSidebar = false"
+    @scheduled="showScheduleSidebar = false"
+  />
 
 
 

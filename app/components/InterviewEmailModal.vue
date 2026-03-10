@@ -150,7 +150,7 @@ const previewVariables: Record<string, string> = {
 
 function renderPreview(template: string): string {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => {
-    return key in previewVariables ? previewVariables[key] : match
+    return key in previewVariables ? (previewVariables[key] ?? match) : match
   })
 }
 

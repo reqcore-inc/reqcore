@@ -59,6 +59,7 @@ const allowedTransitions = computed(() => {
 })
 
 const isTransitioning = ref(false)
+const showInterviewSidebar = ref(false)
 
 async function handleTransition(newStatus: string) {
   isTransitioning.value = true
@@ -175,27 +176,31 @@ function formatResponseValue(value: unknown): string {
         </div>
       </div>
 
-      <!-- Status transition buttons -->
-      <div
-        v-if="allowedTransitions.length > 0"
-        class="mb-6 rounded-xl border border-surface-200 dark:border-surface-800 bg-white/80 dark:bg-surface-900/70 p-3"
-      >
+      <!-- Quick actions -->
+      <div class="mb-6 rounded-xl border border-surface-200 dark:border-surface-800 bg-white/80 dark:bg-surface-900/70 p-3">
         <div class="flex flex-wrap items-center gap-2">
-        <span class="inline-flex items-center rounded-full bg-surface-100 dark:bg-surface-800 px-2.5 py-1 text-xs font-medium text-surface-600 dark:text-surface-400">Quick actions</span>
-        <button
-          v-for="nextStatus in allowedTransitions"
-          :key="nextStatus"
-          :disabled="isTransitioning"
-          class="inline-flex cursor-pointer items-center rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50"
-          :class="transitionClasses[nextStatus] ?? 'border border-surface-300 dark:border-surface-700 bg-white/80 dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-surface-400 dark:hover:border-surface-600 hover:bg-surface-50 dark:hover:bg-surface-800'"
-          @click="handleTransition(nextStatus)"
-        >
-          <span
-            class="mr-2 inline-flex size-1.5 rounded-full"
-            :class="transitionDotClasses[nextStatus] ?? 'bg-surface-400 dark:bg-surface-500'"
-          />
-          {{ transitionLabels[nextStatus] ?? nextStatus }}
-        </button>
+          <span class="inline-flex items-center rounded-full bg-surface-100 dark:bg-surface-800 px-2.5 py-1 text-xs font-medium text-surface-600 dark:text-surface-400">Quick actions</span>
+          <button
+            v-for="nextStatus in allowedTransitions"
+            :key="nextStatus"
+            :disabled="isTransitioning"
+            class="inline-flex cursor-pointer items-center rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50"
+            :class="transitionClasses[nextStatus] ?? 'border border-surface-300 dark:border-surface-700 bg-white/80 dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-surface-400 dark:hover:border-surface-600 hover:bg-surface-50 dark:hover:bg-surface-800'"
+            @click="handleTransition(nextStatus)"
+          >
+            <span
+              class="mr-2 inline-flex size-1.5 rounded-full"
+              :class="transitionDotClasses[nextStatus] ?? 'bg-surface-400 dark:bg-surface-500'"
+            />
+            {{ transitionLabels[nextStatus] ?? nextStatus }}
+          </button>
+          <button
+            class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-surface-300 dark:border-surface-700 bg-white/80 dark:bg-surface-900 px-3.5 py-1.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:border-brand-400 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30 hover:text-brand-700 dark:hover:text-brand-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+            @click="showInterviewSidebar = true"
+          >
+            <Calendar class="size-3.5" />
+            Schedule Interview
+          </button>
         </div>
       </div>
 
@@ -368,4 +373,14 @@ function formatResponseValue(value: unknown): string {
       </div>
     </template>
   </div>
+
+  <!-- Interview Schedule Sidebar -->
+  <InterviewScheduleSidebar
+    v-if="showInterviewSidebar && application"
+    :application-id="applicationId"
+    :candidate-name="`${application.candidate.firstName} ${application.candidate.lastName}`"
+    :job-title="application.job.title"
+    @close="showInterviewSidebar = false"
+    @scheduled="showInterviewSidebar = false"
+  />
 </template>

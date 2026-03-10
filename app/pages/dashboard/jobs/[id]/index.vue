@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import {
-  ArrowLeft, ArrowRight, Briefcase, Clock, Hash, UserRound, Mail, MessageSquare,
+  ArrowLeft, ArrowRight, Briefcase, Calendar, Clock, Hash, UserRound, Mail, MessageSquare,
   FileText, Paperclip, Download, Eye, Phone, Search, ExternalLink,
   UserPlus, Pencil, Trash2, MoreHorizontal, Globe, ChevronDown, X,
+  Video, Building2, Code2, UsersRound,
 } from 'lucide-vue-next'
 import { z } from 'zod'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
@@ -101,18 +102,20 @@ watch(focusStatus, () => {
 const currentSummary = computed(() => filteredApplications.value[currentIndex.value] ?? null)
 
 // Detail tab for center panel (used for scroll-to-section navigation)
-const detailTab = ref<'overview' | 'documents' | 'responses'>('overview')
+const detailTab = ref<'overview' | 'interviews' | 'documents' | 'responses'>('overview')
 
 // Section refs for scroll-to navigation
 const overviewRef = ref<HTMLElement | null>(null)
+const interviewsRef = ref<HTMLElement | null>(null)
 const documentsRef = ref<HTMLElement | null>(null)
 const responsesRef = ref<HTMLElement | null>(null)
 const detailScrollContainer = ref<HTMLElement | null>(null)
 
-function scrollToSection(section: 'overview' | 'documents' | 'responses') {
+function scrollToSection(section: 'overview' | 'interviews' | 'documents' | 'responses') {
   detailTab.value = section
   const refs: Record<string, ReturnType<typeof ref<HTMLElement | null>>> = {
     overview: overviewRef,
+    interviews: interviewsRef,
     documents: documentsRef,
     responses: responsesRef,
   }
@@ -131,6 +134,7 @@ function handleDetailScroll() {
   const sections = [
     { id: 'responses' as const, el: responsesRef.value },
     { id: 'documents' as const, el: documentsRef.value },
+    { id: 'interviews' as const, el: interviewsRef.value },
     { id: 'overview' as const, el: overviewRef.value },
   ]
 
@@ -336,6 +340,9 @@ async function handleInterviewScheduled() {
   showInterviewSidebar.value = false
   interviewTargetApplication.value = null
 
+  // Refresh the interviews list
+  await refreshJobInterviews()
+
   // Transition the application status to 'interview' after scheduling
   if (currentSummary.value && currentSummary.value.status !== 'interview') {
     const allowed = APPLICATION_STATUS_TRANSITIONS[currentSummary.value.status] ?? []
@@ -343,6 +350,58 @@ async function handleInterviewScheduled() {
       await changeStatus('interview')
     }
   }
+}
+
+// ─────────────────────────────────────────────
+// Interviews for this job
+// ─────────────────────────────────────────────
+
+const { data: jobInterviewsData, refresh: refreshJobInterviews } = useFetch<{ data: Interview[] }>('/api/interviews', {
+  key: `pipeline-job-interviews-${jobId}`,
+  query: { jobId, limit: 100 },
+  headers: useRequestHeaders(['cookie']),
+})
+
+const jobInterviews = computed(() => jobInterviewsData.value?.data ?? [])
+
+const currentApplicationInterviews = computed(() =>
+  jobInterviews.value.filter(i => i.applicationId === currentApplicationId.value),
+)
+
+const applicationsWithInterviews = computed(() =>
+  new Set(jobInterviews.value.map(i => i.applicationId)),
+)
+
+const interviewTypeIcons: Record<string, any> = {
+  video: Video,
+  phone: Phone,
+  in_person: Building2,
+  technical: Code2,
+  panel: UsersRound,
+  take_home: FileText,
+}
+
+const interviewTypeLabels: Record<string, string> = {
+  video: 'Video',
+  phone: 'Phone',
+  in_person: 'In Person',
+  technical: 'Technical',
+  panel: 'Panel',
+  take_home: 'Take Home',
+}
+
+const interviewStatusClasses: Record<string, string> = {
+  scheduled: 'bg-brand-50 text-brand-700 ring-brand-200 dark:bg-brand-950/50 dark:text-brand-300 dark:ring-brand-800',
+  completed: 'bg-success-50 text-success-700 ring-success-200 dark:bg-success-950/50 dark:text-success-300 dark:ring-success-800',
+  cancelled: 'bg-surface-100 text-surface-500 ring-surface-200 dark:bg-surface-800/50 dark:text-surface-400 dark:ring-surface-700',
+  no_show: 'bg-danger-50 text-danger-700 ring-danger-200 dark:bg-danger-950/50 dark:text-danger-300 dark:ring-danger-800',
+}
+
+function formatInterviewDateTime(dateStr: string) {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+    + ' at '
+    + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
 async function changeStatus(status: string) {
@@ -849,6 +908,9 @@ function closeDocPreview() {
                     {{ app.score }} pts
                   </span>
                   <span class="text-[11px] text-surface-400 dark:text-surface-500">{{ timeAgo(app.createdAt) }}</span>
+                  <span v-if="applicationsWithInterviews.has(app.id)" class="inline-flex items-center text-warning-500 dark:text-warning-400" title="Interview scheduled">
+                    <Calendar class="size-3" />
+                  </span>
                 </div>
               </div>
             </button>
@@ -975,6 +1037,19 @@ function closeDocPreview() {
                   @click="scrollToSection('overview')"
                 >
                   Profile
+                </button>
+                <button
+                  v-if="currentApplicationInterviews.length > 0"
+                  class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px"
+                  :class="detailTab === 'interviews'
+                    ? 'border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300'
+                    : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 dark:text-surface-400 dark:hover:text-surface-300 dark:hover:border-surface-600'"
+                  @click="scrollToSection('interviews')"
+                >
+                  Interviews
+                  <span class="ml-1 text-xs text-surface-400">
+                    ({{ currentApplicationInterviews.length }})
+                  </span>
                 </button>
                 <button
                   class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px"
@@ -1107,6 +1182,45 @@ function closeDocPreview() {
                   >
                     <ExternalLink class="size-3.5 transition-transform group-hover:translate-x-0.5" />
                     Full application page
+                  </NuxtLink>
+                </div>
+              </div>
+
+              <!-- INTERVIEWS SECTION -->
+              <div v-if="currentApplicationInterviews.length > 0" ref="interviewsRef" class="space-y-3 max-w-4xl mx-auto mt-10 scroll-mt-4">
+                <h2 class="text-sm font-semibold text-surface-800 dark:text-surface-200 flex items-center gap-2 mb-3">
+                  <Calendar class="size-4 text-surface-400 dark:text-surface-500" />
+                  Interviews
+                </h2>
+                <div class="space-y-3">
+                  <NuxtLink
+                    v-for="iv in currentApplicationInterviews"
+                    :key="iv.id"
+                    :to="$localePath(`/dashboard/interviews/${iv.id}`)"
+                    class="group flex items-center justify-between gap-4 rounded-xl border border-surface-200/80 bg-white px-5 py-4 shadow-sm shadow-surface-900/[0.03] dark:border-surface-800/60 dark:bg-surface-900 dark:shadow-none transition-all duration-150 hover:border-brand-300 dark:hover:border-brand-700 hover:shadow-md"
+                  >
+                    <div class="flex items-center gap-3.5 min-w-0">
+                      <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950/40">
+                        <component :is="interviewTypeIcons[iv.type] ?? Calendar" class="size-4.5 text-brand-600 dark:text-brand-400" />
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-sm font-medium text-surface-800 dark:text-surface-100 truncate">
+                          {{ iv.title }}
+                        </p>
+                        <p class="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
+                          {{ formatInterviewDateTime(iv.scheduledAt) }} · {{ iv.duration }} min · {{ interviewTypeLabels[iv.type] ?? iv.type }}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2.5 shrink-0">
+                      <span
+                        class="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
+                        :class="interviewStatusClasses[iv.status] ?? 'bg-surface-100 text-surface-500 ring-surface-200'"
+                      >
+                        {{ iv.status === 'no_show' ? 'No Show' : iv.status }}
+                      </span>
+                      <ExternalLink class="size-3.5 text-surface-400 group-hover:text-brand-500 transition-colors" />
+                    </div>
                   </NuxtLink>
                 </div>
               </div>
