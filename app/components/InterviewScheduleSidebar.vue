@@ -2,8 +2,9 @@
 import {
   X, Calendar, Clock, MapPin, Users, Video, Phone,
   Building2, Code2, FileText, UsersRound, ChevronLeft, ChevronRight,
-  Plus, Minus, AlertCircle,
+  Plus, AlertCircle, Mail, ChevronDown,
 } from 'lucide-vue-next'
+import { SYSTEM_TEMPLATES } from '~/utils/system-templates'
 
 const props = defineProps<{
   applicationId: string
@@ -25,12 +26,26 @@ const form = reactive({
   duration: 60,
   location: '',
   notes: '',
-  interviewers: [''] as string[],
+  interviewers: [] as string[],
 })
 
 const errors = ref<Record<string, string>>({})
 const isSubmitting = ref(false)
 const sendInvitationAfter = ref(false)
+
+// ─── Email templates ──────────────────────────────────────────────
+const { templates: customTemplates } = useEmailTemplates()
+const selectedTemplateId = ref('system-standard')
+const showTemplateDropdown = ref(false)
+
+const allTemplates = computed(() => [
+  ...SYSTEM_TEMPLATES.map(t => ({ id: t.id, name: t.name, description: t.description, isSystem: true as const })),
+  ...(customTemplates.value ?? []).map(t => ({ id: t.id, name: t.name, description: '', isSystem: false as const })),
+])
+
+const selectedTemplateName = computed(() => {
+  return allTemplates.value.find(t => t.id === selectedTemplateId.value)?.name ?? 'Select template'
+})
 
 // Set a sensible default title
 // Helper to extract YYYY-MM-DD from a Date object
@@ -219,7 +234,7 @@ async function handleSubmit() {
       try {
         await $fetch(`/api/interviews/${created.id}/send-invitation`, {
           method: 'POST',
-          body: { templateId: 'system-standard' },
+          body: { templateId: selectedTemplateId.value },
         })
       } catch {
         // Interview was created successfully — don't block on email failure.
@@ -249,7 +264,7 @@ async function handleSubmit() {
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
       >
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px]" @click="emit('close')" />
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="emit('close')" />
       </Transition>
 
       <!-- Sidebar panel -->
@@ -261,62 +276,67 @@ async function handleSubmit() {
         leave-from-class="translate-x-0"
         leave-to-class="translate-x-full"
       >
-        <div class="relative w-full max-w-lg bg-white dark:bg-surface-900 shadow-2xl shadow-surface-900/20 dark:shadow-black/40 overflow-hidden flex flex-col">
+        <div class="relative w-full max-w-2xl bg-white dark:bg-surface-900 shadow-2xl overflow-hidden flex flex-col border-l border-surface-200/40 dark:border-surface-800/60">
           <!-- Header -->
-          <div class="shrink-0 border-b border-surface-200/80 dark:border-surface-800/60 px-6 py-4">
-            <div class="flex items-center justify-between">
+          <div class="shrink-0 px-6 pt-5 pb-4">
+            <div class="flex items-start justify-between">
               <div class="min-w-0">
-                <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">
-                  Schedule Interview
-                </h2>
-                <p class="mt-0.5 text-sm text-surface-500 dark:text-surface-400 truncate">
+                <div class="flex items-center gap-2.5 mb-1">
+                  <div class="flex size-8 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950/40">
+                    <Calendar class="size-4 text-brand-600 dark:text-brand-400" />
+                  </div>
+                  <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-50 tracking-tight">
+                    Schedule Interview
+                  </h2>
+                </div>
+                <p class="text-[13px] text-surface-500 dark:text-surface-400 truncate pl-[42px]">
                   {{ candidateName }} · {{ jobTitle }}
                 </p>
               </div>
               <button
-                class="flex items-center justify-center rounded-lg p-1.5 text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:text-surface-500 dark:hover:text-surface-300 dark:hover:bg-surface-800 transition-all cursor-pointer"
+                class="flex items-center justify-center rounded-lg p-2 -mr-1.5 -mt-0.5 text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:text-surface-500 dark:hover:text-surface-300 dark:hover:bg-surface-800 transition-colors cursor-pointer"
                 @click="emit('close')"
               >
-                <X class="size-5" />
+                <X class="size-4" />
               </button>
             </div>
           </div>
 
+          <div class="h-px bg-gradient-to-r from-transparent via-surface-200 to-transparent dark:via-surface-700/60" />
+
           <!-- Form content -->
-          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
             <!-- Error banner -->
-            <div v-if="errors.submit" class="flex items-start gap-2.5 rounded-xl border border-danger-200/80 bg-danger-50 p-3.5 text-sm text-danger-700 dark:border-danger-800/60 dark:bg-danger-950/40 dark:text-danger-300">
+            <div v-if="errors.submit" class="flex items-start gap-2.5 rounded-xl border border-danger-200/60 bg-danger-50/80 p-3.5 text-sm text-danger-700 dark:border-danger-800/40 dark:bg-danger-950/30 dark:text-danger-300">
               <AlertCircle class="size-4 shrink-0 mt-0.5" />
               {{ errors.submit }}
             </div>
 
             <!-- Interview Type -->
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2.5">
-                Interview Type
+              <label class="block text-[13px] font-medium text-surface-700 dark:text-surface-300 mb-2">
+                Interview type
               </label>
-              <div class="grid grid-cols-3 gap-2">
+              <div class="grid grid-cols-3 gap-1.5">
                 <button
                   v-for="t in interviewTypes"
                   :key="t.value"
                   type="button"
-                  class="flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 text-xs font-medium transition-all duration-150 cursor-pointer"
+                  class="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-all duration-150 cursor-pointer truncate"
                   :class="form.type === t.value
-                    ? 'border-brand-500 bg-brand-50/50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300 shadow-sm'
-                    : 'border-surface-200 dark:border-surface-700/80 text-surface-600 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-600 hover:bg-surface-50 dark:hover:bg-surface-800/40'"
+                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300'
+                    : 'border-surface-200 dark:border-surface-700/80 text-surface-500 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-600 hover:bg-surface-50 dark:hover:bg-surface-800/40'"
                   @click="form.type = t.value"
                 >
-                  <div class="flex size-8 items-center justify-center rounded-lg" :class="t.color">
-                    <component :is="t.icon" class="size-4" />
-                  </div>
-                  {{ t.label }}
+                  <component :is="t.icon" class="size-3.5 shrink-0" />
+                  <span class="truncate">{{ t.label }}</span>
                 </button>
               </div>
             </div>
 
             <!-- Title -->
             <div>
-              <label for="interview-title" class="block text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1.5">
+              <label for="interview-title" class="block text-[13px] font-medium text-surface-700 dark:text-surface-300 mb-2">
                 Title
               </label>
               <input
@@ -324,131 +344,119 @@ async function handleSubmit() {
                 v-model="form.title"
                 type="text"
                 placeholder="e.g., Technical Interview Round 1"
-                class="w-full rounded-lg border px-3 py-2.5 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
-                :class="errors.title ? 'border-danger-300 dark:border-danger-700' : 'border-surface-200 dark:border-surface-700'"
+                class="w-full rounded-xl border bg-surface-50/50 dark:bg-surface-800/50 px-4 py-2.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white dark:focus:bg-surface-800 transition-all"
+                :class="errors.title ? 'border-danger-300 dark:border-danger-700' : 'border-surface-200 dark:border-surface-700/80'"
               />
-              <p v-if="errors.title" class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ errors.title }}</p>
+              <p v-if="errors.title" class="mt-1.5 text-xs text-danger-600 dark:text-danger-400">{{ errors.title }}</p>
             </div>
 
-            <!-- Calendar Date Picker -->
+            <!-- Date & Time -->
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2.5">
-                <Calendar class="inline size-3.5 mr-1 -mt-0.5" />
-                Date
+              <label class="block text-[13px] font-medium text-surface-700 dark:text-surface-300 mb-2.5">
+                Date & time
               </label>
-              <div class="rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-800/60 overflow-hidden">
-                <!-- Month navigation -->
-                <div class="flex items-center justify-between px-4 py-2.5 border-b border-surface-100 dark:border-surface-700/60">
-                  <button
-                    type="button"
-                    class="flex items-center justify-center rounded-lg p-1 text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:text-surface-300 dark:hover:bg-surface-700 transition-all cursor-pointer"
-                    @click="prevMonth"
-                  >
-                    <ChevronLeft class="size-4" />
-                  </button>
-                  <span class="text-sm font-semibold text-surface-800 dark:text-surface-200">{{ calendarMonthLabel }}</span>
-                  <button
-                    type="button"
-                    class="flex items-center justify-center rounded-lg p-1 text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:text-surface-300 dark:hover:bg-surface-700 transition-all cursor-pointer"
-                    @click="nextMonth"
-                  >
-                    <ChevronRight class="size-4" />
-                  </button>
-                </div>
+              <div class="flex items-stretch gap-3 h-80">
+                <!-- Calendar Date Picker -->
+                <div class="flex-1 rounded-xl border border-surface-200/80 dark:border-surface-700/60 bg-white dark:bg-surface-800/40 overflow-hidden min-w-0 flex flex-col">
+                  <!-- Month navigation -->
+                  <div class="flex items-center justify-between px-3 py-2.5">
+                    <button
+                      type="button"
+                      class="flex items-center justify-center rounded-lg p-1.5 text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:text-surface-300 dark:hover:bg-surface-700 transition-colors cursor-pointer"
+                      @click="prevMonth"
+                    >
+                      <ChevronLeft class="size-4" />
+                    </button>
+                    <span class="text-sm font-semibold text-surface-800 dark:text-surface-200">{{ calendarMonthLabel }}</span>
+                    <button
+                      type="button"
+                      class="flex items-center justify-center rounded-lg p-1.5 text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:text-surface-300 dark:hover:bg-surface-700 transition-colors cursor-pointer"
+                      @click="nextMonth"
+                    >
+                      <ChevronRight class="size-4" />
+                    </button>
+                  </div>
 
-                <!-- Weekday headers -->
-                <div class="grid grid-cols-7 text-center border-b border-surface-100 dark:border-surface-700/60">
-                  <div v-for="day in ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']" :key="day" class="py-1.5 text-[10px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">
-                    {{ day }}
+                  <!-- Weekday headers -->
+                  <div class="grid grid-cols-7 text-center px-2">
+                    <div v-for="day in ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']" :key="day" class="pb-1.5 text-[11px] font-medium text-surface-400 dark:text-surface-500">
+                      {{ day }}
+                    </div>
+                  </div>
+
+                  <!-- Days grid -->
+                  <div class="grid grid-cols-7 px-2 pb-2 gap-0.5">
+                    <button
+                      v-for="d in calendarDays"
+                      :key="d.date"
+                      type="button"
+                      :disabled="d.isPast"
+                      class="relative flex items-center justify-center rounded-lg h-9 text-[13px] transition-all duration-100 cursor-pointer"
+                      :class="[
+                        d.date === form.date
+                          ? 'bg-brand-600 text-white font-semibold shadow-sm shadow-brand-500/25 dark:bg-brand-500'
+                          : d.isToday
+                            ? 'ring-1 ring-brand-300 text-brand-700 font-medium dark:ring-brand-700 dark:text-brand-300'
+                            : d.isCurrentMonth
+                              ? 'text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700/60'
+                              : 'text-surface-300 dark:text-surface-600',
+                        d.isPast ? 'opacity-30 cursor-not-allowed' : '',
+                      ]"
+                      @click="!d.isPast && selectDate(d.date)"
+                    >
+                      {{ d.day }}
+                    </button>
                   </div>
                 </div>
 
-                <!-- Days grid -->
-                <div class="grid grid-cols-7 p-1.5 gap-0.5">
-                  <button
-                    v-for="d in calendarDays"
-                    :key="d.date"
-                    type="button"
-                    :disabled="d.isPast"
-                    class="relative flex items-center justify-center rounded-lg py-2 text-sm transition-all duration-100 cursor-pointer"
-                    :class="[
-                      d.date === form.date
-                        ? 'bg-brand-600 text-white font-semibold shadow-sm shadow-brand-500/30'
-                        : d.isToday
-                          ? 'bg-brand-50 text-brand-700 font-semibold dark:bg-brand-950/40 dark:text-brand-300'
-                          : d.isCurrentMonth
-                            ? 'text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700/60'
-                            : 'text-surface-300 dark:text-surface-600',
-                      d.isPast ? 'opacity-40 cursor-not-allowed' : '',
-                    ]"
-                    @click="!d.isPast && selectDate(d.date)"
-                  >
-                    {{ d.day }}
-                  </button>
+                <!-- Time Picker -->
+                <div class="w-[96px] shrink-0 rounded-xl border border-surface-200/80 dark:border-surface-700/60 bg-white dark:bg-surface-800/40 overflow-hidden flex flex-col">
+                  <!-- Time header -->
+                  <div class="flex items-center justify-center px-3 py-2.5 shrink-0">
+                    <span class="text-sm font-semibold text-surface-800 dark:text-surface-200">Time</span>
+                  </div>
+                  <!-- Spacer to perfectly match calendar weekday headers -->
+                  <div class="px-2 shrink-0">
+                    <div class="pb-1.5 text-[11px] font-medium text-transparent select-none whitespace-nowrap">
+                      Time
+                    </div>
+                  </div>
+                  <!-- Time List -->
+                  <div class="flex-1 overflow-y-auto px-1.5 pb-2 flex flex-col gap-0.5 min-h-0">
+                    <button
+                      v-for="slot in timeSlots"
+                      :key="slot"
+                      type="button"
+                      class="shrink-0 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-center transition-all duration-100 cursor-pointer"
+                      :class="form.time === slot
+                        ? 'bg-brand-600 text-white shadow-sm shadow-brand-500/25 dark:bg-brand-500'
+                        : 'text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700/60'"
+                      @click="form.time = slot"
+                    >
+                      {{ slot }}
+                    </button>
+                  </div>
                 </div>
               </div>
-              <p v-if="errors.date" class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ errors.date }}</p>
-            </div>
 
-            <!-- Time Picker -->
-            <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2.5">
-                <Clock class="inline size-3.5 mr-1 -mt-0.5" />
-                Time
-              </label>
-              <div class="grid grid-cols-4 gap-1.5 max-h-48 overflow-y-auto rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-800/60 p-2">
-                <button
-                  v-for="slot in timeSlots"
-                  :key="slot"
-                  type="button"
-                  class="rounded-lg py-1.5 text-xs font-medium transition-all duration-100 cursor-pointer"
-                  :class="form.time === slot
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700/60'"
-                  @click="form.time = slot"
-                >
-                  {{ slot }}
-                </button>
+              <!-- Errors -->
+              <div v-if="errors.date || errors.time" class="mt-1.5 flex flex-col gap-1">
+                <p v-if="errors.date" class="text-xs text-danger-600 dark:text-danger-400">Date: {{ errors.date }}</p>
+                <p v-if="errors.time" class="text-xs text-danger-600 dark:text-danger-400">Time: {{ errors.time }}</p>
               </div>
-              <p v-if="errors.time" class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ errors.time }}</p>
-            </div>
 
-            <!-- Duration -->
-            <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2.5">
-                Duration
-              </label>
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-1">
-                  <button
-                    type="button"
-                    :disabled="form.duration <= 5"
-                    class="flex items-center justify-center rounded-lg border border-surface-200 dark:border-surface-700 p-1.5 text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                    @click="adjustDuration(-15)"
-                  >
-                    <Minus class="size-3.5" />
-                  </button>
-                  <span class="w-16 text-center text-sm font-semibold text-surface-800 dark:text-surface-200 tabular-nums">
-                    {{ form.duration }} min
-                  </span>
-                  <button
-                    type="button"
-                    :disabled="form.duration >= 480"
-                    class="flex items-center justify-center rounded-lg border border-surface-200 dark:border-surface-700 p-1.5 text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                    @click="adjustDuration(15)"
-                  >
-                    <Plus class="size-3.5" />
-                  </button>
-                </div>
-                <div class="flex flex-wrap gap-1.5">
+              <!-- Duration -->
+              <div class="mt-3">
+                <span class="text-[12px] font-medium text-surface-500 dark:text-surface-400 mb-2 block">Duration</span>
+                <div class="flex flex-wrap gap-2">
                   <button
                     v-for="preset in durationPresets"
                     :key="preset"
                     type="button"
-                    class="rounded-md px-2 py-1 text-[11px] font-medium transition-all cursor-pointer"
+                    class="rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all cursor-pointer text-center"
                     :class="form.duration === preset
-                      ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300'
-                      : 'bg-surface-100 text-surface-500 hover:bg-surface-200 dark:bg-surface-800 dark:text-surface-400 dark:hover:bg-surface-700'"
+                      ? 'bg-brand-600 text-white dark:bg-brand-500'
+                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200 dark:bg-surface-800 dark:text-surface-400 dark:hover:bg-surface-700'"
                     @click="form.duration = preset"
                   >
                     {{ preset }}m
@@ -459,38 +467,124 @@ async function handleSubmit() {
 
             <!-- Location -->
             <div>
-              <label for="interview-location" class="block text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1.5">
-                <MapPin class="inline size-3.5 mr-1 -mt-0.5" />
-                Location / Link
+              <label for="interview-location" class="block text-[13px] font-medium text-surface-700 dark:text-surface-300 mb-2">
+                <MapPin class="inline size-3.5 mr-1.5 -mt-0.5 text-surface-400" />
+                Location or meeting link
               </label>
               <input
                 id="interview-location"
                 v-model="form.location"
                 type="text"
-                placeholder="Zoom link, office address, or phone number"
-                class="w-full rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2.5 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                placeholder="Zoom link, office address…"
+                class="w-full rounded-xl border border-surface-200 dark:border-surface-700/80 bg-surface-50/50 dark:bg-surface-800/50 px-4 py-2.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white dark:focus:bg-surface-800 transition-all"
               />
+            </div>
+
+            <!-- Email invitation -->
+            <div class="space-y-3">
+              <label class="flex items-center gap-2.5 cursor-pointer group -mx-2 px-2 py-2 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800/40 transition-colors">
+                <input
+                  v-model="sendInvitationAfter"
+                  type="checkbox"
+                  class="size-4 rounded border-surface-300 dark:border-surface-600 text-brand-600 focus:ring-brand-500/20 focus:ring-offset-0 cursor-pointer"
+                />
+                <Mail class="size-3.5 text-surface-400 dark:text-surface-500 group-hover:text-brand-500 transition-colors" />
+                <span class="text-[13px] font-medium text-surface-600 dark:text-surface-400 group-hover:text-surface-900 dark:group-hover:text-surface-100 transition-colors">
+                  Send invitation email after scheduling
+                </span>
+              </label>
+
+              <!-- Template picker (shown when checkbox is on) -->
+              <div v-if="sendInvitationAfter" class="relative">
+                <label class="block text-[12px] font-medium text-surface-500 dark:text-surface-400 mb-1.5">
+                  Email template
+                </label>
+                <button
+                  type="button"
+                  class="w-full flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-3 py-2 text-sm text-left transition-all hover:border-surface-300 dark:hover:border-surface-600 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 cursor-pointer"
+                  @click="showTemplateDropdown = !showTemplateDropdown"
+                >
+                  <span class="truncate text-surface-800 dark:text-surface-200">{{ selectedTemplateName }}</span>
+                  <ChevronDown class="size-4 shrink-0 text-surface-400 transition-transform" :class="showTemplateDropdown ? 'rotate-180' : ''" />
+                </button>
+
+                <!-- Dropdown -->
+                <Transition
+                  enter-active-class="transition duration-150 ease-out"
+                  enter-from-class="opacity-0 -translate-y-1"
+                  enter-to-class="opacity-100 translate-y-0"
+                  leave-active-class="transition duration-100 ease-in"
+                  leave-from-class="opacity-100 translate-y-0"
+                  leave-to-class="opacity-0 -translate-y-1"
+                >
+                  <div v-if="showTemplateDropdown" class="absolute z-10 mt-1 w-full rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-lg shadow-surface-900/10 dark:shadow-black/20 overflow-hidden">
+                    <!-- System templates -->
+                    <div class="px-2.5 pt-2 pb-1">
+                      <span class="text-[10px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Built-in</span>
+                    </div>
+                    <button
+                      v-for="t in allTemplates.filter(t => t.isSystem)"
+                      :key="t.id"
+                      type="button"
+                      class="w-full flex items-start gap-2.5 px-3 py-2 text-left text-sm hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors cursor-pointer"
+                      :class="selectedTemplateId === t.id ? 'bg-brand-50/60 dark:bg-brand-950/20' : ''"
+                      @click="selectedTemplateId = t.id; showTemplateDropdown = false"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <p class="font-medium text-surface-800 dark:text-surface-200 truncate">{{ t.name }}</p>
+                        <p v-if="t.description" class="text-xs text-surface-500 dark:text-surface-400 truncate">{{ t.description }}</p>
+                      </div>
+                      <div v-if="selectedTemplateId === t.id" class="shrink-0 mt-0.5 text-brand-600 dark:text-brand-400">
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      </div>
+                    </button>
+
+                    <!-- Custom templates -->
+                    <template v-if="allTemplates.some(t => !t.isSystem)">
+                      <div class="border-t border-surface-100 dark:border-surface-700/60 mx-2.5" />
+                      <div class="px-2.5 pt-2 pb-1">
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Custom</span>
+                      </div>
+                      <button
+                        v-for="t in allTemplates.filter(t => !t.isSystem)"
+                        :key="t.id"
+                        type="button"
+                        class="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors cursor-pointer"
+                        :class="selectedTemplateId === t.id ? 'bg-brand-50/60 dark:bg-brand-950/20' : ''"
+                        @click="selectedTemplateId = t.id; showTemplateDropdown = false"
+                      >
+                        <p class="font-medium text-surface-800 dark:text-surface-200 truncate flex-1">{{ t.name }}</p>
+                        <div v-if="selectedTemplateId === t.id" class="shrink-0 text-brand-600 dark:text-brand-400">
+                          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                      </button>
+                    </template>
+
+                    <div class="h-1" />
+                  </div>
+                </Transition>
+              </div>
             </div>
 
             <!-- Interviewers -->
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2.5">
-                <Users class="inline size-3.5 mr-1 -mt-0.5" />
+              <label class="block text-[13px] font-medium text-surface-700 dark:text-surface-300 mb-2">
+                <Users class="inline size-3.5 mr-1.5 -mt-0.5 text-surface-400" />
                 Interviewers
-                <span class="font-normal normal-case tracking-normal text-surface-400 dark:text-surface-500">(optional)</span>
+                <span class="font-normal text-surface-400 dark:text-surface-500">(optional)</span>
               </label>
               <div class="space-y-2">
                 <div v-for="(_, idx) in form.interviewers" :key="idx" class="flex items-center gap-2">
                   <input
                     v-model="form.interviewers[idx]"
                     type="text"
-                    :placeholder="`Interviewer ${idx + 1} name`"
-                    class="flex-1 rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                    :placeholder="`Interviewer ${idx + 1}`"
+                    class="flex-1 rounded-xl border border-surface-200 dark:border-surface-700/80 bg-surface-50/50 dark:bg-surface-800/50 px-4 py-2 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white dark:focus:bg-surface-800 transition-all"
                   />
                   <button
                     v-if="form.interviewers.length > 1"
                     type="button"
-                    class="flex items-center justify-center rounded-lg p-1.5 text-surface-400 hover:text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-950/40 transition-all cursor-pointer"
+                    class="flex items-center justify-center rounded-lg p-1.5 text-surface-400 hover:text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-950/30 transition-colors cursor-pointer"
                     @click="removeInterviewer(idx)"
                   >
                     <X class="size-3.5" />
@@ -498,44 +592,45 @@ async function handleSubmit() {
                 </div>
                 <button
                   type="button"
-                  class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950/30 transition-all cursor-pointer"
+                  class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950/20 transition-colors cursor-pointer"
                   @click="addInterviewer"
                 >
                   <Plus class="size-3.5" />
-                  Add Interviewer
+                  Add interviewer
                 </button>
               </div>
             </div>
 
             <!-- Notes -->
             <div>
-              <label for="interview-notes" class="block text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1.5">
+              <label for="interview-notes" class="block text-[13px] font-medium text-surface-700 dark:text-surface-300 mb-2">
                 Notes
-                <span class="font-normal normal-case tracking-normal text-surface-400 dark:text-surface-500">(optional)</span>
+                <span class="font-normal text-surface-400 dark:text-surface-500">(optional)</span>
               </label>
               <textarea
                 id="interview-notes"
                 v-model="form.notes"
-                rows="3"
+                rows="2"
                 placeholder="Topics to cover, preparation notes…"
-                class="w-full rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2.5 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all resize-none"
+                class="w-full rounded-xl border border-surface-200 dark:border-surface-700/80 bg-surface-50/50 dark:bg-surface-800/50 px-4 py-2.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white dark:focus:bg-surface-800 transition-all resize-none"
               />
             </div>
+
           </div>
 
           <!-- Footer with preview + submit -->
-          <div class="shrink-0 border-t border-surface-200/80 dark:border-surface-800/60 bg-surface-50/80 dark:bg-surface-950/60 px-6 py-4">
+          <div class="shrink-0 border-t border-surface-200/60 dark:border-surface-800/40 bg-white/80 dark:bg-surface-900/80 backdrop-blur-sm px-6 py-4">
             <!-- Preview -->
-            <div v-if="form.date && form.time" class="mb-3 rounded-lg bg-white dark:bg-surface-800/60 border border-surface-200/60 dark:border-surface-700/40 px-3.5 py-2.5">
-              <p class="text-xs font-medium text-surface-500 dark:text-surface-400 mb-0.5">Scheduled for</p>
-              <p class="text-sm font-semibold text-surface-800 dark:text-surface-200">{{ formattedDateTime }}</p>
-              <p class="text-xs text-surface-500 dark:text-surface-400">{{ form.duration }} min · ends at {{ endTime }}</p>
+            <div v-if="form.date && form.time" class="mb-3 flex items-center gap-2 min-w-0">
+              <Calendar class="size-3.5 shrink-0 text-brand-500 dark:text-brand-400" />
+              <span class="text-[12px] font-semibold text-surface-800 dark:text-surface-200 truncate">{{ formattedDateTime }}</span>
+              <span class="text-[12px] text-surface-400 dark:text-surface-500 shrink-0">· {{ form.duration }}m</span>
             </div>
 
             <div class="flex items-center gap-3">
               <button
                 type="button"
-                class="flex-1 rounded-xl border border-surface-200 dark:border-surface-700 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 transition-all cursor-pointer"
+                class="flex-1 rounded-xl border border-surface-200 dark:border-surface-700 px-4 py-2.5 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-800 hover:bg-surface-50 dark:hover:text-surface-200 dark:hover:bg-surface-800 transition-colors cursor-pointer"
                 @click="emit('close')"
               >
                 Cancel
@@ -543,24 +638,12 @@ async function handleSubmit() {
               <button
                 type="button"
                 :disabled="isSubmitting"
-                class="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm shadow-brand-500/20"
+                class="flex-[1.5] rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-sm shadow-brand-600/20 dark:shadow-brand-500/10"
                 @click="handleSubmit"
               >
                 {{ isSubmitting ? 'Scheduling…' : 'Schedule Interview' }}
               </button>
             </div>
-
-            <!-- Send invitation checkbox -->
-            <label class="flex items-center gap-2 mt-3 cursor-pointer group">
-              <input
-                v-model="sendInvitationAfter"
-                type="checkbox"
-                class="size-4 rounded border-surface-300 dark:border-surface-600 text-brand-600 focus:ring-brand-500/30 cursor-pointer"
-              />
-              <span class="text-xs text-surface-500 dark:text-surface-400 group-hover:text-surface-700 dark:group-hover:text-surface-300 transition-colors">
-                Send invitation email to candidate after scheduling
-              </span>
-            </label>
           </div>
         </div>
       </Transition>
