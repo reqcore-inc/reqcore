@@ -4,6 +4,7 @@ import {
   Building2, Code2, FileText, UsersRound, MoreHorizontal,
   CheckCircle2, XCircle, AlertTriangle, UserRound, Briefcase,
   Plus, Pencil, Trash2, MapPin, Users, Filter, CalendarDays,
+  Mail,
 } from 'lucide-vue-next'
 
 definePageMeta({
@@ -321,6 +322,13 @@ const statusCounts = computed(() => {
             Manage all scheduled interviews across your jobs
           </p>
         </div>
+        <NuxtLink
+          :to="$localePath('/dashboard/interviews/templates')"
+          class="inline-flex items-center gap-1.5 rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 hover:border-surface-300 dark:hover:border-surface-600 transition-all no-underline shadow-sm"
+        >
+          <Mail class="size-4" />
+          Email Templates
+        </NuxtLink>
       </div>
     </div>
 
