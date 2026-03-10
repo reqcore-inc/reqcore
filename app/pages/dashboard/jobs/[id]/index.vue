@@ -4,7 +4,7 @@ import {
   FileText, Paperclip, Download, Eye, Phone, Search, ExternalLink,
   UserPlus, Pencil, Trash2, MoreHorizontal, Globe, ChevronDown, X,
   Video, Building2, Code2, UsersRound, Save, Check, MapPin, Users, Plus,
-  CheckCircle2, XCircle, AlertTriangle,
+  CheckCircle2, XCircle, AlertTriangle, ArrowUpDown, ListFilter,
 } from 'lucide-vue-next'
 import { z } from 'zod'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
@@ -54,13 +54,132 @@ const focusedApplications = computed(() =>
 
 // Search within the focused list
 const searchTerm = ref('')
+
+// ─────────────────────────────────────────────
+// Filters & Sorting
+// ─────────────────────────────────────────────
+
+type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'score-desc' | 'score-asc' | 'updated-desc'
+type ScoreFilter = 'all' | 'high' | 'medium' | 'low' | 'none'
+type InterviewFilter = 'all' | 'has-interview' | 'no-interview'
+
+const sortBy = ref<SortOption>('date-desc')
+const scoreFilter = ref<ScoreFilter>('all')
+const interviewFilter = ref<InterviewFilter>('all')
+const showSortPanel = ref(false)
+const showFilterPanel = ref(false)
+
+const hasActiveFilters = computed(() => scoreFilter.value !== 'all' || interviewFilter.value !== 'all')
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (scoreFilter.value !== 'all') count++
+  if (interviewFilter.value !== 'all') count++
+  return count
+})
+
+function clearFilters() {
+  scoreFilter.value = 'all'
+  interviewFilter.value = 'all'
+}
+
+const sortOptions: { value: SortOption; label: string }[] = [
+  { value: 'date-desc', label: 'Newest first' },
+  { value: 'date-asc', label: 'Oldest first' },
+  { value: 'name-asc', label: 'Name A \u2192 Z' },
+  { value: 'name-desc', label: 'Name Z \u2192 A' },
+  { value: 'score-desc', label: 'Highest score' },
+  { value: 'score-asc', label: 'Lowest score' },
+  { value: 'updated-desc', label: 'Recently updated' },
+]
+
+const currentSortLabel = computed(() =>
+  sortOptions.find(o => o.value === sortBy.value)?.label ?? 'Sort',
+)
+
+const scoreFilterOptions: { value: ScoreFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'high', label: '75+' },
+  { value: 'medium', label: '40\u201374' },
+  { value: 'low', label: '< 40' },
+  { value: 'none', label: 'No score' },
+]
+
+const interviewFilterOptions: { value: InterviewFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'has-interview', label: 'Scheduled' },
+  { value: 'no-interview', label: 'None' },
+]
+
+function selectSort(option: SortOption) {
+  sortBy.value = option
+  showSortPanel.value = false
+}
+
+function closePanels() {
+  showSortPanel.value = false
+  showFilterPanel.value = false
+}
+
 const filteredApplications = computed(() => {
-  if (!searchTerm.value.trim()) return focusedApplications.value
-  const term = searchTerm.value.toLowerCase()
-  return focusedApplications.value.filter((app) => {
-    const name = `${app.candidateFirstName} ${app.candidateLastName}`.toLowerCase()
-    const email = (app.candidateEmail ?? '').toLowerCase()
-    return name.includes(term) || email.includes(term)
+  let result = focusedApplications.value
+
+  // Text search
+  if (searchTerm.value.trim()) {
+    const term = searchTerm.value.toLowerCase()
+    result = result.filter((app) => {
+      const name = `${app.candidateFirstName} ${app.candidateLastName}`.toLowerCase()
+      const email = (app.candidateEmail ?? '').toLowerCase()
+      return name.includes(term) || email.includes(term)
+    })
+  }
+
+  // Score filter
+  if (scoreFilter.value !== 'all') {
+    result = result.filter((app) => {
+      switch (scoreFilter.value) {
+        case 'high': return app.score != null && app.score >= 75
+        case 'medium': return app.score != null && app.score >= 40 && app.score < 75
+        case 'low': return app.score != null && app.score < 40
+        case 'none': return app.score == null
+        default: return true
+      }
+    })
+  }
+
+  // Interview filter
+  if (interviewFilter.value !== 'all') {
+    result = result.filter((app) => {
+      const hasInterview = applicationsWithInterviews.value.has(app.id)
+      return interviewFilter.value === 'has-interview' ? hasInterview : !hasInterview
+    })
+  }
+
+  // Sorting
+  return [...result].sort((a, b) => {
+    switch (sortBy.value) {
+      case 'date-desc':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case 'date-asc':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      case 'name-asc': {
+        const nameA = `${a.candidateFirstName} ${a.candidateLastName}`.toLowerCase()
+        const nameB = `${b.candidateFirstName} ${b.candidateLastName}`.toLowerCase()
+        return nameA.localeCompare(nameB)
+      }
+      case 'name-desc': {
+        const nameA = `${a.candidateFirstName} ${a.candidateLastName}`.toLowerCase()
+        const nameB = `${b.candidateFirstName} ${b.candidateLastName}`.toLowerCase()
+        return nameB.localeCompare(nameA)
+      }
+      case 'score-desc':
+        return (b.score ?? -1) - (a.score ?? -1)
+      case 'score-asc':
+        return (a.score ?? -1) - (b.score ?? -1)
+      case 'updated-desc':
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      default:
+        return 0
+    }
   })
 })
 
@@ -98,6 +217,7 @@ watch(focusedApplications, () => {
 watch(focusStatus, () => {
   currentIndex.value = 0
   searchTerm.value = ''
+  closePanels()
 })
 
 const currentSummary = computed(() => filteredApplications.value[currentIndex.value] ?? null)
@@ -1042,8 +1162,9 @@ function closeDocPreview() {
 
         <!-- LEFT PANEL — Candidate list -->
         <div class="flex w-72 shrink-0 flex-col border-r border-surface-200/80 bg-white dark:border-surface-800/60 dark:bg-surface-900">
-          <!-- Search -->
-          <div class="shrink-0 px-3.5 py-3 dark:border-surface-800">
+          <!-- Search + Sort + Filter controls -->
+          <div class="shrink-0 px-3.5 pt-3 pb-2 space-y-2 dark:border-surface-800">
+            <!-- Search input -->
             <div class="relative">
               <Search class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-surface-400 dark:text-surface-500" />
               <input
@@ -1051,15 +1172,146 @@ function closeDocPreview() {
                 type="text"
                 placeholder="Search candidates…"
                 class="w-full rounded-lg border border-surface-200/80 bg-surface-50/80 py-2 pl-8 pr-3 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-700/80 dark:bg-surface-800/60 dark:text-surface-100 dark:placeholder:text-surface-500 dark:focus:border-brand-500 dark:focus:ring-brand-500/20 transition-all duration-150"
+                @focus="closePanels"
               />
             </div>
+
+            <!-- Sort & Filter row -->
+            <div class="flex items-center gap-1.5">
+              <!-- Sort dropdown -->
+              <div class="relative flex-1 min-w-0">
+                <button
+                  class="flex w-full cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 text-left transition-all duration-150"
+                  :class="showSortPanel
+                    ? 'border-brand-300 bg-brand-50/50 text-brand-700 dark:border-brand-600 dark:bg-brand-950/30 dark:text-brand-300'
+                    : 'border-surface-200/80 bg-surface-50/50 text-surface-600 hover:border-surface-300 hover:bg-surface-50 dark:border-surface-700/80 dark:bg-surface-800/40 dark:text-surface-300 dark:hover:border-surface-600 dark:hover:bg-surface-800'"
+                  @click="showSortPanel = !showSortPanel; showFilterPanel = false"
+                >
+                  <ArrowUpDown class="size-3 shrink-0" />
+                  <span class="truncate text-[11px] font-medium">{{ currentSortLabel }}</span>
+                  <ChevronDown class="ml-auto size-3 shrink-0 transition-transform duration-150" :class="showSortPanel ? 'rotate-180' : ''" />
+                </button>
+
+                <!-- Sort dropdown panel -->
+                <Transition
+                  enter-active-class="transition duration-150 ease-out"
+                  enter-from-class="opacity-0 scale-95 -translate-y-1"
+                  enter-to-class="opacity-100 scale-100 translate-y-0"
+                  leave-active-class="transition duration-100 ease-in"
+                  leave-from-class="opacity-100 scale-100 translate-y-0"
+                  leave-to-class="opacity-0 scale-95 -translate-y-1"
+                >
+                  <div
+                    v-if="showSortPanel"
+                    class="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-surface-200 bg-white py-1 shadow-lg shadow-surface-900/5 dark:border-surface-700 dark:bg-surface-900 dark:shadow-black/20 origin-top"
+                  >
+                    <button
+                      v-for="option in sortOptions"
+                      :key="option.value"
+                      class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium transition-colors"
+                      :class="sortBy === option.value
+                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300'
+                        : 'text-surface-600 hover:bg-surface-50 dark:text-surface-300 dark:hover:bg-surface-800'"
+                      @click="selectSort(option.value)"
+                    >
+                      <Check v-if="sortBy === option.value" class="size-3 shrink-0" />
+                      <span v-else class="size-3 shrink-0" />
+                      {{ option.label }}
+                    </button>
+                  </div>
+                </Transition>
+              </div>
+
+              <!-- Filter button -->
+              <button
+                class="relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1.5 transition-all duration-150"
+                :class="showFilterPanel || hasActiveFilters
+                  ? 'border-brand-300 bg-brand-50/50 text-brand-700 dark:border-brand-600 dark:bg-brand-950/30 dark:text-brand-300'
+                  : 'border-surface-200/80 bg-surface-50/50 text-surface-600 hover:border-surface-300 hover:bg-surface-50 dark:border-surface-700/80 dark:bg-surface-800/40 dark:text-surface-300 dark:hover:border-surface-600 dark:hover:bg-surface-800'"
+                @click="showFilterPanel = !showFilterPanel; showSortPanel = false"
+              >
+                <ListFilter class="size-3" />
+                <span
+                  v-if="activeFilterCount > 0"
+                  class="flex size-3.5 items-center justify-center rounded-full bg-brand-600 text-[9px] font-bold text-white dark:bg-brand-500"
+                >
+                  {{ activeFilterCount }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Filter panel -->
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 -translate-y-1"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition duration-100 ease-in"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 -translate-y-1"
+            >
+              <div
+                v-if="showFilterPanel"
+                class="rounded-lg border border-surface-200/80 bg-surface-50/80 p-2.5 space-y-2.5 dark:border-surface-700/80 dark:bg-surface-800/40"
+              >
+                <!-- Score filter -->
+                <div>
+                  <p class="text-[10px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500 mb-1">Score</p>
+                  <div class="flex flex-wrap gap-1">
+                    <button
+                      v-for="opt in scoreFilterOptions"
+                      :key="opt.value"
+                      class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-150"
+                      :class="scoreFilter === opt.value
+                        ? 'bg-brand-600 text-white shadow-sm dark:bg-brand-500'
+                        : 'bg-white text-surface-600 ring-1 ring-inset ring-surface-200 hover:bg-surface-50 dark:bg-surface-800 dark:text-surface-300 dark:ring-surface-700 dark:hover:bg-surface-700'"
+                      @click="scoreFilter = opt.value"
+                    >
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Interview filter -->
+                <div>
+                  <p class="text-[10px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500 mb-1">Interview</p>
+                  <div class="flex flex-wrap gap-1">
+                    <button
+                      v-for="opt in interviewFilterOptions"
+                      :key="opt.value"
+                      class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-150"
+                      :class="interviewFilter === opt.value
+                        ? 'bg-brand-600 text-white shadow-sm dark:bg-brand-500'
+                        : 'bg-white text-surface-600 ring-1 ring-inset ring-surface-200 hover:bg-surface-50 dark:bg-surface-800 dark:text-surface-300 dark:ring-surface-700 dark:hover:bg-surface-700'"
+                      @click="interviewFilter = opt.value"
+                    >
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Clear filters -->
+                <button
+                  v-if="hasActiveFilters"
+                  class="flex w-full cursor-pointer items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors"
+                  @click="clearFilters"
+                >
+                  <X class="size-3" />
+                  Clear filters
+                </button>
+              </div>
+            </Transition>
           </div>
 
           <!-- Count bar -->
           <div class="shrink-0 px-3.5 pb-2 flex items-center justify-between">
             <span class="text-xs font-medium text-surface-500 dark:text-surface-400">
               {{ filteredApplications.length }} candidate{{ filteredApplications.length === 1 ? '' : 's' }}
-              <span v-if="searchTerm.trim()" class="text-surface-400 dark:text-surface-500"> matching</span>
+              <span v-if="searchTerm.trim() || hasActiveFilters" class="text-surface-400 dark:text-surface-500">
+                {{ hasActiveFilters ? ' filtered' : ' matching' }}
+              </span>
+            </span>
+            <span v-if="hasActiveFilters && filteredApplications.length !== focusedApplications.length" class="text-[10px] text-surface-400 dark:text-surface-500">
+              of {{ focusedApplications.length }}
             </span>
           </div>
 
@@ -1070,11 +1322,18 @@ function closeDocPreview() {
                 <UserRound class="size-5 text-surface-400 dark:text-surface-500" />
               </div>
               <p class="text-sm font-medium text-surface-600 dark:text-surface-300">
-                {{ searchTerm.trim() ? 'No matching candidates' : `No candidates yet` }}
+                {{ (searchTerm.trim() || hasActiveFilters) ? 'No matching candidates' : `No candidates yet` }}
               </p>
               <p class="mt-1 text-xs text-surface-400 dark:text-surface-500">
-                {{ searchTerm.trim() ? 'Try a different search term.' : `No one in ${formatStatusLabel(focusStatus)} stage.` }}
+                {{ (searchTerm.trim() || hasActiveFilters) ? 'Try adjusting your search or filters.' : `No one in ${formatStatusLabel(focusStatus)} stage.` }}
               </p>
+              <button
+                v-if="hasActiveFilters"
+                class="mt-2 cursor-pointer text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                @click="clearFilters"
+              >
+                Clear filters
+              </button>
             </div>
 
             <button
