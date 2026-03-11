@@ -8,11 +8,24 @@
  * This is an internal endpoint — only callable by authenticated admins/owners.
  */
 import { lt, and, isNotNull } from 'drizzle-orm'
+import { timingSafeEqual } from 'node:crypto'
 import { calendarIntegration } from '../../database/schema'
 import { setupCalendarWebhook } from '../../utils/google-calendar'
 
 export default defineEventHandler(async (event) => {
-  const session = await requirePermission(event, { interview: ['update'] })
+  // Check for CRON_SECRET header (server-to-server / scheduled job)
+  const cronSecret = getHeader(event, 'x-cron-secret')
+  if (cronSecret && env.CRON_SECRET) {
+    const valid = cronSecret.length === env.CRON_SECRET.length
+      && timingSafeEqual(Buffer.from(cronSecret), Buffer.from(env.CRON_SECRET))
+    if (!valid) {
+      throw createError({ statusCode: 403, statusMessage: 'Invalid cron secret' })
+    }
+  }
+  else {
+    // Interactive user — require authentication + admin-level permission
+    await requirePermission(event, { interview: ['update'] })
+  }
 
   // Find all integrations with webhooks expiring within the next 24 hours
   const expirationThreshold = new Date(Date.now() + 24 * 60 * 60 * 1000)

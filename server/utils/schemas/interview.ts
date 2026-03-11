@@ -8,7 +8,7 @@ const interviewStatuses = ['scheduled', 'completed', 'cancelled', 'no_show'] as 
 
 /** Schema for creating a new interview */
 export const createInterviewSchema = z.object({
-  applicationId: z.string().min(1, 'Application is required'),
+  applicationId: z.string().uuid('Invalid application ID'),
   title: z.string().min(1, 'Title is required').max(200),
   type: z.enum(interviewTypes).default('video'),
   scheduledAt: z.string().datetime({ message: 'Valid ISO 8601 datetime required' }),
@@ -48,8 +48,8 @@ export const updateInterviewSchema = z.object({
 export const interviewQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  applicationId: z.string().min(1).optional(),
-  jobId: z.string().min(1).optional(),
+  applicationId: z.string().uuid().optional(),
+  jobId: z.string().uuid().optional(),
   status: z.enum(interviewStatuses).optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
@@ -57,7 +57,7 @@ export const interviewQuerySchema = z.object({
 
 /** Reusable schema for `:id` route params */
 export const interviewIdParamSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().uuid('Invalid interview ID'),
 })
 
 

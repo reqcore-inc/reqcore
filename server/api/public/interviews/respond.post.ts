@@ -39,6 +39,16 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Idempotency: if already responded with the same action, return early
+  if (interviewRecord.candidateResponse === payload.action) {
+    return {
+      success: true,
+      interviewId: interviewRecord.id,
+      response: interviewRecord.candidateResponse,
+      respondedAt: interviewRecord.candidateRespondedAt,
+    }
+  }
+
   // Update the candidate's response
   const [updated] = await db.update(interview)
     .set({

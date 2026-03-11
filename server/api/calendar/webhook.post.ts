@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
   // Google sends these headers with push notifications
   const channelId = getHeader(event, 'x-goog-channel-id')
   const resourceState = getHeader(event, 'x-goog-resource-state')
+  const resourceId = getHeader(event, 'x-goog-resource-id')
 
   // Validate required headers
   if (!channelId) {
@@ -38,11 +39,17 @@ export default defineEventHandler(async (event) => {
   // Find the integration associated with this webhook channel
   const integration = await db.query.calendarIntegration.findFirst({
     where: eq(calendarIntegration.webhookChannelId, channelId),
-    columns: { userId: true },
+    columns: { userId: true, webhookResourceId: true },
   })
 
   if (!integration) {
     // Unknown channel — could be a stale webhook or probing
+    setResponseStatus(event, 200)
+    return { ok: true }
+  }
+
+  // Defense-in-depth: verify resourceId matches stored value
+  if (resourceId && integration.webhookResourceId && resourceId !== integration.webhookResourceId) {
     setResponseStatus(event, 200)
     return { ok: true }
   }

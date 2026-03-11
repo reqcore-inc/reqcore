@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
         if (htmlLink) {
           await db.update(interview)
             .set({ googleCalendarEventLink: htmlLink })
-            .where(eq(interview.id, id))
+            .where(and(eq(interview.id, id), eq(interview.organizationId, orgId)))
         }
       }).catch(err => {
         console.error('[Calendar] Failed to update event:', err)

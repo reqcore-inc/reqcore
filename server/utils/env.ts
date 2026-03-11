@@ -77,6 +77,8 @@ const envSchema = z
     GOOGLE_CLIENT_ID: emptyToUndefined.pipe(z.string().min(1)).optional(),
     /** Google OAuth2 Client Secret for Calendar integration. */
     GOOGLE_CLIENT_SECRET: emptyToUndefined.pipe(z.string().min(1)).optional(),
+    /** Shared secret for authenticating cron/scheduled job requests (e.g., webhook renewal). */
+    CRON_SECRET: emptyToUndefined.pipe(z.string().min(16)).optional(),
   })
   .superRefine((data, ctx) => {
     const hasPreviewDomain = data.RAILWAY_PUBLIC_DOMAIN
