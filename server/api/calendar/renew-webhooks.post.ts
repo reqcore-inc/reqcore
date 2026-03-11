@@ -12,7 +12,7 @@ import { calendarIntegration } from '../../database/schema'
 import { setupCalendarWebhook } from '../../utils/google-calendar'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireAuth(event)
+  const session = await requirePermission(event, { interview: ['update'] })
 
   // Find all integrations with webhooks expiring within the next 24 hours
   const expirationThreshold = new Date(Date.now() + 24 * 60 * 60 * 1000)

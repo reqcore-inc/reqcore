@@ -552,15 +552,19 @@ export async function performIncrementalSync(userId: string): Promise<void> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- googleapis overloads resolve to void
         const response = await (calendar.events.list(params) as any)
         data = response.data
-        data = response.data
       }
       catch (err: unknown) {
-        // If syncToken is invalid (410 Gone), do a full re-sync
+        // If syncToken is invalid (410 Gone), clear it and do a full re-sync
         if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 410) {
-          await db.update(calendarIntegration)
-            .set({ syncToken: null, updatedAt: new Date() })
-            .where(eq(calendarIntegration.userId, userId))
-          return performIncrementalSync(userId)
+          if (integration.syncToken) {
+            await db.update(calendarIntegration)
+              .set({ syncToken: null, updatedAt: new Date() })
+              .where(eq(calendarIntegration.userId, userId))
+            return performIncrementalSync(userId)
+          }
+          // Already cleared syncToken but still getting 410 — bail out
+          console.error('[Calendar] Persistent 410 error during sync, aborting')
+          return
         }
         throw err
       }

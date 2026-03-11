@@ -107,6 +107,9 @@ export default defineEventHandler(async (event) => {
   const scheduledAt = new Date(interviewRecord.scheduledAt)
   const candidateName = `${app.candidate.firstName} ${app.candidate.lastName}`
   const fromEmail = env.RESEND_FROM_EMAIL
+  if (!fromEmail) {
+    throw createError({ statusCode: 503, statusMessage: 'Email sending is not configured (RESEND_FROM_EMAIL missing)' })
+  }
 
   // Derive the base URL for response links
   const baseUrl = env.BETTER_AUTH_URL
@@ -167,11 +170,13 @@ export default defineEventHandler(async (event) => {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
+      timeZone: interviewRecord.timezone ?? 'UTC',
     }),
     interviewTime: scheduledAt.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone: interviewRecord.timezone ?? 'UTC',
     }),
     interviewDuration: interviewRecord.duration,
     interviewType: interviewTypeLabels[interviewRecord.type] ?? interviewRecord.type,

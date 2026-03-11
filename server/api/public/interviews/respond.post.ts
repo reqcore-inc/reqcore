@@ -1,6 +1,11 @@
 import { eq } from 'drizzle-orm'
+import { z } from 'zod'
 import { interview } from '../../../database/schema'
 import { verifyInterviewToken } from '../../../utils/interview-token'
+
+const respondBodySchema = z.object({
+  token: z.string().min(1, 'Token is required'),
+})
 
 /**
  * POST /api/public/interviews/respond  { token: "xxx" }
@@ -10,12 +15,8 @@ import { verifyInterviewToken } from '../../../utils/interview-token'
  * No authentication required — the HMAC-signed token is the proof of authorization.
  */
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
-  const token = typeof body?.token === 'string' ? body.token : ''
-
-  if (!token) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing token' })
-  }
+  const body = await readValidatedBody(event, respondBodySchema.parse)
+  const token = body.token
 
   const payload = verifyInterviewToken(token, env.BETTER_AUTH_SECRET)
   if (!payload) {
