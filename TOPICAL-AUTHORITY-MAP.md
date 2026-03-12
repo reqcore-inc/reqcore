@@ -70,7 +70,7 @@ All articles must follow the SEO Skill ([`.agents/skills/seo-skill/SKILL.md`](.a
 - [ ] Best lightweight ATS for teams that hate bloated software 🟢
 
 **Supporting — Head-to-head comparisons:**
-- [ ] Greenhouse vs open source ATS: honest comparison 🟢
+- [x] Greenhouse vs open source ATS: honest comparison 🟢
 - [ ] Lever vs open source ATS: features, cost, and flexibility 🟢
 - [ ] Ashby vs open source ATS: modern ATS showdown 🟢
 - [ ] Workable vs open source ATS: which is more flexible? 🟢

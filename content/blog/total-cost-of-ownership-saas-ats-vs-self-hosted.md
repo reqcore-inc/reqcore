@@ -54,7 +54,7 @@ Before comparing specific numbers, here is a comprehensive checklist of every co
 - **Per-seat expansion** — Adding recruiters or hiring managers at $15–$165/user/month
 - **Job slot limits** — Some plans cap active job postings, forcing upgrades
 - **Storage and candidate limits** — Hitting candidate database caps on lower tiers
-- **Contract lock-in** — Multi-year prepayment requirements (Greenhouse requires annual prepay)
+- **Contract lock-in** — Multi-year prepayment requirements (Greenhouse requires annual prepay). See our [Greenhouse vs open source ATS comparison](/blog/greenhouse-vs-open-source-ats) for a full breakdown
 - **Mandatory partner implementation** — Greenhouse and Avature often require paying a certified third-party integrator $5,000–$15,000 to configure the system before you can go live
 
 ### Exit Costs (Vendor Lock-In)

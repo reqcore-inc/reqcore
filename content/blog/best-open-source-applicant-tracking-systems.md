@@ -59,7 +59,7 @@ We chose PostgreSQL 16 over MySQL because we needed robust JSON column support f
 
 **What sets it apart:**
 
-- **Transparent ranking (planned).** AI candidate matching is on the roadmap. When it ships, it will include a visible matching logic summary showing why a candidate scored the way they did — skills matched, gaps identified, weighting visible. The opposite of the "secret algorithm" approach used by Greenhouse, Lever, and every other commercial platform.
+- **Transparent ranking (planned).** AI candidate matching is on the roadmap. When it ships, it will include a visible matching logic summary showing why a candidate scored the way they did — skills matched, gaps identified, weighting visible. The opposite of the "secret algorithm" approach used by Greenhouse, Lever, and every other commercial platform. For a detailed breakdown of how Greenhouse compares, see our [Greenhouse vs open source ATS comparison](/blog/greenhouse-vs-open-source-ats).
 - **Zero per-seat pricing.** Your entire team accesses the system at no additional cost. Adding a hiring manager or a new recruiter does not increase your software bill.
 - **Full data sovereignty.** Candidate data is stored in your PostgreSQL database. Resumes and documents go to MinIO (or any S3-compatible storage). You own the infrastructure. If you stop using Reqcore tomorrow, your data stays exactly where it is.
 - **Modern stack.** Built on Nuxt 4 with server-side rendering, Drizzle ORM for type-safe database queries, and Tailwind CSS for the UI. The codebase is readable and extensible — not a decade-old PHP monolith.
