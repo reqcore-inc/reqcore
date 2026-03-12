@@ -23,7 +23,7 @@ This comparison breaks down both options on the dimensions that actually determi
 
 ## What Greenhouse Does Well
 
-Greenhouse deserves its reputation. It is [ranked #1 on G2](https://www.greenhouse.com/blog/greenhouse-ranked-number-one-ats-on-g2) for structured hiring, and used by companies like HubSpot, DoorDash, Dropbox, and Wayfair. Its product focus is narrow — applicant tracking and onboarding — and that focus pays off in execution quality.
+Greenhouse deserves its reputation. It is [ranked #1 on G2](https://www.greenhouse.com/blog/greenhouse-named-best-ats-g2-winter-2026) for structured hiring, and used by companies like HubSpot, DoorDash, Dropbox, and Wayfair. Its product focus is narrow — applicant tracking and onboarding — and that focus pays off in execution quality.
 
 **Structured interviewing** is Greenhouse's strongest feature. The platform enforces interview kits, scorecards, and standardized evaluation criteria at every hiring stage. This reduces interviewer bias and creates a defensible, data-backed hiring process. According to a [SelectSoftwareReviews analysis](https://www.selectsoftwarereviews.com/buyer-guide/applicant-tracking-systems), verified users report that "once you're familiar with it, it basically runs itself."
 
