@@ -86,7 +86,7 @@ Beyond the essentials, newer open source ATS platforms add capabilities that wer
 
 ## Who Should Use an Open Source ATS?
 
-Open source ATS is not for everyone. Here is who benefits most — and who should look elsewhere.
+Open source ATS is not for everyone. Here is who benefits most — and who should look elsewhere. For a deeper breakdown by company size and industry, see our [guide to open source ATS use cases](/blog/who-uses-open-source-ats).
 
 ### Strong Fit
 

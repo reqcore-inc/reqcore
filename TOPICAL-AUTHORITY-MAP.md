@@ -105,7 +105,7 @@ All articles must follow the SEO Skill ([`.agents/skills/seo-skill/SKILL.md`](.a
 - [ ] Open source vs proprietary ATS: what's the real difference? 🔵 → [Cluster 2]
 - [x] Open source vs free ATS: why "free" and "open source" aren't the same thing 🔵 — [`open-source-vs-free-ats.md`](content/blog/open-source-vs-free-ats.md)
 - [ ] What does open source licensing mean for ATS software? (MIT, GPL, Apache explained) 🔵
-- [ ] Who uses open source ATS? Use cases by company size and type 🔵 → [Cluster 6]
+- [x] Who uses open source ATS? Use cases by company size and type 🔵 → [Cluster 6] — [`who-uses-open-source-ats.md`](content/blog/who-uses-open-source-ats.md)
 - [ ] The true cost of running an open source ATS 🟢 → [Cluster 2]
 - [ ] Is open source ATS secure enough for candidate data? 🔵 → [Cluster 5]
 - [x] What "self-hosted" means and why it matters for recruiting software 🔵 → [Cluster 4] — [`self-hosted-vs-cloud-ats.md`](content/blog/self-hosted-vs-cloud-ats.md)
