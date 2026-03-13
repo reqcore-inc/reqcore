@@ -144,7 +144,18 @@ watchEffect(() => {
     }
   }
 
-  useSchemaOrg([posting])
+  // Inject JSON-LD as a <script> tag (works without @nuxtjs/seo)
+  useHead({
+    script: [
+      {
+        type: 'application/ld+json',
+        innerHTML: JSON.stringify({
+          '@context': 'https://schema.org',
+          ...posting,
+        }),
+      },
+    ],
+  })
 })
 
 const typeLabels: Record<string, string> = {

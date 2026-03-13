@@ -18,10 +18,6 @@ const localizedPublicRouteRules = Object.fromEntries(
   i18nLocales
     .filter(locale => locale.code !== i18nDefaultLocale)
     .flatMap(locale => ([
-      [`/${locale.code}`, { prerender: true }],
-      [`/${locale.code}/`, { prerender: true }],
-      [`/${locale.code}/roadmap`, { prerender: true }],
-      [`/${locale.code}/catalog`, { prerender: true }],
       [`/${locale.code}/jobs`, { isr: 3600 }],
       [`/${locale.code}/jobs/**`, { isr: 3600 }],
     ])),
@@ -41,8 +37,7 @@ export default defineNuxtConfig({
 
   modules: [
     '@nuxtjs/i18n',
-    '@nuxtjs/seo',
-    '@nuxt/content',
+    '@nuxtjs/mdc',
     // Only load PostHog module when the API key is available;
     // the SDK crashes during prerender/build if the key is empty.
     ...(process.env.POSTHOG_PUBLIC_KEY ? ['@posthog/nuxt' as const] : []),
@@ -92,16 +87,6 @@ export default defineNuxtConfig({
   },
 
   // ─────────────────────────────────────────────
-  // Site config — shared across all SEO modules
-  // ─────────────────────────────────────────────
-  site: {
-    url: siteUrl,
-    name: 'Reqcore',
-    description: 'Open-source applicant tracking system built for developer teams. Self-hosted, no per-seat pricing, and built with Nuxt, Postgres, and Docker.',
-    defaultLocale: i18nDefaultLocale,
-  },
-
-  // ─────────────────────────────────────────────
   // Global <head> — lang, title template, favicon
   // ─────────────────────────────────────────────
   app: {
@@ -145,10 +130,6 @@ export default defineNuxtConfig({
         || 'demo1234',
       /** Whether in-app feedback via GitHub Issues is enabled */
       feedbackEnabled: !!(process.env.GITHUB_FEEDBACK_TOKEN && process.env.GITHUB_FEEDBACK_REPO),
-      /** Giscus GitHub repository node ID (required for the comments widget) */
-      giscusRepoId: process.env.NUXT_PUBLIC_GISCUS_REPO_ID || '',
-      /** Giscus GitHub Discussions category node ID (required for the comments widget) */
-      giscusCategoryId: process.env.NUXT_PUBLIC_GISCUS_CATEGORY_ID || '',
     },
   },
 
@@ -158,49 +139,7 @@ export default defineNuxtConfig({
   },
 
   // ─────────────────────────────────────────────
-  // Robots — block crawlers from authenticated/API routes
-  // ─────────────────────────────────────────────
-  robots: {
-    disallow: [
-      '/dashboard/',
-      '/auth/',
-      '/api/',
-      '/onboarding/',
-      '/*/dashboard/',
-      '/*/auth/',
-      '/*/onboarding/',
-    ],
-  },
-
-  // ─────────────────────────────────────────────
-  // Sitemap — include dynamic public job pages
-  // ─────────────────────────────────────────────
-  sitemap: {
-    sources: ['/api/__sitemap__/urls'],
-  },
-
-  // ─────────────────────────────────────────────
-  // Schema.org — default organization identity
-  // ─────────────────────────────────────────────
-  schemaOrg: {
-    identity: {
-      type: 'Organization',
-      name: 'Reqcore',
-      url: 'https://reqcore.com',
-      logo: 'https://reqcore.com/og-image.png',
-      sameAs: ['https://github.com/reqcore-inc/reqcore'],
-    },
-  },
-
-  // ─────────────────────────────────────────────
-  // OG Image — disable automatic generation (we use static images)
-  // ─────────────────────────────────────────────
-  ogImage: {
-    enabled: false,
-  },
-
-  // ─────────────────────────────────────────────
-  // Route rules — prerender/ISR for public pages
+  // Route rules — ISR for public job pages
   // ─────────────────────────────────────────────
   routeRules: {
     // ── PostHog reverse proxy — bypasses ad blockers by routing through reqcore.com ──
@@ -209,23 +148,9 @@ export default defineNuxtConfig({
     // and update these two proxy targets to us-assets.i.posthog.com / us.i.posthog.com.
     '/ingest/static/**': { proxy: 'https://eu-assets.i.posthog.com/static/**' },
     '/ingest/**': { proxy: 'https://eu.i.posthog.com/**' },
-    '/': { prerender: true },
-    '/roadmap': { prerender: true },
-    '/blog': { prerender: true },
-    '/blog/**': { prerender: true },
-    '/catalog': { prerender: true },
-    '/docs': { prerender: true },
-    '/docs/**': { prerender: true },
     '/jobs': { isr: 3600 },
     '/jobs/**': { isr: 3600 },
     ...localizedPublicRouteRules,
-  },
-
-  // ─────────────────────────────────────────────
-  // Nuxt Content — blog collection
-  // ─────────────────────────────────────────────
-  content: {
-    // content.config.ts handles collection definitions
   },
 
   nitro: {

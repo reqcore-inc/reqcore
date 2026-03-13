@@ -32,39 +32,11 @@ const { data: session } = await authClient.useSession(useFetch)
       <!-- Center nav links (desktop) -->
       <div class="hidden items-center gap-1 md:flex">
         <NuxtLink
-          :to="localePath('/catalog')"
-          class="rounded-md px-3 py-1.5 text-[13px] font-medium transition"
-          :class="activePage === 'features' ? 'text-white' : 'text-surface-400 hover:text-white'"
-        >
-          Features
-        </NuxtLink>
-        <NuxtLink
           :to="localePath('/jobs')"
           class="rounded-md px-3 py-1.5 text-[13px] font-medium transition"
           :class="activePage === 'jobs' ? 'text-white' : 'text-surface-400 hover:text-white'"
         >
           Open Positions
-        </NuxtLink>
-        <NuxtLink
-          :to="localePath('/roadmap')"
-          class="rounded-md px-3 py-1.5 text-[13px] font-medium transition"
-          :class="activePage === 'roadmap' ? 'text-white' : 'text-surface-400 hover:text-white'"
-        >
-          Roadmap
-        </NuxtLink>
-        <NuxtLink
-          to="/blog"
-          class="rounded-md px-3 py-1.5 text-[13px] font-medium transition"
-          :class="activePage === 'blog' ? 'text-white' : 'text-surface-400 hover:text-white'"
-        >
-          Blog
-        </NuxtLink>
-        <NuxtLink
-          to="/docs"
-          class="rounded-md px-3 py-1.5 text-[13px] font-medium transition"
-          :class="activePage === 'docs' ? 'text-white' : 'text-surface-400 hover:text-white'"
-        >
-          Docs
         </NuxtLink>
         <a
           href="https://github.com/reqcore-inc/reqcore"

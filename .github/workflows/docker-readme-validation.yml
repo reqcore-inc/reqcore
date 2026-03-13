@@ -206,7 +206,6 @@ jobs:
           check "Sign-in page"            "http://localhost:3000/auth/sign-in"   "200"
           check "Sign-up page"            "http://localhost:3000/auth/sign-up"   "200"
           check "Public job board"        "http://localhost:3000/jobs"           "200"
-          check "Blog index"              "http://localhost:3000/blog"           "200"
           check "API/jobs (no auth→401)"  "http://localhost:3000/api/jobs"       "401"
           check "API/candidates (no auth)" "http://localhost:3000/api/candidates" "401"
 
