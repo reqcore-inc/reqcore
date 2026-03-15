@@ -22,11 +22,16 @@ interface BackupResult {
 export default defineEventHandler(async (event) => {
   await requirePermission(event, { organization: ['delete'] })
 
-  const { mkdir } = await import('node:fs/promises')
+  const { mkdir, writeFile, unlink } = await import('node:fs/promises')
+  const { join } = await import('node:path')
   const backupDir = '/data/backups'
   let effectiveDir = backupDir
   try {
     await mkdir(backupDir, { recursive: true })
+    // Probe actual write access — mkdir succeeds even on read-only mounts
+    const probe = join(backupDir, `.probe-${Date.now()}`)
+    await writeFile(probe, '')
+    await unlink(probe)
   }
   catch {
     // Fall back to /tmp if /data/backups is not writable (e.g. non-Docker)

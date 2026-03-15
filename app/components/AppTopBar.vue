@@ -204,6 +204,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutsideUser))
               ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40'
               : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800'"
             title="Updates & changelog"
+            aria-label="Updates & changelog"
           >
             <ArrowUpCircle class="size-4" />
           </NuxtLink>

@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
           'Accept': 'application/vnd.github.v3+json',
           'User-Agent': `Reqcore/${currentVersion}`,
         },
+        signal: AbortSignal.timeout(10_000),
       },
     )
 

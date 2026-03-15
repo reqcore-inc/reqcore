@@ -233,24 +233,30 @@ function formatDate(dateString: string | null | undefined): string {
             class="flex items-center justify-center size-10 rounded-lg"
             :class="versionInfo?.updateAvailable
               ? 'bg-warning-50 dark:bg-warning-950 text-warning-600 dark:text-warning-400'
-              : 'bg-success-50 dark:bg-success-950 text-success-600 dark:text-success-400'"
+              : !versionInfo && !versionLoading
+                ? 'bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400'
+                : 'bg-success-50 dark:bg-success-950 text-success-600 dark:text-success-400'"
           >
             <ArrowUpCircle v-if="versionInfo?.updateAvailable" class="size-5" />
+            <AlertTriangle v-else-if="!versionInfo && !versionLoading" class="size-5" />
             <CheckCircle2 v-else class="size-5" />
           </div>
           <div>
             <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">
-              {{ versionInfo?.updateAvailable ? 'Update available' : 'Up to date' }}
+              {{ versionInfo?.updateAvailable ? 'Update available' : !versionInfo && !versionLoading ? 'Unable to check' : 'Up to date' }}
             </h2>
             <p class="text-sm text-surface-500 dark:text-surface-400">
               <template v-if="versionLoading">
                 Checking for updates…
               </template>
-              <template v-else-if="versionInfo?.updateAvailable">
+              <template v-else-if="!versionInfo">
+                Could not check for updates. Verify your network connection and try again.
+              </template>
+              <template v-else-if="versionInfo.updateAvailable">
                 Version {{ versionInfo.latestVersion }} is available (you're on {{ versionInfo.currentVersion }})
               </template>
               <template v-else>
-                You're running the latest version ({{ versionInfo?.currentVersion }})
+                You're running the latest version ({{ versionInfo.currentVersion }})
               </template>
             </p>
           </div>
@@ -549,6 +555,11 @@ function formatDate(dateString: string | null | undefined): string {
           <Info class="size-3 shrink-0" />
           Node.js {{ systemInfo.nodeVersion }}
         </div>
+      </div>
+
+      <div v-else class="px-6 py-8 text-center">
+        <AlertTriangle class="size-5 mx-auto text-surface-400 mb-2" />
+        <p class="text-sm text-surface-500 dark:text-surface-400">Failed to load system information.</p>
       </div>
     </section>
 
