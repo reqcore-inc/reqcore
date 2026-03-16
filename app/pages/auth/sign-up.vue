@@ -54,7 +54,14 @@ async function handleSignUp() {
   })
 
   if (result.error) {
-    error.value = result.error.message ?? 'Sign-up failed. Please try again.'
+    if (result.error.status === 500) {
+      error.value = result.error.message && result.error.message !== 'Server Error'
+        ? result.error.message
+        : 'Sign-up failed due to a server error. If you are self-hosting, make sure the BETTER_AUTH_URL environment variable is set to your deployment domain (e.g. "https://your-app.up.railway.app") and redeploy.'
+    }
+    else {
+      error.value = result.error.message ?? 'Sign-up failed. Please try again.'
+    }
     track('signup_failed', { error_type: result.error.code ?? 'unknown' })
     isLoading.value = false
     return
