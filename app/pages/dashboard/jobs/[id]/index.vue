@@ -5,7 +5,7 @@ import {
   UserPlus, Pencil, Trash2, MoreHorizontal, Globe, ChevronDown, X,
   Video, Building2, Code2, UsersRound, Save, Check, MapPin, Users, Plus,
   CheckCircle2, XCircle, AlertTriangle, ArrowUpDown, ListFilter,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, Brain, Loader2,
 } from 'lucide-vue-next'
 import { z } from 'zod'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
@@ -1041,6 +1041,44 @@ function handleCandidateApplied() {
 }
 
 // ─────────────────────────────────────────────
+// Bulk AI analysis
+// ─────────────────────────────────────────────
+
+const isScoringAll = ref(false)
+const scoringProgress = ref({ done: 0, total: 0 })
+
+async function scoreAllCandidates() {
+  isScoringAll.value = true
+  scoringProgress.value = { done: 0, total: 0 }
+  showMoreMenu.value = false
+  try {
+    const { applicationIds } = await $fetch(`/api/jobs/${jobId}/analyze-all`, {
+      method: 'POST',
+      headers: useRequestHeaders(['cookie']),
+    })
+    scoringProgress.value.total = applicationIds.length
+    if (applicationIds.length === 0) return
+
+    for (const appId of applicationIds) {
+      try {
+        await $fetch(`/api/applications/${appId}/analyze`, {
+          method: 'POST',
+          headers: useRequestHeaders(['cookie']),
+        })
+      } catch {
+        // Continue scoring remaining candidates on individual failure
+      }
+      scoringProgress.value.done++
+    }
+    refreshApps()
+  } catch {
+    // AI config or criteria may not be set up
+  } finally {
+    isScoringAll.value = false
+  }
+}
+
+// ─────────────────────────────────────────────
 // More menu
 // ─────────────────────────────────────────────
 
@@ -1185,6 +1223,15 @@ function closeDocPreview() {
                 >
                   <UserPlus class="size-3.5 text-surface-400" />
                   Add Candidate
+                </button>
+                <div class="border-t border-surface-100 dark:border-surface-800 my-1.5 mx-2" />
+                <button
+                  :disabled="isScoringAll"
+                  class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors disabled:opacity-50"
+                  @click="scoreAllCandidates()"
+                >
+                  <Brain class="size-3.5 text-surface-400" />
+                  {{ isScoringAll ? `Scoring ${scoringProgress.done}/${scoringProgress.total}…` : 'Score All Candidates' }}
                 </button>
                 <template v-if="secondaryJobTransitions.length > 0">
                   <div class="border-t border-surface-100 dark:border-surface-800 my-1.5 mx-2" />
