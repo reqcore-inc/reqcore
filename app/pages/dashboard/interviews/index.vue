@@ -19,6 +19,7 @@ useSeoMeta({
 })
 
 const { handlePreviewReadOnlyError } = usePreviewReadOnly()
+const toast = useToast()
 
 // ─── Filters ──────────────────────────────────────────────────────
 const searchInput = ref('')
@@ -250,7 +251,7 @@ async function handleDelete() {
     deletingInterview.value = null
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
-    alert(err?.data?.statusMessage ?? 'Failed to delete interview')
+    toast.error('Failed to delete interview', { message: err?.data?.statusMessage, statusCode: err?.data?.statusCode })
   } finally {
     isDeleting.value = false
   }
@@ -268,7 +269,7 @@ async function quickStatusChange(interviewItem: typeof interviews.value[number],
     await updateInterview(interviewItem.id, { status: newStatus })
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
-    alert(err?.data?.statusMessage ?? 'Failed to update status')
+    toast.error('Failed to update status', { message: err?.data?.statusMessage, statusCode: err?.data?.statusCode })
   }
 }
 

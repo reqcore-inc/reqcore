@@ -21,6 +21,7 @@ const localePath = useLocalePath()
 const jobId = route.params.id as string
 const { handlePreviewReadOnlyError } = usePreviewReadOnly()
 const { track } = useTrack()
+const toast = useToast()
 
 // ─────────────────────────────────────────────
 // Job data (with update/delete support)
@@ -699,7 +700,7 @@ async function handleInterviewTransition(interviewId: string, newStatus: Intervi
     await refreshJobInterviews()
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
-    alert(err?.data?.statusMessage ?? 'Failed to update status')
+    toast.error('Failed to update status', { message: err?.data?.statusMessage, statusCode: err?.data?.statusCode })
   } finally {
     isInterviewTransitioning.value = false
   }
@@ -776,7 +777,7 @@ async function changeStatus(status: string) {
     }
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
-    alert(err?.data?.statusMessage ?? 'Failed to update status')
+    toast.error('Failed to update status', { message: err?.data?.statusMessage, statusCode: err?.data?.statusCode })
   } finally {
     isMutating.value = false
   }
@@ -928,7 +929,7 @@ async function handleJobTransition(newStatus: string) {
     await refreshJob()
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
-    alert(err.data?.statusMessage ?? 'Failed to update status')
+    toast.error('Failed to update status', { message: err.data?.statusMessage, statusCode: err.data?.statusCode })
   } finally {
     isJobTransitioning.value = false
   }
@@ -997,7 +998,7 @@ async function handleSave() {
     showEditModal.value = false
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
-    alert(err.data?.statusMessage ?? 'Failed to save changes')
+    toast.error('Failed to save changes', { message: err.data?.statusMessage, statusCode: err.data?.statusCode })
   } finally {
     isSaving.value = false
   }
@@ -1023,7 +1024,7 @@ async function handleDelete() {
     await deleteJob()
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
-    alert(err.data?.statusMessage ?? 'Failed to delete job')
+    toast.error('Failed to delete job', { message: err.data?.statusMessage, statusCode: err.data?.statusCode })
     isDeleting.value = false
     showDeleteConfirm.value = false
   }
@@ -1046,6 +1047,7 @@ function handleCandidateApplied() {
 
 const isScoringAll = ref(false)
 const scoringProgress = ref({ done: 0, total: 0 })
+const isScoringIndividual = ref(false)
 
 async function scoreAllCandidates() {
   isScoringAll.value = true
@@ -1054,27 +1056,79 @@ async function scoreAllCandidates() {
   try {
     const { applicationIds } = await $fetch(`/api/jobs/${jobId}/analyze-all`, {
       method: 'POST',
-      headers: useRequestHeaders(['cookie']),
     })
     scoringProgress.value.total = applicationIds.length
-    if (applicationIds.length === 0) return
+    if (applicationIds.length === 0) {
+      toast.info('All candidates scored', 'Every candidate already has a score.')
+      return
+    }
 
+    let failed = 0
     for (const appId of applicationIds) {
       try {
         await $fetch(`/api/applications/${appId}/analyze`, {
           method: 'POST',
-          headers: useRequestHeaders(['cookie']),
         })
       } catch {
-        // Continue scoring remaining candidates on individual failure
+        failed++
       }
       scoringProgress.value.done++
     }
-    refreshApps()
-  } catch {
-    // AI config or criteria may not be set up
+    await refreshApps()
+    if (failed === 0) {
+      toast.success('Scoring complete', `${applicationIds.length} candidate${applicationIds.length === 1 ? '' : 's'} scored successfully.`)
+    } else {
+      toast.warning('Scoring partially complete', `${applicationIds.length - failed} scored, ${failed} failed (missing resume or criteria).`)
+    }
+  } catch (err: any) {
+    const statusMessage = err?.data?.statusMessage ?? ''
+    if (statusMessage.includes('AI provider not configured') || statusMessage.includes('No scoring criteria')) {
+      toast.add({
+        type: 'warning',
+        title: 'Cannot score candidates',
+        message: statusMessage,
+        link: statusMessage.includes('AI provider')
+          ? { label: 'Go to AI Settings', href: '/dashboard/settings/ai' }
+          : undefined,
+        duration: 8000,
+      })
+    } else {
+      toast.error('Scoring failed', { message: statusMessage || 'An unexpected error occurred.', statusCode: err?.data?.statusCode })
+    }
   } finally {
     isScoringAll.value = false
+  }
+}
+
+async function scoreIndividualCandidate(applicationId: string) {
+  isScoringIndividual.value = true
+  try {
+    await $fetch(`/api/applications/${applicationId}/analyze`, {
+      method: 'POST',
+    })
+    await refreshApps()
+    // Re-fetch the detail so score updates in the detail panel
+    if (currentApplicationId.value === applicationId) {
+      await executeDetailFetch()
+    }
+    toast.success('Candidate scored', 'AI analysis complete.')
+  } catch (err: any) {
+    const statusMessage = err?.data?.statusMessage ?? ''
+    if (statusMessage.includes('AI provider not configured')) {
+      toast.add({
+        type: 'warning',
+        title: 'AI provider not configured',
+        message: 'Set up your AI provider in Settings first.',
+        link: { label: 'Go to AI Settings', href: '/dashboard/settings/ai' },
+        duration: 8000,
+      })
+    } else if (statusMessage.includes('No scoring criteria')) {
+      toast.warning('No scoring criteria', 'Add scoring criteria to this job first.')
+    } else {
+      toast.error('Scoring failed', { message: statusMessage || 'An unexpected error occurred.', statusCode: err?.data?.statusCode })
+    }
+  } finally {
+    isScoringIndividual.value = false
   }
 }
 
@@ -1636,6 +1690,18 @@ function closeDocPreview() {
                       >
                         {{ currentSummary.score }} pts
                       </span>
+                      <button
+                        :disabled="isScoringIndividual"
+                        class="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                        :class="currentSummary.score != null
+                          ? 'text-surface-500 hover:text-brand-600 hover:bg-brand-50 dark:text-surface-400 dark:hover:text-brand-400 dark:hover:bg-brand-950/40'
+                          : 'text-brand-600 bg-brand-50 hover:bg-brand-100 dark:text-brand-400 dark:bg-brand-950/40 dark:hover:bg-brand-950/60 ring-1 ring-brand-200 dark:ring-brand-800'"
+                        @click="scoreIndividualCandidate(currentSummary.id)"
+                      >
+                        <Loader2 v-if="isScoringIndividual" class="size-3 animate-spin" />
+                        <Brain v-else class="size-3" />
+                        {{ isScoringIndividual ? 'Scoring…' : (currentSummary.score != null ? 'Re-score' : 'Score Candidate') }}
+                      </button>
                       <span class="inline-flex items-center gap-1 text-[11px] text-surface-400 dark:text-surface-500">
                         <Clock class="size-3" />
                         Applied {{ new Date(currentSummary.createdAt).toLocaleDateString() }}

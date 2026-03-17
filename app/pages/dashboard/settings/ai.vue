@@ -11,7 +11,8 @@ useSeoMeta({
   description: 'Configure AI provider, model, and API key for candidate scoring',
 })
 
-const { allowed: canManageAi } = usePermission({ scoring: ['create'] })
+const { allowed: canManageAi, isLoading: isPermissionLoading } = usePermission({ scoring: ['create'] })
+const toast = useToast()
 
 // ─────────────────────────────────────────────
 // Fetch current config
@@ -45,8 +46,6 @@ const form = ref({
 
 const showApiKey = ref(false)
 const isSaving = ref(false)
-const saveSuccess = ref(false)
-const saveError = ref('')
 
 // Seed form from existing config
 watch(currentConfig, (config) => {
@@ -93,8 +92,6 @@ async function handleSave() {
   if (!canManageAi.value) return
 
   isSaving.value = true
-  saveError.value = ''
-  saveSuccess.value = false
 
   try {
     const body: Record<string, unknown> = {
@@ -111,12 +108,18 @@ async function handleSave() {
       headers: useRequestHeaders(['cookie']),
     })
 
-    saveSuccess.value = true
+    toast.success('AI configuration saved', 'Your provider and model settings have been updated.')
     form.value.apiKey = '' // Clear after save
     await refreshConfig()
-    setTimeout(() => (saveSuccess.value = false), 3000)
   } catch (err: any) {
-    saveError.value = err?.data?.statusMessage ?? 'Failed to save AI configuration.'
+    const statusMessage = err?.data?.statusMessage ?? err?.message ?? 'An unexpected error occurred while saving.'
+    const errorDetails = err?.data?.message ?? err?.data?.stack?.join?.('\n') ?? err?.stack ?? ''
+
+    toast.error('Failed to save AI configuration', {
+      message: statusMessage,
+      details: errorDetails || undefined,
+      statusCode: err?.data?.statusCode,
+    })
   } finally {
     isSaving.value = false
   }
@@ -137,7 +140,14 @@ async function handleSave() {
 
     <!-- Permission guard -->
     <div
-      v-if="!canManageAi"
+      v-if="isPermissionLoading"
+      class="flex items-center justify-center py-12"
+    >
+      <Loader2 class="size-6 animate-spin text-surface-400" />
+    </div>
+
+    <div
+      v-else-if="!canManageAi"
       class="rounded-xl border border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950 p-5 text-sm text-warning-700 dark:text-warning-400 flex items-start gap-3"
     >
       <AlertTriangle class="size-5 shrink-0 mt-0.5" />
@@ -163,32 +173,6 @@ async function handleSave() {
         </div>
 
         <div class="px-6 py-5 space-y-5">
-          <!-- Success message -->
-          <Transition
-            enter-active-class="transition-opacity duration-300"
-            leave-active-class="transition-opacity duration-300"
-            enter-from-class="opacity-0"
-            leave-to-class="opacity-0"
-          >
-            <div
-              v-if="saveSuccess"
-              class="rounded-lg bg-success-50 dark:bg-success-950/40 border border-success-200 dark:border-success-900 px-4 py-3 text-sm text-success-700 dark:text-success-400 flex items-center gap-2"
-            >
-              <Check class="size-4" />
-              AI configuration saved successfully.
-            </div>
-          </Transition>
-
-          <!-- Error message -->
-          <div
-            v-if="saveError"
-            class="rounded-lg bg-danger-50 dark:bg-danger-950/40 border border-danger-200 dark:border-danger-900 px-4 py-3 text-sm text-danger-700 dark:text-danger-400 flex items-start gap-2"
-          >
-            <AlertTriangle class="size-4 shrink-0 mt-0.5" />
-            {{ saveError }}
-            <button type="button" class="ml-auto underline" @click="saveError = ''">Dismiss</button>
-          </div>
-
           <!-- Provider -->
           <div>
             <label for="ai-provider" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">

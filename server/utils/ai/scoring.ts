@@ -163,7 +163,7 @@ const generatedCriteriaSchema = z.object({
     name: z.string(),
     description: z.string(),
     category: z.enum(['technical', 'experience', 'soft_skills', 'education', 'culture', 'custom']),
-    maxScore: z.literal(10),
+    maxScore: z.number().int().min(1).max(10).describe('Always use 10'),
     suggestedWeight: z.number().int().min(10).max(100),
   })),
 })

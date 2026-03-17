@@ -39,6 +39,7 @@ useSeoMeta({
 const localePath = useLocalePath()
 const { createJob } = useJobs()
 const { track } = useTrack()
+const toast = useToast()
 
 type QuestionType =
   | 'short_text'
@@ -106,9 +107,9 @@ const scoringCriteria = ref<ScoringCriterionDraft[]>([])
 const scoringMode = ref<'none' | 'premade' | 'ai' | 'custom'>('none')
 const selectedTemplate = ref<'standard' | 'technical' | 'non_technical'>('standard')
 const isGeneratingCriteria = ref(false)
-const criteriaError = ref<string | null>(null)
 const showCustomForm = ref(false)
 const editingCriterion = ref<ScoringCriterionDraft | null>(null)
+const autoScoreOnApply = ref(false)
 
 const customCriterionForm = ref({
   key: '',
@@ -138,7 +139,6 @@ const categoryColorClasses: Record<string, string> = {
 }
 
 async function loadPremadeCriteria(template: 'standard' | 'technical' | 'non_technical') {
-  criteriaError.value = null
   try {
     // Use local pre-made templates (no API call needed)
     const templates: Record<string, ScoringCriterionDraft[]> = {
@@ -165,20 +165,19 @@ async function loadPremadeCriteria(template: 'standard' | 'technical' | 'non_tec
     scoringCriteria.value = templates[template] ?? []
     scoringMode.value = 'premade'
   } catch (err: any) {
-    criteriaError.value = err?.data?.statusMessage ?? 'Failed to load template'
+    toast.error('Failed to load template', { message: err?.data?.statusMessage })
   }
 }
 
 async function generateAiCriteria() {
   if (!form.value.title) {
-    criteriaError.value = 'Add a job title in Step 1 first so AI can generate relevant criteria.'
+    toast.warning('Job title required', 'Add a job title in Step 1 first so AI can generate relevant criteria.')
     return
   }
   if (!form.value.description) {
-    criteriaError.value = 'Add a job description in Step 1 first so AI can generate relevant criteria.'
+    toast.warning('Job description required', 'Add a job description in Step 1 first so AI can generate relevant criteria.')
     return
   }
-  criteriaError.value = null
   isGeneratingCriteria.value = true
   try {
     const result = await $fetch('/api/ai-config/generate-criteria', {
@@ -197,8 +196,24 @@ async function generateAiCriteria() {
       weight: c.weight ?? 50,
     }))
     scoringMode.value = 'ai'
+    toast.success('Criteria generated', `${scoringCriteria.value.length} scoring criteria created from job description.`)
   } catch (err: any) {
-    criteriaError.value = err?.data?.statusMessage ?? 'Failed to generate AI criteria. Make sure your AI provider is configured in Settings.'
+    const statusCode = err?.data?.statusCode ?? err?.statusCode
+    const statusMessage = err?.data?.statusMessage ?? ''
+    if (statusCode === 422 && statusMessage.includes('AI provider not configured')) {
+      toast.add({
+        type: 'warning',
+        title: 'AI provider not configured',
+        message: 'Set up your AI provider and model before generating criteria.',
+        link: { label: 'Go to AI Settings', href: '/dashboard/settings/ai' },
+        duration: 10000,
+      })
+    } else {
+      toast.error('Failed to generate criteria', {
+        message: statusMessage || 'An unexpected error occurred. Check your AI settings and try again.',
+        statusCode,
+      })
+    }
   } finally {
     isGeneratingCriteria.value = false
   }
@@ -210,7 +225,7 @@ function addCustomCriterion() {
 
   const keyExists = scoringCriteria.value.some(c => c.key === f.key)
   if (keyExists) {
-    criteriaError.value = `A criterion with key "${f.key}" already exists.`
+    toast.warning('Duplicate criterion', `A criterion with key "${f.key}" already exists.`)
     return
   }
 
@@ -224,7 +239,6 @@ function addCustomCriterion() {
   })
   customCriterionForm.value = { key: '', name: '', description: '', category: 'custom', maxScore: 10, weight: 50 }
   showCustomForm.value = false
-  criteriaError.value = null
   if (scoringMode.value === 'none') scoringMode.value = 'custom'
 }
 
@@ -241,7 +255,6 @@ function autoGenerateKey(name: string): string {
 
 const isSubmitting = ref(false)
 const errors = ref<Record<string, string>>({})
-const submitError = ref<string | null>(null)
 const showAddForm = ref(false)
 const editingQuestion = ref<DraftQuestion | null>(null)
 const linkCopied = ref(false)
@@ -411,7 +424,6 @@ function removeSkill(index: number) {
 }
 
 async function handleSubmit(mode: 'publish' | 'draft' = publishChoice.value) {
-  submitError.value = null
   // Ensure step 1 is valid before submit
   if (!validateStep1()) {
     currentStep.value = 1
@@ -427,6 +439,7 @@ async function handleSubmit(mode: 'publish' | 'draft' = publishChoice.value) {
       type: form.value.type,
       requireResume: applicationForm.value.requireResume,
       requireCoverLetter: applicationForm.value.requireCoverLetter,
+      autoScoreOnApply: autoScoreOnApply.value,
     })
 
     track('job_created')
@@ -502,7 +515,11 @@ async function handleSubmit(mode: 'publish' | 'draft' = publishChoice.value) {
       await navigateTo(localePath('/dashboard/jobs'))
     }
   } catch (err: any) {
-    submitError.value = err?.data?.statusMessage ?? 'Something went wrong'
+    const statusMessage = err?.data?.statusMessage ?? 'Something went wrong while creating the job.'
+    toast.error('Failed to create job', {
+      message: statusMessage,
+      statusCode: err?.data?.statusCode,
+    })
   } finally {
     isSubmitting.value = false
   }
@@ -514,8 +531,8 @@ async function copyFinalLink() {
     linkCopiedFinal.value = true
     setTimeout(() => { linkCopiedFinal.value = false }, 3000)
   } catch {
-    // fallback
-    alert(finalApplicationLink.value)
+    // fallback: show the link so the user can copy manually
+    toast.info(finalApplicationLink.value)
   }
 }
 
@@ -618,13 +635,6 @@ const questionTypeLabels: Record<QuestionType, string> = {
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <!-- Left side: Form -->
       <div class="lg:col-span-8 space-y-6">
-        <!-- Server error -->
-        <div
-          v-if="submitError"
-          class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950 p-4 text-sm text-danger-700 dark:text-danger-400 mb-4"
-        >
-          {{ submitError }}
-        </div>
 
         <div class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-sm overflow-hidden">
           <form @submit.prevent="() => handleSubmit()" class="p-6 md:p-8">
@@ -899,15 +909,6 @@ const questionTypeLabels: Record<QuestionType, string> = {
                 </p>
               </div>
 
-              <!-- Error display -->
-              <div
-                v-if="criteriaError"
-                class="rounded-lg border border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950 p-4 text-sm text-warning-700 dark:text-warning-400"
-              >
-                {{ criteriaError }}
-                <button class="ml-2 underline" @click="criteriaError = null">Dismiss</button>
-              </div>
-
               <!-- Mode selection cards -->
               <div v-if="scoringCriteria.length === 0" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Pre-made templates -->
@@ -1149,6 +1150,25 @@ const questionTypeLabels: Record<QuestionType, string> = {
                     Cancel
                   </button>
                 </div>
+              </div>
+
+              <!-- Auto-score toggle -->
+              <div v-if="scoringCriteria.length > 0" class="rounded-xl border border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-900/50 p-5">
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input
+                    v-model="autoScoreOnApply"
+                    type="checkbox"
+                    class="mt-0.5 size-4 rounded border-surface-300 dark:border-surface-600 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                  />
+                  <div>
+                    <span class="block text-sm font-semibold text-surface-900 dark:text-surface-100">
+                      Automatically score every new applicant
+                    </span>
+                    <span class="text-xs text-surface-500 dark:text-surface-400 mt-0.5 block leading-relaxed">
+                      When a candidate applies, AI will automatically analyze their resume against these criteria and assign a score. Requires an AI provider configured in settings plus a resume upload.
+                    </span>
+                  </div>
+                </label>
               </div>
 
               <!-- Skip scoring note -->

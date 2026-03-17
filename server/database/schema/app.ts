@@ -53,6 +53,8 @@ export const job = pgTable('job', {
   // ── Application form settings ──
   requireResume: boolean('require_resume').notNull().default(false),
   requireCoverLetter: boolean('require_cover_letter').notNull().default(false),
+  // ── AI scoring settings ──
+  autoScoreOnApply: boolean('auto_score_on_apply').notNull().default(false),
   // ── Timestamps ──
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -486,7 +488,7 @@ export const analysisRun = pgTable('analysis_run', {
   /** Raw LLM response for debugging (sanitized — no PII stored) */
   rawResponse: jsonb('raw_response'),
   errorMessage: text('error_message'),
-  scoredById: text('scored_by_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  scoredById: text('scored_by_id').references(() => user.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ([
   index('analysis_run_organization_id_idx').on(t.organizationId),

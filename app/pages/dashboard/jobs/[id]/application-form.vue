@@ -36,7 +36,7 @@ async function copyApplicationLink() {
     setTimeout(() => { linkCopied.value = false }, 2000)
   } catch {
     // Fallback for non-HTTPS contexts
-    alert(applicationUrl.value)
+    toast.info(applicationUrl.value)
   }
 }
 
