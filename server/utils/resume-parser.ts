@@ -11,6 +11,7 @@
  */
 import { PDFParse } from 'pdf-parse'
 import mammoth from 'mammoth'
+// @ts-expect-error — word-extractor has no type declarations
 import WordExtractor from 'word-extractor'
 
 const PARSER_VERSION = '1.0'

@@ -8,6 +8,7 @@ definePageMeta({
 
 const route = useRoute()
 const jobId = route.params.id as string
+const toast = useToast()
 
 const { job, status: fetchStatus, error, updateJob } = useJob(jobId)
 
