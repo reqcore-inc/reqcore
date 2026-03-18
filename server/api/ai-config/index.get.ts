@@ -19,6 +19,8 @@ export default defineEventHandler(async (event) => {
       model: true,
       baseUrl: true,
       maxTokens: true,
+      inputPricePer1m: true,
+      outputPricePer1m: true,
       apiKeyEncrypted: true,
       createdAt: true,
       updatedAt: true,

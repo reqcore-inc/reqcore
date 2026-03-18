@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   Brain, Save, AlertTriangle, ExternalLink, Loader2, Check,
-  Eye, EyeOff, Shield,
+  Eye, EyeOff, Shield, DollarSign,
 } from 'lucide-vue-next'
 
 definePageMeta({})
@@ -42,6 +42,8 @@ const form = ref({
   apiKey: '' as string,
   baseUrl: '' as string,
   maxTokens: 4096 as number,
+  inputPricePer1m: null as number | null,
+  outputPricePer1m: null as number | null,
 })
 
 const showApiKey = ref(false)
@@ -54,6 +56,8 @@ watch(currentConfig, (config) => {
     form.value.model = config.model ?? ''
     form.value.baseUrl = config.baseUrl ?? ''
     form.value.maxTokens = config.maxTokens ?? 4096
+    form.value.inputPricePer1m = config.inputPricePer1m != null ? Number(config.inputPricePer1m) : null
+    form.value.outputPricePer1m = config.outputPricePer1m != null ? Number(config.outputPricePer1m) : null
     // API key is never sent back
     form.value.apiKey = ''
   }
@@ -98,6 +102,8 @@ async function handleSave() {
       provider: form.value.provider,
       model: form.value.model,
       maxTokens: form.value.maxTokens,
+      inputPricePer1m: form.value.inputPricePer1m,
+      outputPricePer1m: form.value.outputPricePer1m,
     }
     if (form.value.apiKey) body.apiKey = form.value.apiKey
     if (isCustomProvider.value && form.value.baseUrl) body.baseUrl = form.value.baseUrl
@@ -264,6 +270,65 @@ async function handleSave() {
               {{ isSaving ? 'Saving…' : 'Save configuration' }}
             </button>
           </div>
+        </div>
+      </section>
+
+      <!-- Pricing section -->
+      <section class="mt-8 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
+        <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center size-10 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+              <DollarSign class="size-5" />
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">Cost Tracking</h2>
+              <p class="text-sm text-surface-500 dark:text-surface-400">Set your model's pricing to track spend on the AI Analysis page.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-6 py-5 space-y-5">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="ai-input-price" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">
+                Input price <span class="text-surface-400 font-normal">/ 1M tokens</span>
+              </label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 text-sm">$</span>
+                <input
+                  id="ai-input-price"
+                  :value="form.inputPricePer1m"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 pl-7 pr-3 py-2 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors tabular-nums"
+                  @input="form.inputPricePer1m = ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null"
+                />
+              </div>
+            </div>
+            <div>
+              <label for="ai-output-price" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">
+                Output price <span class="text-surface-400 font-normal">/ 1M tokens</span>
+              </label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 text-sm">$</span>
+                <input
+                  id="ai-output-price"
+                  :value="form.outputPricePer1m"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 pl-7 pr-3 py-2 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors tabular-nums"
+                  @input="form.outputPricePer1m = ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null"
+                />
+              </div>
+            </div>
+          </div>
+          <p class="text-xs text-surface-400 dark:text-surface-500">
+            Find pricing on your provider's website. Costs are calculated locally — nothing is sent externally.
+          </p>
         </div>
       </section>
 

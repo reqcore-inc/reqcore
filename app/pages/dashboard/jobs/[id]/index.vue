@@ -70,7 +70,7 @@ type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'score-d
 type ScoreFilter = 'all' | 'high' | 'medium' | 'low' | 'none'
 type InterviewFilter = 'all' | 'has-interview' | 'no-interview'
 
-const sortBy = ref<SortOption>('date-desc')
+const sortBy = ref<SortOption>('score-desc')
 const scoreFilter = ref<ScoreFilter>('all')
 const interviewFilter = ref<InterviewFilter>('all')
 const showSortPanel = ref(false)
@@ -125,6 +125,7 @@ function selectSort(option: SortOption) {
 function closePanels() {
   showSortPanel.value = false
   showFilterPanel.value = false
+  showOverviewDropdown.value = false
 }
 
 const filteredApplications = computed(() => {
@@ -229,51 +230,49 @@ watch(focusStatus, () => {
 
 const currentSummary = computed(() => filteredApplications.value[currentIndex.value] ?? null)
 
-// Detail tab for center panel (used for scroll-to-section navigation)
-const detailTab = ref<'overview' | 'interviews' | 'documents' | 'responses'>('overview')
+// Detail tab for center panel
+type DetailTab = 'overview' | 'interviews' | 'documents' | 'responses' | 'ai-analysis'
+const detailTab = ref<DetailTab>('overview')
 
-// Section refs for scroll-to navigation
+// Overview section visibility toggles
+const overviewSections = reactive({
+  aiAnalysis: true,
+  interviews: true,
+  documents: true,
+  responses: true,
+})
+const showOverviewDropdown = ref(false)
+const overviewDropdownRef = ref<HTMLElement | null>(null)
+
+function handleOverviewDropdownClickOutside(event: MouseEvent) {
+  if (overviewDropdownRef.value && !overviewDropdownRef.value.contains(event.target as Node)) {
+    showOverviewDropdown.value = false
+  }
+}
+
+watch(showOverviewDropdown, (val) => {
+  if (val) {
+    setTimeout(() => document.addEventListener('click', handleOverviewDropdownClickOutside), 0)
+  } else {
+    document.removeEventListener('click', handleOverviewDropdownClickOutside)
+  }
+})
+
+// Which sections to display based on active tab
+const showSection = computed(() => ({
+  profile: detailTab.value === 'overview',
+  aiAnalysis: detailTab.value === 'overview' ? overviewSections.aiAnalysis : detailTab.value === 'ai-analysis',
+  interviews: detailTab.value === 'overview' ? overviewSections.interviews : detailTab.value === 'interviews',
+  documents: detailTab.value === 'overview' ? overviewSections.documents : detailTab.value === 'documents',
+  responses: detailTab.value === 'overview' ? overviewSections.responses : detailTab.value === 'responses',
+}))
+
+// Section refs
 const overviewRef = ref<HTMLElement | null>(null)
 const interviewsRef = ref<HTMLElement | null>(null)
 const documentsRef = ref<HTMLElement | null>(null)
 const responsesRef = ref<HTMLElement | null>(null)
 const detailScrollContainer = ref<HTMLElement | null>(null)
-
-function scrollToSection(section: 'overview' | 'interviews' | 'documents' | 'responses') {
-  detailTab.value = section
-  const refs: Record<string, ReturnType<typeof ref<HTMLElement | null>>> = {
-    overview: overviewRef,
-    interviews: interviewsRef,
-    documents: documentsRef,
-    responses: responsesRef,
-  }
-  const el = refs[section]?.value
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-}
-
-function handleDetailScroll() {
-  const container = detailScrollContainer.value
-  if (!container) return
-  const scrollTop = container.scrollTop
-  const offset = 120 // offset to trigger slightly before section top
-
-  const sections = [
-    { id: 'responses' as const, el: responsesRef.value },
-    { id: 'documents' as const, el: documentsRef.value },
-    { id: 'interviews' as const, el: interviewsRef.value },
-    { id: 'overview' as const, el: overviewRef.value },
-  ]
-
-  for (const section of sections) {
-    if (section.el && section.el.offsetTop - container.offsetTop <= scrollTop + offset) {
-      detailTab.value = section.id
-      return
-    }
-  }
-  detailTab.value = 'overview'
-}
 
 type SwipeDocument = {
   id: string
@@ -1155,6 +1154,7 @@ watch(showMoreMenu, (val) => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('click', handleOverviewDropdownClickOutside)
 })
 
 const isLoading = computed(() => {
@@ -1635,7 +1635,7 @@ function closeDocPreview() {
             </div>
 
             <!-- Scrollable container: header + tabs + content -->
-            <div ref="detailScrollContainer" class="flex-1 overflow-y-auto" @scroll="handleDetailScroll">
+            <div ref="detailScrollContainer" class="flex-1 overflow-y-auto">
 
             <!-- Candidate header -->
             <div class="border-b border-surface-200 bg-surface-50 px-6 py-6 dark:border-surface-800 dark:bg-surface-900/80">
@@ -1744,24 +1744,79 @@ function closeDocPreview() {
               </div>
             </div>
 
-            <!-- Detail tabs (scroll-to-section navigation) -->
+            <!-- Detail tabs -->
             <div class="border-b border-surface-200/80 bg-white px-6 dark:border-surface-800/60 dark:bg-surface-900">
               <div class="mx-auto max-w-4xl flex gap-1 -mb-px">
+                <div ref="overviewDropdownRef" class="relative">
+                  <div class="flex items-center border-b-2 transition-all duration-150" :class="detailTab === 'overview'
+                    ? 'border-brand-600 dark:border-brand-400'
+                    : 'border-transparent'">
+                    <button
+                      class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150"
+                      :class="detailTab === 'overview'
+                        ? 'text-brand-700 dark:text-brand-300'
+                        : 'text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-300'"
+                      @click="detailTab = 'overview'"
+                    >
+                      Overview
+                    </button>
+                    <button
+                      v-if="detailTab === 'overview'"
+                      class="cursor-pointer -ml-2 p-1 rounded transition-colors duration-150 text-surface-400 hover:text-surface-600 dark:text-surface-500 dark:hover:text-surface-300"
+                      @click.stop="showOverviewDropdown = !showOverviewDropdown"
+                    >
+                      <ChevronDown class="size-3.5 transition-transform duration-150" :class="showOverviewDropdown ? 'rotate-180' : ''" />
+                    </button>
+                  </div>
+
+                  <!-- Overview sections dropdown -->
+                  <Transition
+                    enter-active-class="transition duration-150 ease-out"
+                    enter-from-class="opacity-0 scale-95 -translate-y-1"
+                    enter-to-class="opacity-100 scale-100 translate-y-0"
+                    leave-active-class="transition duration-100 ease-in"
+                    leave-from-class="opacity-100 scale-100 translate-y-0"
+                    leave-to-class="opacity-0 scale-95 -translate-y-1"
+                  >
+                    <div
+                      v-if="showOverviewDropdown"
+                      class="absolute left-0 top-full z-50 mt-1 w-44 rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-900 shadow-xl shadow-surface-900/5 dark:shadow-black/20 py-1.5 origin-top-left"
+                    >
+                      <span class="block px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Sections</span>
+                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                        <input v-model="overviewSections.aiAnalysis" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                        AI Analysis
+                      </label>
+                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                        <input v-model="overviewSections.interviews" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                        Interviews
+                      </label>
+                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                        <input v-model="overviewSections.documents" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                        Documents
+                      </label>
+                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                        <input v-model="overviewSections.responses" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                        Responses
+                      </label>
+                    </div>
+                  </Transition>
+                </div>
                 <button
-                  class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2"
-                  :class="detailTab === 'overview'
+                  class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px"
+                  :class="detailTab === 'ai-analysis'
                     ? 'border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300'
                     : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 dark:text-surface-400 dark:hover:text-surface-300 dark:hover:border-surface-600'"
-                  @click="scrollToSection('overview')"
+                  @click="detailTab = 'ai-analysis'"
                 >
-                  Profile
+                  AI Analysis
                 </button>
                 <button
                   class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px"
                   :class="detailTab === 'interviews'
                     ? 'border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300'
                     : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 dark:text-surface-400 dark:hover:text-surface-300 dark:hover:border-surface-600'"
-                  @click="scrollToSection('interviews')"
+                  @click="detailTab = 'interviews'"
                 >
                   Interviews
                   <span
@@ -1776,7 +1831,7 @@ function closeDocPreview() {
                   :class="detailTab === 'documents'
                     ? 'border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300'
                     : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 dark:text-surface-400 dark:hover:text-surface-300 dark:hover:border-surface-600'"
-                  @click="scrollToSection('documents')"
+                  @click="detailTab = 'documents'"
                 >
                   Documents
                   <span
@@ -1787,14 +1842,19 @@ function closeDocPreview() {
                   </span>
                 </button>
                 <button
-                  v-if="resolvedCurrentApplication?.responses?.length"
                   class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px"
                   :class="detailTab === 'responses'
                     ? 'border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300'
                     : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 dark:text-surface-400 dark:hover:text-surface-300 dark:hover:border-surface-600'"
-                  @click="scrollToSection('responses')"
+                  @click="detailTab = 'responses'"
                 >
-                  Responses ({{ resolvedCurrentApplication.responses.length }})
+                  Responses
+                  <span
+                    v-if="resolvedCurrentApplication?.responses?.length"
+                    class="ml-1 text-xs text-surface-400"
+                  >
+                    ({{ resolvedCurrentApplication.responses.length }})
+                  </span>
                 </button>
               </div>
             </div>
@@ -1808,8 +1868,10 @@ function closeDocPreview() {
 
               <template v-else>
 
-              <!-- PROFILE SECTION -->
-              <div ref="overviewRef" class="space-y-5 max-w-4xl mx-auto scroll-mt-4">
+
+
+              <!-- PROFILE SECTION (overview only) -->
+              <div v-if="showSection.profile" ref="overviewRef" class="space-y-5 max-w-4xl mx-auto">
                 <!-- Notes -->
                 <div class="rounded-xl border border-surface-200/80 bg-white p-5 shadow-sm shadow-surface-900/[0.03] dark:border-surface-800/60 dark:bg-surface-900 dark:shadow-none">
                   <div class="flex items-center gap-2.5 mb-4">
@@ -1823,13 +1885,6 @@ function closeDocPreview() {
                   </p>
                 </div>
 
-                <!-- AI Score Breakdown -->
-                <ScoreBreakdown
-                  v-if="currentSummary"
-                  :application-id="currentSummary.id"
-                  @scored="refreshApps()"
-                />
-
                 <!-- Quick links -->
                 <div class="flex items-center gap-4 pt-1">
                   <NuxtLink
@@ -1842,8 +1897,17 @@ function closeDocPreview() {
                 </div>
               </div>
 
+              <!-- AI SCORE BREAKDOWN -->
+              <div v-if="showSection.aiAnalysis" class="max-w-4xl mx-auto mt-5">
+                <ScoreBreakdown
+                  v-if="currentSummary"
+                  :application-id="currentSummary.id"
+                  @scored="refreshApps()"
+                />
+              </div>
+
               <!-- INTERVIEWS SECTION -->
-              <div ref="interviewsRef" class="space-y-3 max-w-4xl mx-auto mt-10 scroll-mt-4">
+              <div v-if="showSection.interviews" ref="interviewsRef" class="space-y-3 max-w-4xl mx-auto mt-10">
                 <div class="flex items-center justify-between mb-3">
                   <h2 class="text-sm font-semibold text-surface-800 dark:text-surface-200 flex items-center gap-2">
                     <Calendar class="size-4 text-surface-400 dark:text-surface-500" />
@@ -2201,7 +2265,7 @@ function closeDocPreview() {
               </div>
 
               <!-- DOCUMENTS SECTION -->
-              <div ref="documentsRef" class="space-y-3 max-w-4xl mx-auto mt-10 scroll-mt-4">
+              <div v-if="showSection.documents" ref="documentsRef" class="space-y-3 max-w-4xl mx-auto mt-10">
                 <h2 class="text-sm font-semibold text-surface-800 dark:text-surface-200 flex items-center gap-2 mb-3">
                   <Paperclip class="size-4 text-surface-400 dark:text-surface-500" />
                   Documents
@@ -2253,24 +2317,33 @@ function closeDocPreview() {
               </div>
 
               <!-- RESPONSES SECTION -->
-              <div v-if="resolvedCurrentApplication?.responses?.length" ref="responsesRef" class="space-y-3 max-w-4xl mx-auto mt-10 scroll-mt-4">
+              <div v-if="showSection.responses" ref="responsesRef" class="space-y-3 max-w-4xl mx-auto mt-10">
                 <h2 class="text-sm font-semibold text-surface-800 dark:text-surface-200 flex items-center gap-2 mb-3">
                   <MessageSquare class="size-4 text-surface-400 dark:text-surface-500" />
                   Responses
                 </h2>
-                <div class="space-y-3">
-                  <div
-                    v-for="response in resolvedCurrentApplication.responses"
-                    :key="response.id"
-                    class="rounded-xl border border-surface-200/80 bg-white p-5 shadow-sm shadow-surface-900/[0.03] dark:border-surface-800/60 dark:bg-surface-900 dark:shadow-none"
-                  >
-                    <p class="text-xs font-semibold text-surface-400 dark:text-surface-500 uppercase tracking-wider mb-2">
-                      {{ response.question?.label ?? 'Unknown question' }}
-                    </p>
-                    <p class="text-sm text-surface-700 dark:text-surface-200 leading-relaxed">
-                      {{ formatResponseValue(response.value) }}
-                    </p>
+                <template v-if="resolvedCurrentApplication?.responses?.length">
+                  <div class="space-y-3">
+                    <div
+                      v-for="response in resolvedCurrentApplication.responses"
+                      :key="response.id"
+                      class="rounded-xl border border-surface-200/80 bg-white p-5 shadow-sm shadow-surface-900/[0.03] dark:border-surface-800/60 dark:bg-surface-900 dark:shadow-none"
+                    >
+                      <p class="text-xs font-semibold text-surface-400 dark:text-surface-500 uppercase tracking-wider mb-2">
+                        {{ response.question?.label ?? 'Unknown question' }}
+                      </p>
+                      <p class="text-sm text-surface-700 dark:text-surface-200 leading-relaxed">
+                        {{ formatResponseValue(response.value) }}
+                      </p>
+                    </div>
                   </div>
+                </template>
+                <div v-else class="rounded-xl border border-surface-200/80 bg-white p-10 text-center shadow-sm shadow-surface-900/[0.03] dark:border-surface-800/60 dark:bg-surface-900 dark:shadow-none">
+                  <div class="flex size-14 items-center justify-center rounded-2xl bg-surface-100 dark:bg-surface-800/60 mx-auto mb-3">
+                    <MessageSquare class="size-6 text-surface-400 dark:text-surface-500" />
+                  </div>
+                  <p class="text-sm font-medium text-surface-600 dark:text-surface-300">No responses</p>
+                  <p class="mt-1 text-xs text-surface-400 dark:text-surface-500">Application form responses will appear here.</p>
                 </div>
               </div>
 

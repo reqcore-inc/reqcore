@@ -8,6 +8,7 @@ import {
   pgEnum,
   index,
   uniqueIndex,
+  numeric,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { organization, user } from './auth'
@@ -413,6 +414,10 @@ export const aiConfig = pgTable('ai_config', {
   /** Optional base URL override (e.g. for Ollama or custom endpoints) */
   baseUrl: text('base_url'),
   maxTokens: integer('max_tokens').notNull().default(4096),
+  /** Price per 1M input tokens in USD (e.g. "2.50") */
+  inputPricePer1m: numeric('input_price_per_1m', { precision: 10, scale: 4 }),
+  /** Price per 1M output tokens in USD (e.g. "10.00") */
+  outputPricePer1m: numeric('output_price_per_1m', { precision: 10, scale: 4 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (t) => ([

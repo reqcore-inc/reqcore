@@ -19,6 +19,8 @@ export const createAiConfigSchema = z.object({
   apiKey: z.string().min(1).max(500).optional(),
   baseUrl: safeBaseUrl.nullish(),
   maxTokens: z.number().int().min(256).max(32768).optional().default(4096),
+  inputPricePer1m: z.number().min(0).max(9999).nullish(),
+  outputPricePer1m: z.number().min(0).max(9999).nullish(),
 })
 
 export const updateAiConfigSchema = z.object({
@@ -27,6 +29,8 @@ export const updateAiConfigSchema = z.object({
   apiKey: z.string().min(1).max(500).optional(),
   baseUrl: safeBaseUrl.nullish(),
   maxTokens: z.number().int().min(256).max(32768).optional(),
+  inputPricePer1m: z.number().min(0).max(9999).nullish(),
+  outputPricePer1m: z.number().min(0).max(9999).nullish(),
 })
 
 // ─── Scoring Criterion Schemas ────────────────────────────────────

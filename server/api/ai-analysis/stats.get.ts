@@ -1,5 +1,5 @@
 import { eq, and, desc, sql, count, sum } from 'drizzle-orm'
-import { analysisRun, job, application, candidate } from '../../database/schema'
+import { analysisRun, job, application, candidate, aiConfig } from '../../database/schema'
 
 /**
  * GET /api/ai-analysis/stats
@@ -17,6 +17,15 @@ export default defineEventHandler(async (event) => {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   const thirtyDaysAgoISO = thirtyDaysAgo.toISOString()
+
+  // Fetch pricing config in parallel with stats
+  const pricingConfig = await db.query.aiConfig.findFirst({
+    where: eq(aiConfig.organizationId, orgId),
+    columns: {
+      inputPricePer1m: true,
+      outputPricePer1m: true,
+    },
+  })
 
   const [
     totalRuns,
@@ -100,7 +109,15 @@ export default defineEventHandler(async (event) => {
 
   const usage = tokenUsage[0]
 
+  const inputPrice = pricingConfig?.inputPricePer1m ? Number(pricingConfig.inputPricePer1m) : null
+  const outputPrice = pricingConfig?.outputPricePer1m ? Number(pricingConfig.outputPricePer1m) : null
+
   return {
+    pricing: {
+      inputPricePer1m: inputPrice,
+      outputPricePer1m: outputPrice,
+      configured: inputPrice != null || outputPrice != null,
+    },
     summary: {
       totalRuns: Number(totalRuns),
       completedRuns: Number(completedRuns),

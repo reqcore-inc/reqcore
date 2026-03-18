@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   Brain, Sparkles, TrendingUp, AlertTriangle, CheckCircle2,
-  XCircle, Zap, Clock, BarChart3, Activity, AlertCircle,
+  XCircle, Zap, Clock, BarChart3, Activity, AlertCircle, DollarSign,
 } from 'lucide-vue-next'
 
 definePageMeta({
@@ -28,6 +28,8 @@ const summary = computed(() => stats.value?.summary ?? {
   totalTokens: 0,
 })
 
+const pricing = computed(() => stats.value?.pricing ?? { inputPricePer1m: null, outputPricePer1m: null, configured: false })
+
 const dailyRuns = computed(() => stats.value?.dailyRuns ?? [])
 const recentRuns = computed(() => stats.value?.recentRuns ?? [])
 const modelBreakdown = computed(() => stats.value?.modelBreakdown ?? [])
@@ -37,9 +39,19 @@ const successRate = computed(() => {
   return Math.round((summary.value.completedRuns / summary.value.totalRuns) * 100)
 })
 
+// ─── Cost computations ───
+function calcCost(promptTokens: number, completionTokens: number): number | null {
+  const ip = pricing.value.inputPricePer1m
+  const op = pricing.value.outputPricePer1m
+  if (ip == null && op == null) return null
+  return ((promptTokens / 1_000_000) * (ip ?? 0)) + ((completionTokens / 1_000_000) * (op ?? 0))
+}
+
+const totalCost = computed(() => calcCost(summary.value.totalPromptTokens, summary.value.totalCompletionTokens))
+
 // Chart bar heights (simple bar chart)
-const maxDailyCount = computed(() => Math.max(...dailyRuns.value.map(d => d.count), 1))
-const maxDailyTokens = computed(() => Math.max(...dailyRuns.value.map(d => d.promptTokens + d.completionTokens), 1))
+const maxDailyCount = computed(() => Math.max(...dailyRuns.value.map((d: any) => d.count), 1))
+const maxDailyTokens = computed(() => Math.max(...dailyRuns.value.map((d: any) => d.promptTokens + d.completionTokens), 1))
 
 const chartStartDate = computed(() => {
   const first = dailyRuns.value[0]
@@ -54,6 +66,19 @@ function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return n.toString()
+}
+
+function formatCost(cost: number | null): string {
+  if (cost == null) return '—'
+  if (cost < 0.01) return '<$0.01'
+  return `$${cost.toFixed(2)}`
+}
+
+function formatCostPrecise(cost: number | null): string {
+  if (cost == null) return '—'
+  if (cost < 0.001) return '<$0.001'
+  if (cost < 0.01) return `$${cost.toFixed(4)}`
+  return `$${cost.toFixed(2)}`
 }
 
 function formatDate(dateStr: string): string {
@@ -159,7 +184,7 @@ function statusBadgeClass(status: string): string {
       </div>
 
       <!-- ─── Stat cards ─── -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
         <!-- Total Runs -->
         <div class="group relative rounded-2xl border border-surface-200/80 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 hover:border-brand-300/60 dark:hover:border-brand-800/60 hover:shadow-md hover:shadow-brand-500/5 transition-all duration-200 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-brand-50/50 to-transparent dark:from-brand-950/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
@@ -238,6 +263,28 @@ function statusBadgeClass(status: string): string {
             <p class="mt-1.5 text-xs text-surface-400">Output tokens generated</p>
           </div>
         </div>
+
+        <!-- Total Cost -->
+        <div class="group relative rounded-2xl border border-surface-200/80 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 hover:border-emerald-300/60 dark:hover:border-emerald-800/60 hover:shadow-md hover:shadow-emerald-500/5 transition-all duration-200 overflow-hidden col-span-2 lg:col-span-1">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          <div class="relative">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Total Cost</span>
+              <div class="flex items-center justify-center size-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-950/60 transition-colors">
+                <DollarSign class="size-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+            <div class="text-3xl font-bold tracking-tight tabular-nums" :class="pricing.configured ? 'text-emerald-600 dark:text-emerald-400' : 'text-surface-300 dark:text-surface-600'">
+              {{ pricing.configured ? formatCost(totalCost) : '—' }}
+            </div>
+            <p class="mt-1.5 text-xs text-surface-400">
+              <template v-if="pricing.configured">Estimated from token usage</template>
+              <template v-else>
+                <NuxtLink to="/dashboard/settings/ai" class="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300 underline underline-offset-2">Set pricing</NuxtLink> to track costs
+              </template>
+            </p>
+          </div>
+        </div>
       </div>
 
       <!-- ─── Usage chart (last 30 days) ─── -->
@@ -262,7 +309,7 @@ function statusBadgeClass(status: string): string {
               <div
                 v-for="day in dailyRuns"
                 :key="day.date"
-                class="group relative flex-1 min-w-0"
+                class="group relative flex-1 min-w-0 h-full flex items-end"
               >
                 <div
                   class="w-full rounded-t bg-brand-500 dark:bg-brand-400 transition-all duration-200 hover:bg-brand-600 dark:hover:bg-brand-300"
@@ -274,6 +321,7 @@ function statusBadgeClass(status: string): string {
                     <p class="font-semibold text-surface-800 dark:text-surface-200">{{ formatDate(day.date) }}</p>
                     <p class="text-surface-500">{{ day.count }} run{{ day.count !== 1 ? 's' : '' }}</p>
                     <p class="text-surface-400">{{ formatNumber(day.promptTokens + day.completionTokens) }} tokens</p>
+                    <p v-if="pricing.configured" class="text-emerald-600 dark:text-emerald-400 font-medium">{{ formatCostPrecise(calcCost(day.promptTokens, day.completionTokens)) }}</p>
                   </div>
                 </div>
               </div>
@@ -291,7 +339,7 @@ function statusBadgeClass(status: string): string {
               <div
                 v-for="day in dailyRuns"
                 :key="`tokens-${day.date}`"
-                class="group relative flex-1 min-w-0"
+                class="group relative flex-1 min-w-0 h-full flex items-end"
               >
                 <div class="w-full flex flex-col-reverse rounded-t overflow-hidden" :style="{ height: `${Math.max(((day.promptTokens + day.completionTokens) / maxDailyTokens) * 100, 4)}%` }">
                   <div
@@ -309,6 +357,7 @@ function statusBadgeClass(status: string): string {
                     <p class="font-semibold text-surface-800 dark:text-surface-200">{{ formatDate(day.date) }}</p>
                     <p class="text-violet-600 dark:text-violet-400">Prompt: {{ formatNumber(day.promptTokens) }}</p>
                     <p class="text-amber-600 dark:text-amber-400">Completion: {{ formatNumber(day.completionTokens) }}</p>
+                    <p v-if="pricing.configured" class="text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 pt-0.5 border-t border-surface-100 dark:border-surface-700">{{ formatCostPrecise(calcCost(day.promptTokens, day.completionTokens)) }}</p>
                   </div>
                 </div>
               </div>
@@ -351,6 +400,7 @@ function statusBadgeClass(status: string): string {
                 <th class="text-right px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden md:table-cell">Prompt</th>
                 <th class="text-right px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden md:table-cell">Completion</th>
                 <th class="text-right px-4 py-3 font-medium text-surface-500 dark:text-surface-400">Total Tokens</th>
+                <th v-if="pricing.configured" class="text-right px-4 py-3 font-medium text-surface-500 dark:text-surface-400">Cost</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-100 dark:divide-surface-800">
@@ -367,6 +417,7 @@ function statusBadgeClass(status: string): string {
                 <td class="px-4 py-3 text-right tabular-nums text-violet-600 dark:text-violet-400 hidden md:table-cell">{{ formatNumber(m.totalPromptTokens) }}</td>
                 <td class="px-4 py-3 text-right tabular-nums text-amber-600 dark:text-amber-400 hidden md:table-cell">{{ formatNumber(m.totalCompletionTokens) }}</td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold text-surface-800 dark:text-surface-200">{{ formatNumber(m.totalTokens) }}</td>
+                <td v-if="pricing.configured" class="px-4 py-3 text-right tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">{{ formatCost(calcCost(m.totalPromptTokens, m.totalCompletionTokens)) }}</td>
               </tr>
             </tbody>
           </table>
@@ -405,6 +456,7 @@ function statusBadgeClass(status: string): string {
                 <th class="text-right px-4 py-3 font-medium text-surface-500 dark:text-surface-400">Score</th>
                 <th class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden md:table-cell">Model</th>
                 <th class="text-right px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden md:table-cell">Tokens</th>
+                <th v-if="pricing.configured" class="text-right px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden md:table-cell">Cost</th>
                 <th class="text-right px-4 py-3 font-medium text-surface-500 dark:text-surface-400">Date</th>
               </tr>
             </thead>
@@ -449,6 +501,10 @@ function statusBadgeClass(status: string): string {
                   <span v-if="run.promptTokens != null">
                     {{ formatNumber((run.promptTokens ?? 0) + (run.completionTokens ?? 0)) }}
                   </span>
+                  <span v-else>—</span>
+                </td>
+                <td v-if="pricing.configured" class="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400 hidden md:table-cell">
+                  <span v-if="run.promptTokens != null">{{ formatCostPrecise(calcCost(run.promptTokens ?? 0, run.completionTokens ?? 0)) }}</span>
                   <span v-else>—</span>
                 </td>
                 <td class="px-4 py-3 text-right text-xs text-surface-500 dark:text-surface-400 whitespace-nowrap">
