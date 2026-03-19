@@ -4,39 +4,31 @@ definePageMeta({ layout: 'auth' })
 useSeoMeta({ robots: 'noindex, nofollow' })
 
 const localePath = useLocalePath()
-const config = useRuntimeConfig()
 
 onMounted(async () => {
-  const { data: session } = await authClient.useSession(useFetch)
+  try {
+    // Server-side demo check — avoids client-side auth library quirks
+    const { hasSession, isDemo } = await $fetch('/api/auth/demo-check')
 
-  if (!session.value) {
-    // Not logged in — just go to sign-up
-    await navigateTo(localePath('/auth/sign-up'), { replace: true })
-    return
+    if (!hasSession) {
+      window.location.href = localePath('/auth/sign-up')
+      return
+    }
+
+    if (isDemo) {
+      // Sign out the demo session via the auth API directly
+      await $fetch('/api/auth/sign-out', { method: 'POST', body: {} })
+      // Hard navigate to clear all client-side state (Better Auth atoms, Nuxt caches)
+      window.location.href = localePath('/auth/sign-up')
+    }
+    else {
+      // Real user — go to dashboard
+      window.location.href = localePath('/dashboard')
+    }
   }
-
-  // Check if the user is in the demo org
-  const demoSlug = config.public.demoOrgSlug
-  if (!demoSlug) {
-    // No demo slug configured — redirect to dashboard
-    await navigateTo(localePath('/dashboard'), { replace: true })
-    return
-  }
-
-  // Await the active org — useActiveOrganization() is reactive and
-  // may not have resolved when read synchronously inside onMounted
-  const { data: org } = await authClient.organization.getFullOrganization()
-  const isDemo = org?.slug === demoSlug
-
-  if (isDemo) {
-    // Demo user — sign out and redirect to sign-up for a real account
-    await authClient.signOut()
-    clearNuxtData()
-    await navigateTo(localePath('/auth/sign-up'), { replace: true })
-  }
-  else {
-    // Real user — don't sign out, redirect to dashboard
-    await navigateTo(localePath('/dashboard'), { replace: true })
+  catch {
+    // On any error, default to sign-up
+    window.location.href = localePath('/auth/sign-up')
   }
 })
 </script>
