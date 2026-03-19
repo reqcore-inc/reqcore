@@ -3,13 +3,36 @@ definePageMeta({ layout: 'auth' })
 
 useSeoMeta({ robots: 'noindex, nofollow' })
 
-onMounted(() => {
-  // Full browser navigation to the server endpoint. The server checks
-  // the session, destroys it if it belongs to the demo org, clears
-  // auth cookies via Set-Cookie headers, and returns a 302 redirect
-  // to either /auth/sign-up or /dashboard. Using native navigation
-  // (not $fetch) guarantees the browser processes Set-Cookie headers.
-  window.location.replace('/api/auth/demo-fresh-signup')
+const localePath = useLocalePath()
+
+onMounted(async () => {
+  try {
+    // Check if there's an existing session and whether it's a demo org
+    const { hasSession, isDemo } = await $fetch('/api/auth/demo-check')
+
+    if (!hasSession) {
+      window.location.href = localePath('/auth/sign-up')
+      return
+    }
+
+    if (isDemo) {
+      // Sign out using the Better Auth client SDK — the same method
+      // that works in AppTopBar. This properly handles CSRF tokens,
+      // cookie clearing, and internal auth state, unlike raw $fetch
+      // to the sign-out endpoint which bypasses all of that.
+      await authClient.signOut()
+      clearNuxtData()
+      // Hard navigate to fully reset all client-side state
+      window.location.href = localePath('/auth/sign-up')
+    }
+    else {
+      // Real user with a non-demo account — go to dashboard
+      window.location.href = localePath('/dashboard')
+    }
+  }
+  catch {
+    window.location.href = localePath('/auth/sign-up')
+  }
 })
 </script>
 
