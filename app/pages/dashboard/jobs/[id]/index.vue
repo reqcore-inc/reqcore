@@ -7,7 +7,6 @@ import {
   CheckCircle2, XCircle, AlertTriangle, ArrowUpDown, ListFilter,
   Maximize2, Minimize2, Brain, Loader2,
 } from 'lucide-vue-next'
-import { z } from 'zod'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 import { APPLICATION_STATUS_TRANSITIONS, JOB_STATUS_TRANSITIONS, INTERVIEW_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
 
@@ -935,82 +934,6 @@ async function handleJobTransition(newStatus: string) {
 }
 
 // ─────────────────────────────────────────────
-// Edit Job modal
-// ─────────────────────────────────────────────
-
-const showEditModal = ref(false)
-const editForm = ref({
-  title: '',
-  description: '',
-  location: '',
-  type: 'full_time' as string,
-})
-
-const editSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(200),
-  description: z.string().optional(),
-  location: z.string().optional(),
-  type: z.enum(['full_time', 'part_time', 'contract', 'internship']),
-})
-
-const isSaving = ref(false)
-const editErrors = ref<Record<string, string>>({})
-
-function startEdit() {
-  if (!jobData.value) return
-  editForm.value = {
-    title: jobData.value.title,
-    description: jobData.value.description ?? '',
-    location: jobData.value.location ?? '',
-    type: jobData.value.type,
-  }
-  editErrors.value = {}
-  showEditModal.value = true
-  showMoreMenu.value = false
-}
-
-function cancelEdit() {
-  showEditModal.value = false
-  editErrors.value = {}
-}
-
-async function handleSave() {
-  const result = editSchema.safeParse(editForm.value)
-  if (!result.success) {
-    editErrors.value = {}
-    for (const issue of result.error.issues) {
-      const field = issue.path[0]?.toString()
-      if (field) editErrors.value[field] = issue.message
-    }
-    return
-  }
-  editErrors.value = {}
-
-  isSaving.value = true
-  try {
-    await updateJob({
-      title: editForm.value.title,
-      description: editForm.value.description || undefined,
-      location: editForm.value.location || undefined,
-      type: editForm.value.type as any,
-    })
-    showEditModal.value = false
-  } catch (err: any) {
-    if (handlePreviewReadOnlyError(err)) return
-    toast.error('Failed to save changes', { message: err.data?.statusMessage, statusCode: err.data?.statusCode })
-  } finally {
-    isSaving.value = false
-  }
-}
-
-const typeOptions = [
-  { value: 'full_time', label: 'Full-time' },
-  { value: 'part_time', label: 'Part-time' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'internship', label: 'Internship' },
-]
-
-// ─────────────────────────────────────────────
 // Delete
 // ─────────────────────────────────────────────
 
@@ -1264,13 +1187,14 @@ function closeDocPreview() {
                 v-if="showMoreMenu"
                 class="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-900 shadow-xl shadow-surface-900/5 dark:shadow-black/20 py-1.5 origin-top-right"
               >
-                <button
-                  class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors"
-                  @click="startEdit"
+                <NuxtLink
+                  :to="$localePath(`/dashboard/jobs/${jobId}/settings`)"
+                  class="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors"
+                  @click="showMoreMenu = false"
                 >
                   <Pencil class="size-3.5 text-surface-400" />
                   Edit Job
-                </button>
+                </NuxtLink>
                 <button
                   class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors sm:hidden"
                   @click="showApplyModal = true; showMoreMenu = false"
@@ -2360,88 +2284,6 @@ function closeDocPreview() {
     <!-- ═══════════════════════════════════════ -->
     <!-- MODALS                                   -->
     <!-- ═══════════════════════════════════════ -->
-
-    <!-- Edit Job Modal -->
-    <Teleport :to="teleportTarget">
-      <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center">
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="cancelEdit" />
-        <div class="relative bg-white dark:bg-surface-900 rounded-2xl shadow-2xl shadow-surface-900/10 dark:shadow-black/30 ring-1 ring-surface-200/80 dark:ring-surface-700/60 p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-          <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-100 mb-4">Edit Job</h3>
-
-          <form class="space-y-4" @submit.prevent="handleSave">
-            <div>
-              <label for="edit-title" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
-                Title <span class="text-danger-500">*</span>
-              </label>
-              <input
-                id="edit-title"
-                v-model="editForm.title"
-                type="text"
-                class="w-full rounded-lg border px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-                :class="editErrors.title ? 'border-danger-300' : 'border-surface-300 dark:border-surface-700'"
-              />
-              <p v-if="editErrors.title" class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ editErrors.title }}</p>
-            </div>
-
-            <div>
-              <label for="edit-description" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
-                Description
-              </label>
-              <textarea
-                id="edit-description"
-                v-model="editForm.description"
-                rows="4"
-                class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label for="edit-location" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
-                Location
-              </label>
-              <input
-                id="edit-location"
-                v-model="editForm.location"
-                type="text"
-                class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label for="edit-type" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
-                Employment Type
-              </label>
-              <select
-                id="edit-type"
-                v-model="editForm.type"
-                class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors bg-white dark:bg-surface-800"
-              >
-                <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                class="cursor-pointer rounded-lg border border-surface-300 dark:border-surface-700 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
-                @click="cancelEdit"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                :disabled="isSaving"
-                class="cursor-pointer rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {{ isSaving ? 'Saving…' : 'Save Changes' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Teleport>
 
     <!-- Delete Job Confirm -->
     <Teleport :to="teleportTarget">
