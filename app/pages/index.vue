@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { Github, Shield, Database, Users, Briefcase, ArrowRight } from 'lucide-vue-next'
 
+const { t } = useI18n()
 const localePath = useLocalePath()
 const { data: session } = await authClient.useSession(useFetch)
 
-const pillars = [
-  { icon: Database, label: 'Your data', desc: 'Postgres + MinIO on your infrastructure. Nothing leaves your network.' },
-  { icon: Shield, label: 'Fully auditable', desc: 'Open source — every line of matching logic is visible and overridable.' },
-  { icon: Users, label: 'Unlimited seats', desc: 'Add your whole hiring team. No per-seat pricing, ever.' },
-]
+const pillars = computed(() => [
+  { icon: Database, label: t('home.pillars.yourData.label'), desc: t('home.pillars.yourData.desc') },
+  { icon: Shield, label: t('home.pillars.auditable.label'), desc: t('home.pillars.auditable.desc') },
+  { icon: Users, label: t('home.pillars.unlimitedSeats.label'), desc: t('home.pillars.unlimitedSeats.desc') },
+])
 
 useHead({ title: 'Reqcore' })
 definePageMeta({ layout: false })
@@ -28,15 +29,15 @@ definePageMeta({ layout: false })
       <!-- ── Hero ── -->
       <div class="flex flex-col items-center text-center">
         <h1 class="hero-animate hero-delay-1 text-5xl font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
-          Your hiring.
+          {{ $t('home.hero.titleLine1') }}
           <br />
           <span class="bg-gradient-to-r from-brand-400 to-accent-400 bg-clip-text text-transparent">
-            Your infrastructure.
+            {{ $t('home.hero.titleHighlight') }}
           </span>
         </h1>
 
         <p class="hero-animate hero-delay-2 mt-6 max-w-md text-base leading-relaxed text-surface-400 sm:text-lg">
-          Open-source applicant tracking built for teams that self-host.
+          {{ $t('home.hero.subtitle') }}
         </p>
 
         <div class="hero-animate hero-delay-3 mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -45,7 +46,7 @@ definePageMeta({ layout: false })
             :to="localePath('/dashboard')"
             class="group flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-[14px] font-semibold text-[#09090b] transition hover:bg-white/90"
           >
-            Go to Dashboard
+            {{ $t('home.hero.goToDashboard') }}
             <ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </NuxtLink>
           <template v-else>
@@ -53,14 +54,14 @@ definePageMeta({ layout: false })
               :to="localePath('/auth/sign-in')"
               class="group flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-[14px] font-semibold text-[#09090b] transition hover:bg-white/90"
             >
-              Sign in
+              {{ $t('home.hero.signIn') }}
               <ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </NuxtLink>
             <NuxtLink
               :to="localePath('/auth/sign-up')"
               class="rounded-lg border border-white/[0.08] bg-white/[0.03] px-6 py-3 text-[14px] font-medium text-surface-300 transition hover:border-white/[0.14] hover:bg-white/[0.06]"
             >
-              Create account
+              {{ $t('home.hero.createAccount') }}
             </NuxtLink>
           </template>
         </div>
@@ -89,18 +90,18 @@ definePageMeta({ layout: false })
             class="flex items-center gap-1.5 text-[13px] text-surface-500 transition hover:text-surface-300"
           >
             <Github class="h-4 w-4" />
-            Source
+            {{ $t('home.footer.source') }}
           </a>
           <NuxtLink
             :to="localePath('/jobs')"
             class="flex items-center gap-1.5 text-[13px] text-surface-500 transition hover:text-surface-300"
           >
             <Briefcase class="h-3.5 w-3.5" />
-            Open Positions
+            {{ $t('home.nav.openPositions') }}
           </NuxtLink>
         </div>
         <p class="text-[12px] text-surface-600">
-          Reqcore — open-source applicant tracking
+          {{ $t('home.footer.tagline') }}
         </p>
       </footer>
     </main>

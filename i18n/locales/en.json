@@ -18,13 +18,33 @@
     },
     "badge": "Open Source ATS for Developer Teams",
     "hero": {
-      "titleLine1": "Hiring software",
-      "titleHighlight": "built for developer teams",
-      "subtitleLine1": "Most ATS tools were designed for HR departments.",
-      "subtitleLine2": "Reqcore is open source, self-hosted, and built with a stack you already know.",
+      "titleLine1": "Your hiring.",
+      "titleHighlight": "Your infrastructure.",
+      "subtitle": "Open-source applicant tracking built for teams that self-host.",
+      "goToDashboard": "Go to Dashboard",
+      "signIn": "Sign in",
+      "createAccount": "Create account",
       "ctaDemo": "Try live demo",
       "ctaStart": "View on GitHub",
       "hint": "Early open-source release — try the demo with sample data, no sign-up needed"
+    },
+    "pillars": {
+      "yourData": {
+        "label": "Your data",
+        "desc": "Postgres + MinIO on your infrastructure. Nothing leaves your network."
+      },
+      "auditable": {
+        "label": "Fully auditable",
+        "desc": "Open source — every line of matching logic is visible and overridable."
+      },
+      "unlimitedSeats": {
+        "label": "Unlimited seats",
+        "desc": "Add your whole hiring team. No per-seat pricing, ever."
+      }
+    },
+    "footer": {
+      "source": "Source",
+      "tagline": "Reqcore — open-source applicant tracking"
     }
   }
 }

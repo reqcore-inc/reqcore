@@ -7,24 +7,44 @@
   },
   "home": {
     "nav": {
-      "features": "Features",
-      "openPositions": "Open Positions",
-      "roadmap": "Roadmap",
+      "features": "Tính năng",
+      "openPositions": "Vị trí tuyển dụng",
+      "roadmap": "Lộ trình",
       "blog": "Blog",
       "github": "GitHub",
-      "dashboard": "Dashboard",
-      "logIn": "Log in",
-      "signUp": "Sign up"
+      "dashboard": "Bảng điều khiển",
+      "logIn": "Đăng nhập",
+      "signUp": "Đăng ký"
     },
-    "badge": "Open Source ATS for Developer Teams",
+    "badge": "ATS mã nguồn mở cho đội ngũ phát triển",
     "hero": {
-      "titleLine1": "Hiring software",
-      "titleHighlight": "built for developer teams",
-      "subtitleLine1": "Most ATS tools were designed for HR departments.",
-      "subtitleLine2": "Reqcore is open source, self-hosted, and built with a stack you already know.",
-      "ctaDemo": "Try live demo",
-      "ctaStart": "View on GitHub",
-      "hint": "Early open-source release — try the demo with sample data, no sign-up needed"
+      "titleLine1": "Tuyển dụng của bạn.",
+      "titleHighlight": "Hạ tầng của bạn.",
+      "subtitle": "Theo dõi ứng viên mã nguồn mở được xây dựng cho các đội tự vận hành.",
+      "goToDashboard": "Đi đến bảng điều khiển",
+      "signIn": "Đăng nhập",
+      "createAccount": "Tạo tài khoản",
+      "ctaDemo": "Thử demo trực tiếp",
+      "ctaStart": "Xem trên GitHub",
+      "hint": "Phiên bản mã nguồn mở sớm — thử demo với dữ liệu mẫu, không cần đăng ký"
+    },
+    "pillars": {
+      "yourData": {
+        "label": "Dữ liệu của bạn",
+        "desc": "Postgres + MinIO trên hạ tầng của bạn. Không có gì rời khỏi mạng của bạn."
+      },
+      "auditable": {
+        "label": "Kiểm toán hoàn toàn",
+        "desc": "Mã nguồn mở — mọi dòng logic matching đều có thể xem và tùy chỉnh."
+      },
+      "unlimitedSeats": {
+        "label": "Không giới hạn người dùng",
+        "desc": "Thêm toàn bộ đội tuyển dụng của bạn. Không tính phí theo người dùng, không bao giờ."
+      }
+    },
+    "footer": {
+      "source": "Mã nguồn",
+      "tagline": "Reqcore — theo dõi ứng viên mã nguồn mở"
     }
   }
 }
