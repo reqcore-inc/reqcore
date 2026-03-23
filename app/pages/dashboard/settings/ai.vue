@@ -164,9 +164,9 @@ async function handleSave() {
     <form v-else @submit.prevent="handleSave">
       <!-- Provider & Model section -->
       <section class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-        <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+        <div class="px-4 sm:px-6 py-5 border-b border-surface-200 dark:border-surface-800">
           <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center size-10 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
+            <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
               <Brain class="size-5" />
             </div>
             <div>
@@ -176,7 +176,7 @@ async function handleSave() {
           </div>
         </div>
 
-        <div class="px-6 py-5 space-y-5">
+        <div class="px-4 sm:px-6 py-5 space-y-5">
           <!-- Provider -->
           <div>
             <label for="ai-provider" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">
@@ -275,9 +275,9 @@ async function handleSave() {
 
       <!-- Pricing section -->
       <section class="mt-8 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-        <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+        <div class="px-4 sm:px-6 py-5 border-b border-surface-200 dark:border-surface-800">
           <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center size-10 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+            <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
               <DollarSign class="size-5" />
             </div>
             <div>
@@ -287,8 +287,8 @@ async function handleSave() {
           </div>
         </div>
 
-        <div class="px-6 py-5 space-y-5">
-          <div class="grid grid-cols-2 gap-4">
+        <div class="px-4 sm:px-6 py-5 space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="ai-input-price" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">
                 Input price <span class="text-surface-400 font-normal">/ 1M tokens</span>
@@ -334,28 +334,30 @@ async function handleSave() {
 
       <!-- API Key section -->
       <section class="mt-8 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-        <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
-          <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center size-10 rounded-lg bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
-              <Shield class="size-5" />
-            </div>
-            <div>
-              <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">API Key</h2>
-              <p class="text-sm text-surface-500 dark:text-surface-400">Your key is encrypted at rest using AES-256-GCM.</p>
+        <div class="px-4 sm:px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
+                <Shield class="size-5" />
+              </div>
+              <div class="min-w-0">
+                <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">API Key</h2>
+                <p class="text-sm text-surface-500 dark:text-surface-400">Your key is encrypted at rest using AES-256-GCM.</p>
+              </div>
             </div>
             <a
               v-if="providerApiKeyUrl"
               :href="providerApiKeyUrl"
               target="_blank"
               rel="noopener noreferrer"
-              class="ml-auto inline-flex items-center gap-1 text-xs text-brand-600 dark:text-brand-400 hover:underline"
+              class="inline-flex items-center gap-1 text-xs text-brand-600 dark:text-brand-400 hover:underline shrink-0"
             >
               Get API key <ExternalLink class="size-3" />
             </a>
           </div>
         </div>
 
-        <div class="px-6 py-5 space-y-5">
+        <div class="px-4 sm:px-6 py-5 space-y-5">
           <div v-if="hasExistingKey" class="flex items-center gap-2 text-xs text-success-600 dark:text-success-400 bg-success-50 dark:bg-success-950/40 border border-success-200 dark:border-success-900 rounded-lg px-3 py-2">
             <Check class="size-3.5" />
             API key is configured and encrypted.

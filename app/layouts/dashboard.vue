@@ -17,14 +17,14 @@ const isDemoAccount = computed(() => session.value?.user?.email === 'demo@reqcor
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-surface-50 dark:bg-surface-950">
+  <div class="flex h-screen flex-col overflow-hidden bg-surface-50 dark:bg-surface-950">
     <AppTopBar />
     <AppToasts />
     <PreviewUpsellModal v-if="isUpsellOpen" @close="closeUpsell" />
     <ClientOnly>
       <DemoUpsellBanner v-if="isDemoAccount" />
     </ClientOnly>
-    <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <main class="relative flex-1 min-h-0 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <!-- Demo mode banner -->
       <div
         v-if="isDemo"

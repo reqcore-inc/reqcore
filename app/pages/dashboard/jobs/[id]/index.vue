@@ -211,6 +211,9 @@ const statusCounts = computed(() => {
 
 const currentIndex = ref(0)
 
+// Mobile: toggle between candidate list and detail view
+const showMobileDetail = ref(false)
+
 watch(focusedApplications, () => {
   if (focusedApplications.value.length === 0) {
     currentIndex.value = 0
@@ -225,6 +228,16 @@ watch(focusStatus, () => {
   currentIndex.value = 0
   searchTerm.value = ''
   closePanels()
+})
+
+// Auto-scroll mobile bottom bar to keep selected candidate visible
+watch(currentIndex, () => {
+  nextTick(() => {
+    const container = mobileBottomBar.value
+    if (!container) return
+    const selected = container.querySelector(`[data-candidate-idx="${currentIndex.value}"]`) as HTMLElement | null
+    selected?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  })
 })
 
 const currentSummary = computed(() => filteredApplications.value[currentIndex.value] ?? null)
@@ -272,6 +285,7 @@ const interviewsRef = ref<HTMLElement | null>(null)
 const documentsRef = ref<HTMLElement | null>(null)
 const responsesRef = ref<HTMLElement | null>(null)
 const detailScrollContainer = ref<HTMLElement | null>(null)
+const mobileBottomBar = ref<HTMLElement | null>(null)
 
 type SwipeDocument = {
   id: string
@@ -454,6 +468,7 @@ function setFocusStatus(status: PipelineStatus) {
 
 function selectCandidate(index: number) {
   currentIndex.value = index
+  showMobileDetail.value = true
 }
 
 const isMutating = ref(false)
@@ -1125,7 +1140,7 @@ function closeDocPreview() {
     ref="pipelineContainer"
     :class="isFullscreen
       ? 'flex h-screen flex-col overflow-hidden bg-surface-50 dark:bg-surface-950'
-      : '-mx-6 -my-8 flex h-screen flex-col overflow-hidden'"
+      : 'absolute inset-0 flex flex-col overflow-hidden'"
   >
     <!-- Loading -->
     <div v-if="isLoading" class="flex flex-1 flex-col items-center justify-center gap-3">
@@ -1256,7 +1271,7 @@ function closeDocPreview() {
       <!-- PIPELINE STATUS TABS                     -->
       <!-- ═══════════════════════════════════════ -->
       <div class="shrink-0 border-b border-surface-200/80 bg-white dark:border-surface-800/60 dark:bg-surface-900">
-        <div class="flex items-center gap-1 overflow-x-auto px-5 py-2">
+        <div class="flex items-center gap-1 overflow-x-auto scrollbar-thin sm:scrollbar-none px-3 sm:px-5 py-2">
           <button
             v-for="status in PIPELINE_STATUSES"
             :key="`tab-${status}`"
@@ -1300,10 +1315,12 @@ function closeDocPreview() {
       <!-- ═══════════════════════════════════════ -->
       <!-- THREE-PANEL LAYOUT                       -->
       <!-- ═══════════════════════════════════════ -->
-      <div class="flex flex-1 overflow-hidden">
+      <div class="flex flex-1 min-h-0 overflow-hidden">
 
-        <!-- LEFT PANEL — Candidate list -->
-        <div class="flex w-72 shrink-0 flex-col border-r border-surface-200/80 bg-white dark:border-surface-800/60 dark:bg-surface-900">
+        <!-- LEFT PANEL — Candidate list (desktop only; mobile uses bottom bar) -->
+        <div
+          class="hidden md:flex md:w-72 md:shrink-0 flex-col border-r border-surface-200/80 bg-white dark:border-surface-800/60 dark:bg-surface-900"
+        >
           <!-- Search + Sort + Filter controls -->
           <div class="shrink-0 px-3.5 pt-3 pb-2 space-y-2 dark:border-surface-800">
             <!-- Search input -->
@@ -1458,7 +1475,7 @@ function closeDocPreview() {
           </div>
 
           <!-- Scrollable list -->
-          <div class="flex-1 overflow-y-auto border-t border-surface-100 dark:border-surface-800/60">
+          <div class="flex-1 overflow-y-auto scrollbar-thin border-t border-surface-100 dark:border-surface-800/60">
             <div v-if="filteredApplications.length === 0" class="p-8 text-center">
               <div class="flex size-12 items-center justify-center rounded-xl bg-surface-100 dark:bg-surface-800/60 mx-auto mb-3">
                 <UserRound class="size-5 text-surface-400 dark:text-surface-500" />
@@ -1523,7 +1540,10 @@ function closeDocPreview() {
         </div>
 
         <!-- CENTER PANEL — Candidate detail -->
-        <div class="flex flex-1 flex-col overflow-hidden">
+        <div
+          class="flex flex-1 flex-col overflow-hidden"
+        >
+
           <!-- Empty state -->
           <div
             v-if="!currentSummary"
@@ -1542,8 +1562,8 @@ function closeDocPreview() {
 
           <template v-else>
             <!-- Sticky status transitions (stays visible on scroll) -->
-            <div v-if="allowedTransitions.length > 0" class="shrink-0 border-b border-surface-200/80 bg-white/95 backdrop-blur-sm px-6 py-2.5 dark:border-surface-800/60 dark:bg-surface-900/95">
-              <div class="mx-auto max-w-4xl flex flex-wrap items-center gap-2">
+            <div v-if="allowedTransitions.length > 0" class="shrink-0 border-b border-surface-200/80 bg-white/95 backdrop-blur-sm px-4 sm:px-6 py-2.5 dark:border-surface-800/60 dark:bg-surface-900/95">
+              <div class="mx-auto max-w-4xl flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <button
                   v-for="(nextStatus, idx) in allowedTransitions"
                   :key="nextStatus"
@@ -1559,12 +1579,12 @@ function closeDocPreview() {
             </div>
 
             <!-- Scrollable container: header + tabs + content -->
-            <div ref="detailScrollContainer" class="flex-1 overflow-y-auto">
+            <div ref="detailScrollContainer" class="flex-1 overflow-y-auto scrollbar-thin pb-20 md:pb-0">
 
             <!-- Candidate header -->
-            <div class="border-b border-surface-200 bg-surface-50 px-6 py-6 dark:border-surface-800 dark:bg-surface-900/80">
+            <div class="border-b border-surface-200 bg-surface-50 px-4 sm:px-6 py-4 sm:py-6 dark:border-surface-800 dark:bg-surface-900/80">
               <div class="mx-auto max-w-4xl">
-              <div class="flex items-start justify-between gap-4">
+              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div class="flex items-start gap-4 min-w-0">
                   <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 text-lg font-bold text-white shadow-lg shadow-brand-500/20 dark:from-brand-500 dark:to-brand-700 dark:shadow-brand-500/10">
                     {{ getCandidateInitials(currentSummary.candidateFirstName, currentSummary.candidateLastName) }}
@@ -1669,8 +1689,8 @@ function closeDocPreview() {
             </div>
 
             <!-- Detail tabs -->
-            <div class="border-b border-surface-200/80 bg-white px-6 dark:border-surface-800/60 dark:bg-surface-900">
-              <div class="mx-auto max-w-4xl flex gap-1 -mb-px">
+            <div class="border-b border-surface-200/80 bg-white px-4 sm:px-6 dark:border-surface-800/60 dark:bg-surface-900">
+              <div class="mx-auto max-w-4xl flex gap-1 -mb-px overflow-x-auto scrollbar-none">
                 <div ref="overviewDropdownRef" class="relative">
                   <div class="flex items-center border-b-2 transition-all duration-150" :class="detailTab === 'overview'
                     ? 'border-brand-600 dark:border-brand-400'
@@ -1784,7 +1804,7 @@ function closeDocPreview() {
             </div>
 
             <!-- Detail content -->
-            <div class="bg-surface-50/80 dark:bg-surface-950/80 px-6 py-8">
+            <div class="bg-surface-50/80 dark:bg-surface-950/80 px-4 sm:px-6 py-5 sm:py-8">
               <div v-if="detailFetchStatus === 'pending' && !resolvedCurrentApplication" class="flex flex-col items-center justify-center py-12">
                 <div class="size-8 rounded-full border-2 border-brand-200 border-t-brand-600 dark:border-brand-800 dark:border-t-brand-400 animate-spin" />
                 <p class="mt-3 text-sm text-surface-400">Loading details…</p>
@@ -2278,6 +2298,77 @@ function closeDocPreview() {
         </div>
 
 
+      </div>
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- MOBILE BOTTOM CANDIDATE BAR              -->
+      <!-- ═══════════════════════════════════════ -->
+      <div
+        v-if="filteredApplications.length > 0"
+        class="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-surface-200/80 bg-white dark:border-surface-800/60 dark:bg-surface-900"
+        :style="{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }"
+      >
+        <!-- Horizontal scrollable candidate cards -->
+        <div
+          ref="mobileBottomBar"
+          class="flex items-stretch gap-2 overflow-x-auto snap-x snap-mandatory px-3 py-2.5 scrollbar-thin"
+        >
+          <button
+            v-for="(app, idx) in filteredApplications"
+            :key="app.id"
+            :data-candidate-idx="idx"
+            class="snap-center shrink-0 flex items-center gap-2.5 rounded-xl px-3 py-2 min-w-[130px] max-w-[180px] transition-all duration-150 cursor-pointer"
+            :class="currentIndex === idx
+              ? 'bg-brand-50 ring-2 ring-brand-500 shadow-sm dark:bg-brand-950/30 dark:ring-brand-400'
+              : 'bg-surface-50 ring-1 ring-surface-200 hover:ring-surface-300 dark:bg-surface-800/60 dark:ring-surface-700 dark:hover:ring-surface-600'"
+            @click="currentIndex = idx"
+          >
+            <div
+              class="flex size-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors duration-150"
+              :class="currentIndex === idx
+                ? 'bg-brand-500 text-white dark:bg-brand-600'
+                : 'bg-surface-200 text-surface-600 dark:bg-surface-700 dark:text-surface-300'"
+            >
+              {{ getCandidateInitials(app.candidateFirstName, app.candidateLastName) }}
+            </div>
+            <div class="min-w-0 text-left">
+              <p class="text-xs font-medium text-surface-800 dark:text-surface-100 truncate">
+                {{ app.candidateFirstName }}
+              </p>
+              <div class="flex items-center gap-1 mt-0.5">
+                <span
+                  v-if="app.score != null"
+                  class="text-[10px] font-semibold"
+                  :class="{
+                    'text-success-600 dark:text-success-400': app.score >= 75,
+                    'text-warning-600 dark:text-warning-400': app.score >= 40 && app.score < 75,
+                    'text-danger-600 dark:text-danger-400': app.score < 40,
+                  }"
+                >
+                  {{ app.score }}pts
+                </span>
+                <span class="text-[10px] text-surface-400 dark:text-surface-500">{{ timeAgo(app.createdAt) }}</span>
+              </div>
+            </div>
+          </button>
+        </div>
+        <!-- Position indicator -->
+        <div class="flex items-center justify-center pb-1.5">
+          <span class="text-[10px] font-medium text-surface-400 dark:text-surface-500 tabular-nums">
+            {{ currentIndex + 1 }} / {{ filteredApplications.length }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Mobile empty state for bottom bar -->
+      <div
+        v-else-if="focusedApplications.length === 0"
+        class="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-surface-200/80 bg-white dark:border-surface-800/60 dark:bg-surface-900 px-4 py-3 text-center"
+        :style="{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }"
+      >
+        <p class="text-xs text-surface-400 dark:text-surface-500">
+          No candidates in {{ formatStatusLabel(focusStatus) }}
+        </p>
       </div>
     </template>
 

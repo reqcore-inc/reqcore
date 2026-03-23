@@ -335,6 +335,43 @@
 
 /* ── Pipeline view premium touches ──────────────────── */
 
+/* Hide scrollbar but keep functionality (for horizontal-scroll navs) */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Thin visible scrollbar for scrollable panels */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-300) transparent;
+}
+.dark .scrollbar-thin {
+  scrollbar-color: var(--color-surface-600) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--color-surface-300);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-400);
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--color-surface-600);
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-500);
+}
+
 /* Smooth candidate card highlight on selection */
 .pipeline-candidate-card {
   position: relative;

@@ -580,7 +580,7 @@ onUnmounted(() => {
             </button>
           </div>
 
-          <div class="flex gap-3">
+          <div class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1">
               <label for="invite-email" class="sr-only">Email address</label>
               <input
@@ -657,7 +657,7 @@ onUnmounted(() => {
 
     <!-- Pending invitations -->
     <section v-if="canInvite && (isLoadingInvitations || pendingInvitations.length > 0)" class="mb-6 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-      <div class="px-6 py-4 border-b border-surface-200 dark:border-surface-800">
+      <div class="px-4 sm:px-6 py-4 border-b border-surface-200 dark:border-surface-800">
         <div class="flex items-center gap-3">
           <div class="flex items-center justify-center size-8 rounded-lg bg-warning-50 dark:bg-warning-950 text-warning-600 dark:text-warning-400">
             <Clock class="size-4" />
@@ -672,13 +672,13 @@ onUnmounted(() => {
       </div>
 
       <!-- Loading state -->
-      <div v-if="isLoadingInvitations" class="px-6 py-6 text-center text-surface-400 text-sm">
+      <div v-if="isLoadingInvitations" class="px-4 sm:px-6 py-6 text-center text-surface-400 text-sm">
         <Loader2 class="size-4 animate-spin mx-auto mb-1.5" />
         Loading invitations…
       </div>
 
       <!-- Error state -->
-      <div v-else-if="invitationsError" class="px-6 py-6 text-center">
+      <div v-else-if="invitationsError" class="px-4 sm:px-6 py-6 text-center">
         <AlertTriangle class="size-5 text-danger-400 mx-auto mb-1.5" />
         <p class="text-sm text-danger-600 dark:text-danger-400">{{ invitationsError }}</p>
         <button class="mt-1.5 text-sm text-brand-600 hover:text-brand-700 underline" @click="fetchInvitations">
@@ -691,40 +691,40 @@ onUnmounted(() => {
         <div
           v-for="inv in pendingInvitations"
           :key="inv.id"
-          class="px-6 py-3.5 flex items-center gap-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
+          class="px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
         >
-          <!-- Email icon -->
-          <div class="flex-shrink-0">
-            <div class="size-9 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center text-surface-400 dark:text-surface-500">
-              <Mail class="size-4" />
+          <!-- Email icon + Info -->
+          <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+            <div class="flex-shrink-0">
+              <div class="size-9 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center text-surface-400 dark:text-surface-500">
+                <Mail class="size-4" />
+              </div>
             </div>
-          </div>
-
-          <!-- Info -->
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">
-              <a
-                :href="`mailto:${inv.email}`"
-                target="_blank"
-                class="hover:text-brand-600 dark:hover:text-brand-400 hover:underline cursor-pointer transition-colors"
-              >{{ inv.email }}</a>
-            </div>
-            <div class="flex items-center gap-2 text-xs text-surface-400 dark:text-surface-500">
-              <span
-                :class="[getRoleConfig(inv.role).bg, getRoleConfig(inv.role).color]"
-                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-              >
-                <component :is="getRoleConfig(inv.role).icon" class="size-2.5" />
-                {{ getRoleConfig(inv.role).label }}
-              </span>
-              <span :class="isExpired(inv.expiresAt) ? 'text-danger-500' : ''">
-                {{ formatExpiresAt(inv.expiresAt) }}
-              </span>
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">
+                <a
+                  :href="`mailto:${inv.email}`"
+                  target="_blank"
+                  class="hover:text-brand-600 dark:hover:text-brand-400 hover:underline cursor-pointer transition-colors"
+                >{{ inv.email }}</a>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-surface-400 dark:text-surface-500">
+                <span
+                  :class="[getRoleConfig(inv.role).bg, getRoleConfig(inv.role).color]"
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                >
+                  <component :is="getRoleConfig(inv.role).icon" class="size-2.5" />
+                  {{ getRoleConfig(inv.role).label }}
+                </span>
+                <span :class="isExpired(inv.expiresAt) ? 'text-danger-500' : ''">
+                  {{ formatExpiresAt(inv.expiresAt) }}
+                </span>
+              </div>
             </div>
           </div>
 
           <!-- Actions -->
-          <div v-if="canCancelInvite" class="flex items-center gap-1.5 flex-shrink-0">
+          <div v-if="canCancelInvite" class="flex items-center gap-1.5 flex-shrink-0 pl-12 sm:pl-0">
             <button
               :disabled="resendingInvitation === inv.id"
               class="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-3 py-1.5 text-xs font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -752,13 +752,13 @@ onUnmounted(() => {
 
     <!-- Invite links section -->
     <section v-if="canInvite" class="mb-6 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-      <div class="px-6 py-4 border-b border-surface-200 dark:border-surface-800">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center size-8 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
+      <div class="px-4 sm:px-6 py-4 border-b border-surface-200 dark:border-surface-800">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="flex items-center justify-center size-8 shrink-0 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
               <Link2 class="size-4" />
             </div>
-            <div>
+            <div class="min-w-0">
               <h2 class="text-sm font-semibold text-surface-900 dark:text-surface-100">Invite links</h2>
               <p class="text-xs text-surface-500 dark:text-surface-400">
                 Shareable links to join your organization
@@ -783,7 +783,7 @@ onUnmounted(() => {
         enter-from-class="opacity-0 -translate-y-2"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div v-if="showCreateLinkForm" class="px-6 py-4 border-b border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50">
+        <div v-if="showCreateLinkForm" class="px-4 sm:px-6 py-4 border-b border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-medium text-surface-900 dark:text-surface-100">New invite link</h3>
             <button
@@ -858,20 +858,20 @@ onUnmounted(() => {
         enter-from-class="opacity-0"
         leave-to-class="opacity-0"
       >
-        <div v-if="createLinkSuccess" class="px-6 py-2 flex items-center gap-2 text-sm text-success-600 dark:text-success-400 bg-success-50 dark:bg-success-950/40 border-b border-success-200 dark:border-success-900">
+        <div v-if="createLinkSuccess" class="px-4 sm:px-6 py-2 flex items-center gap-2 text-sm text-success-600 dark:text-success-400 bg-success-50 dark:bg-success-950/40 border-b border-success-200 dark:border-success-900">
           <Check class="size-4" />
           {{ createLinkSuccess }}
         </div>
       </Transition>
 
       <!-- Loading state -->
-      <div v-if="isLoadingLinks" class="px-6 py-6 text-center text-surface-400 text-sm">
+      <div v-if="isLoadingLinks" class="px-4 sm:px-6 py-6 text-center text-surface-400 text-sm">
         <Loader2 class="size-4 animate-spin mx-auto mb-1.5" />
         Loading invite links…
       </div>
 
       <!-- Error state -->
-      <div v-else-if="linksError" class="px-6 py-6 text-center">
+      <div v-else-if="linksError" class="px-4 sm:px-6 py-6 text-center">
         <AlertTriangle class="size-5 text-danger-400 mx-auto mb-1.5" />
         <p class="text-sm text-danger-600 dark:text-danger-400">{{ linksError }}</p>
         <button class="mt-1.5 text-sm text-brand-600 hover:text-brand-700 underline" @click="fetchInviteLinks">
@@ -880,7 +880,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Empty state -->
-      <div v-else-if="inviteLinks.length === 0 && !showCreateLinkForm" class="px-6 py-6 text-center text-sm text-surface-400 dark:text-surface-500">
+      <div v-else-if="inviteLinks.length === 0 && !showCreateLinkForm" class="px-4 sm:px-6 py-6 text-center text-sm text-surface-400 dark:text-surface-500">
         No active invite links. Create one to share with your team.
       </div>
 
@@ -889,38 +889,40 @@ onUnmounted(() => {
         <div
           v-for="link in inviteLinks"
           :key="link.id"
-          class="px-6 py-3.5 flex items-center gap-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
+          class="px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
           :class="{ 'opacity-50': !isLinkActive(link) }"
         >
-          <div class="flex-shrink-0">
-            <div class="size-9 rounded-full flex items-center justify-center"
-              :class="isLinkActive(link) ? 'bg-brand-100 dark:bg-brand-950 text-brand-600 dark:text-brand-400' : 'bg-surface-100 dark:bg-surface-800 text-surface-400'"
-            >
-              <Link2 class="size-4" />
-            </div>
-          </div>
-
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 text-sm font-medium text-surface-900 dark:text-surface-100">
-              <span
-                :class="[getRoleConfig(link.role).bg, getRoleConfig(link.role).color]"
-                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+          <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+            <div class="flex-shrink-0">
+              <div class="size-9 rounded-full flex items-center justify-center"
+                :class="isLinkActive(link) ? 'bg-brand-100 dark:bg-brand-950 text-brand-600 dark:text-brand-400' : 'bg-surface-100 dark:bg-surface-800 text-surface-400'"
               >
-                <component :is="getRoleConfig(link.role).icon" class="size-2.5" />
-                {{ getRoleConfig(link.role).label }}
-              </span>
-              <span v-if="!isLinkActive(link)" class="text-xs text-danger-500">Inactive</span>
+                <Link2 class="size-4" />
+              </div>
             </div>
-            <div class="flex items-center gap-3 text-xs text-surface-400 dark:text-surface-500 mt-0.5">
-              <span>{{ link.useCount }}{{ link.maxUses ? `/${link.maxUses}` : '' }} uses</span>
-              <span :class="isExpired(link.expiresAt) ? 'text-danger-500' : ''">
-                {{ formatExpiresAt(link.expiresAt) }}
-              </span>
-              <span v-if="link.createdByName">by {{ link.createdByName }}</span>
+
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 text-sm font-medium text-surface-900 dark:text-surface-100">
+                <span
+                  :class="[getRoleConfig(link.role).bg, getRoleConfig(link.role).color]"
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                >
+                  <component :is="getRoleConfig(link.role).icon" class="size-2.5" />
+                  {{ getRoleConfig(link.role).label }}
+                </span>
+                <span v-if="!isLinkActive(link)" class="text-xs text-danger-500">Inactive</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs text-surface-400 dark:text-surface-500 mt-0.5">
+                <span>{{ link.useCount }}{{ link.maxUses ? `/${link.maxUses}` : '' }} uses</span>
+                <span :class="isExpired(link.expiresAt) ? 'text-danger-500' : ''">
+                  {{ formatExpiresAt(link.expiresAt) }}
+                </span>
+                <span v-if="link.createdByName">by {{ link.createdByName }}</span>
+              </div>
             </div>
           </div>
 
-          <div class="flex items-center gap-1.5 flex-shrink-0">
+          <div class="flex items-center gap-1.5 flex-shrink-0 pl-12 sm:pl-0">
             <button
               v-if="isLinkActive(link)"
               class="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-3 py-1.5 text-xs font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
@@ -948,7 +950,7 @@ onUnmounted(() => {
 
     <!-- Join requests section -->
     <section v-if="canInvite && (isLoadingJoinRequests || joinRequests.length > 0)" class="mb-6 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-      <div class="px-6 py-4 border-b border-surface-200 dark:border-surface-800">
+      <div class="px-4 sm:px-6 py-4 border-b border-surface-200 dark:border-surface-800">
         <div class="flex items-center gap-3">
           <div class="flex items-center justify-center size-8 rounded-lg bg-warning-50 dark:bg-warning-950 text-warning-600 dark:text-warning-400">
             <UserCheck class="size-4" />
@@ -963,7 +965,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Join request action error -->
-      <div v-if="joinRequestActionError" class="px-6 py-2 flex items-center justify-between text-sm text-danger-700 dark:text-danger-400 bg-danger-50 dark:bg-danger-950/40 border-b border-danger-200 dark:border-danger-900">
+      <div v-if="joinRequestActionError" class="px-4 sm:px-6 py-2 flex items-center justify-between text-sm text-danger-700 dark:text-danger-400 bg-danger-50 dark:bg-danger-950/40 border-b border-danger-200 dark:border-danger-900">
         <span>{{ joinRequestActionError }}</span>
         <button class="text-danger-500 hover:text-danger-700 transition-colors" @click="joinRequestActionError = ''">
           <X class="size-4" />
@@ -971,13 +973,13 @@ onUnmounted(() => {
       </div>
 
       <!-- Loading state -->
-      <div v-if="isLoadingJoinRequests" class="px-6 py-6 text-center text-surface-400 text-sm">
+      <div v-if="isLoadingJoinRequests" class="px-4 sm:px-6 py-6 text-center text-surface-400 text-sm">
         <Loader2 class="size-4 animate-spin mx-auto mb-1.5" />
         Loading join requests…
       </div>
 
       <!-- Error state -->
-      <div v-else-if="joinRequestsError" class="px-6 py-6 text-center">
+      <div v-else-if="joinRequestsError" class="px-4 sm:px-6 py-6 text-center">
         <AlertTriangle class="size-5 text-danger-400 mx-auto mb-1.5" />
         <p class="text-sm text-danger-600 dark:text-danger-400">{{ joinRequestsError }}</p>
         <button class="mt-1.5 text-sm text-brand-600 hover:text-brand-700 underline" @click="fetchJoinRequests">
@@ -990,37 +992,38 @@ onUnmounted(() => {
         <div
           v-for="req in joinRequests"
           :key="req.id"
-          class="px-6 py-3.5 flex items-center gap-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
+          class="px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
         >
-          <!-- Avatar -->
-          <div class="flex-shrink-0">
-            <img
-              v-if="req.userImage"
-              :src="req.userImage"
-              :alt="req.userName"
-              class="size-9 rounded-full object-cover ring-2 ring-surface-100 dark:ring-surface-800"
-            />
-            <div v-else class="size-9 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-xs font-semibold text-brand-700 dark:text-brand-300 ring-2 ring-surface-100 dark:ring-surface-800">
-              {{ req.userName?.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || '?' }}
+          <!-- Avatar + Info -->
+          <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+            <div class="flex-shrink-0">
+              <img
+                v-if="req.userImage"
+                :src="req.userImage"
+                :alt="req.userName"
+                class="size-9 rounded-full object-cover ring-2 ring-surface-100 dark:ring-surface-800"
+              />
+              <div v-else class="size-9 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-xs font-semibold text-brand-700 dark:text-brand-300 ring-2 ring-surface-100 dark:ring-surface-800">
+                {{ req.userName?.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || '?' }}
+              </div>
             </div>
-          </div>
 
-          <!-- Info -->
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">
-              {{ req.userName }}
-            </div>
-            <div class="text-xs text-surface-500 dark:text-surface-400 truncate">
-              {{ req.userEmail }}
-            </div>
-            <div v-if="req.message" class="mt-1 text-xs text-surface-500 dark:text-surface-400 italic flex items-start gap-1">
-              <MessageSquare class="size-3 mt-0.5 flex-shrink-0" />
-              <span class="truncate">"{{ req.message }}"</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">
+                {{ req.userName }}
+              </div>
+              <div class="text-xs text-surface-500 dark:text-surface-400 truncate">
+                {{ req.userEmail }}
+              </div>
+              <div v-if="req.message" class="mt-1 text-xs text-surface-500 dark:text-surface-400 italic flex items-start gap-1">
+                <MessageSquare class="size-3 mt-0.5 flex-shrink-0" />
+                <span class="truncate">"{{ req.message }}"</span>
+              </div>
             </div>
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center gap-1.5 flex-shrink-0">
+          <div class="flex items-center gap-1.5 flex-shrink-0 pl-12 sm:pl-0">
             <button
               :disabled="approvingRequestId === req.id"
               class="inline-flex items-center gap-1.5 rounded-lg bg-success-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-success-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1048,10 +1051,10 @@ onUnmounted(() => {
 
     <!-- Members list -->
     <section class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
-      <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
-        <div class="flex items-center justify-between">
+      <div class="px-4 sm:px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center size-10 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
+            <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
               <Users class="size-5" />
             </div>
             <div>
@@ -1062,24 +1065,27 @@ onUnmounted(() => {
             </div>
           </div>
           <div v-if="!isLoadingMembers && members.length > 5" class="flex-shrink-0">
-            <input
-              v-model="memberSearch"
-              type="text"
-              placeholder="Search members…"
-              class="w-48 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-3 py-1.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-            />
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-surface-400 pointer-events-none" />
+              <input
+                v-model="memberSearch"
+                type="text"
+                placeholder="Search members…"
+                class="w-full sm:w-48 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 pl-8.5 pr-3 py-1.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+              />
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Loading state -->
-      <div v-if="isLoadingMembers" class="px-6 py-8 text-center text-surface-400 text-sm">
+      <div v-if="isLoadingMembers" class="px-4 sm:px-6 py-8 text-center text-surface-400 text-sm">
         <Loader2 class="size-5 animate-spin mx-auto mb-2" />
         Loading members…
       </div>
 
       <!-- Error state -->
-      <div v-else-if="membersError" class="px-6 py-8 text-center">
+      <div v-else-if="membersError" class="px-4 sm:px-6 py-8 text-center">
         <AlertTriangle class="size-6 text-danger-400 mx-auto mb-2" />
         <p class="text-sm text-danger-600 dark:text-danger-400">{{ membersError }}</p>
         <button class="mt-2 text-sm text-brand-600 hover:text-brand-700 underline" @click="fetchMembers">
@@ -1092,40 +1098,41 @@ onUnmounted(() => {
         <div
           v-for="m in visibleMembers"
           :key="m.id"
-          class="px-6 py-4 flex items-center gap-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
+          class="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
         >
-          <!-- Avatar -->
-          <div class="flex-shrink-0">
-            <img
-              v-if="m.user.image"
-              :src="m.user.image"
-              :alt="m.user.name"
-              class="size-10 rounded-full object-cover ring-2 ring-surface-100 dark:ring-surface-800"
-            />
-            <div v-else class="size-10 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-sm font-semibold text-brand-700 dark:text-brand-300 ring-2 ring-surface-100 dark:ring-surface-800">
-              {{ getInitials(m.user.name) }}
+          <!-- Avatar + Info row -->
+          <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+            <div class="flex-shrink-0">
+              <img
+                v-if="m.user.image"
+                :src="m.user.image"
+                :alt="m.user.name"
+                class="size-10 rounded-full object-cover ring-2 ring-surface-100 dark:ring-surface-800"
+              />
+              <div v-else class="size-10 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-sm font-semibold text-brand-700 dark:text-brand-300 ring-2 ring-surface-100 dark:ring-surface-800">
+                {{ getInitials(m.user.name) }}
+              </div>
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">
+                  {{ m.user.name }}
+                </span>
+                <span v-if="isCurrentUser(m.userId)" class="text-xs text-surface-400 dark:text-surface-500">(you)</span>
+              </div>
+              <div class="text-sm text-surface-500 dark:text-surface-400 truncate">
+                <a
+                  :href="`mailto:${m.user.email}`"
+                  target="_blank"
+                  class="hover:text-brand-600 dark:hover:text-brand-400 hover:underline cursor-pointer transition-colors"
+                >{{ m.user.email }}</a>
+              </div>
             </div>
           </div>
 
-          <!-- Info -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">
-                {{ m.user.name }}
-              </span>
-              <span v-if="isCurrentUser(m.userId)" class="text-xs text-surface-400 dark:text-surface-500">(you)</span>
-            </div>
-            <div class="text-sm text-surface-500 dark:text-surface-400 truncate">
-              <a
-                :href="`mailto:${m.user.email}`"
-                target="_blank"
-                class="hover:text-brand-600 dark:hover:text-brand-400 hover:underline cursor-pointer transition-colors"
-              >{{ m.user.email }}</a>
-            </div>
-          </div>
-
-          <!-- Role badge -->
-          <div class="flex-shrink-0">
+          <!-- Role badge + Actions -->
+          <div class="flex items-center gap-2 pl-[3.25rem] sm:pl-0 flex-shrink-0">
             <span
               :class="[getRoleConfig(m.role).bg, getRoleConfig(m.role).color]"
               class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
@@ -1133,10 +1140,9 @@ onUnmounted(() => {
               <component :is="getRoleConfig(m.role).icon" class="size-3" />
               {{ getRoleConfig(m.role).label }}
             </span>
-          </div>
 
           <!-- Actions dropdown -->
-          <div v-if="canManageMembers && !isCurrentUser(m.userId) && m.role !== 'owner'" class="flex-shrink-0 relative" data-member-actions>
+          <div v-if="canManageMembers && !isCurrentUser(m.userId) && m.role !== 'owner'" class="relative" data-member-actions>
             <button
               class="p-1.5 rounded-md text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
               @click.stop="toggleDropdown(m.id)"
@@ -1197,10 +1203,11 @@ onUnmounted(() => {
           <div v-if="isUpdatingRole === m.id" class="flex-shrink-0">
             <Loader2 class="size-4 animate-spin text-brand-500" />
           </div>
+          </div>
         </div>
 
         <!-- Show more button -->
-        <div v-if="hasMoreMembers" class="px-6 py-3 text-center border-t border-surface-100 dark:border-surface-800">
+        <div v-if="hasMoreMembers" class="px-4 sm:px-6 py-3 text-center border-t border-surface-100 dark:border-surface-800">
           <button
             class="text-sm font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors"
             @click="showMoreMembers"

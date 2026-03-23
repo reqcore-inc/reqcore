@@ -136,9 +136,9 @@ function getInitials(name: string | undefined): string {
 
     <!-- Profile section -->
     <section class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-      <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+      <div class="px-4 sm:px-6 py-5 border-b border-surface-200 dark:border-surface-800">
         <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center size-10 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
+          <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
             <User class="size-5" />
           </div>
           <div>
@@ -148,7 +148,7 @@ function getInitials(name: string | undefined): string {
         </div>
       </div>
 
-      <div class="px-6 py-5 space-y-5">
+      <div class="px-4 sm:px-6 py-5 space-y-5">
         <!-- Avatar row -->
         <div class="flex items-center gap-4">
           <div v-if="session?.user?.image" class="size-16 rounded-full overflow-hidden ring-2 ring-surface-200 dark:ring-surface-700">
@@ -233,9 +233,9 @@ function getInitials(name: string | undefined): string {
 
     <!-- Password section -->
     <section class="mt-8 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-      <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+      <div class="px-4 sm:px-6 py-5 border-b border-surface-200 dark:border-surface-800">
         <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center size-10 rounded-lg bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
+          <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
             <KeyRound class="size-5" />
           </div>
           <div>
@@ -245,7 +245,7 @@ function getInitials(name: string | undefined): string {
         </div>
       </div>
 
-      <div class="px-6 py-5 space-y-5">
+      <div class="px-4 sm:px-6 py-5 space-y-5">
         <!-- Current password -->
         <div>
           <label for="current-password" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">
@@ -374,9 +374,9 @@ function getInitials(name: string | undefined): string {
 
     <!-- Session info -->
     <section class="mt-8 rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-      <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+      <div class="px-4 sm:px-6 py-5 border-b border-surface-200 dark:border-surface-800">
         <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center size-10 rounded-lg bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
+          <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
             <Calendar class="size-5" />
           </div>
           <div>
@@ -386,7 +386,7 @@ function getInitials(name: string | undefined): string {
         </div>
       </div>
 
-      <div class="px-6 py-5">
+      <div class="px-4 sm:px-6 py-5">
         <dl class="space-y-3">
           <div class="flex items-center justify-between">
             <dt class="text-sm text-surface-500 dark:text-surface-400">Session ID</dt>

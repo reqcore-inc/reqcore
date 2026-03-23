@@ -112,7 +112,7 @@ async function handleDisconnect() {
     <!-- Google Calendar Integration Card -->
     <div class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center gap-4 px-6 py-5 border-b border-surface-100 dark:border-surface-800">
+      <div class="flex items-center gap-4 px-4 sm:px-6 py-5 border-b border-surface-100 dark:border-surface-800">
         <div class="flex items-center justify-center size-10 rounded-lg bg-brand-50 dark:bg-brand-950/40">
           <Calendar class="size-5 text-brand-600 dark:text-brand-400" />
         </div>
@@ -142,7 +142,7 @@ async function handleDisconnect() {
       </div>
 
       <!-- Body -->
-      <div class="px-6 py-5">
+      <div class="px-4 sm:px-6 py-5">
         <!-- Loading state -->
         <div v-if="status === 'pending'" class="flex items-center justify-center py-4">
           <Loader2 class="size-5 text-surface-400 animate-spin" />
