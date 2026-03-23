@@ -126,9 +126,9 @@ async function handleDeleteOrg() {
 
     <!-- Organization profile -->
     <section class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-      <div class="px-6 py-5 border-b border-surface-200 dark:border-surface-800">
+      <div class="px-4 sm:px-6 py-5 border-b border-surface-200 dark:border-surface-800">
         <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center size-10 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
+          <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
             <Building2 class="size-5" />
           </div>
           <div>
@@ -138,7 +138,7 @@ async function handleDeleteOrg() {
         </div>
       </div>
 
-      <div class="px-6 py-5 space-y-5">
+      <div class="px-4 sm:px-6 py-5 space-y-5">
         <div>
           <label for="org-name" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">
             Organization name
@@ -210,9 +210,9 @@ async function handleDeleteOrg() {
 
     <!-- Danger zone -->
     <section v-if="canDeleteOrg" class="mt-8 rounded-xl border border-danger-200 dark:border-danger-900 bg-white dark:bg-surface-900 overflow-hidden">
-      <div class="px-6 py-5 border-b border-danger-200 dark:border-danger-900 bg-danger-50/50 dark:bg-danger-950/20">
+      <div class="px-4 sm:px-6 py-5 border-b border-danger-200 dark:border-danger-900 bg-danger-50/50 dark:bg-danger-950/20">
         <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center size-10 rounded-lg bg-danger-100 dark:bg-danger-950 text-danger-600 dark:text-danger-400">
+          <div class="flex items-center justify-center size-10 shrink-0 rounded-lg bg-danger-100 dark:bg-danger-950 text-danger-600 dark:text-danger-400">
             <AlertTriangle class="size-5" />
           </div>
           <div>
@@ -222,8 +222,8 @@ async function handleDeleteOrg() {
         </div>
       </div>
 
-      <div class="px-6 py-5">
-        <div class="flex items-start justify-between gap-4">
+      <div class="px-4 sm:px-6 py-5">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h3 class="text-sm font-semibold text-surface-900 dark:text-surface-100">Delete organization</h3>
             <p class="text-sm text-surface-500 dark:text-surface-400 mt-0.5">
