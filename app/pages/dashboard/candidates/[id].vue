@@ -300,12 +300,12 @@ function formatFileSize(bytes: number | null | undefined): string {
       <!-- VIEW MODE -->
       <div v-if="!isEditing">
         <!-- Header -->
-        <div class="flex items-start justify-between gap-4 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
           <div class="min-w-0">
             <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-50 truncate mb-1">
               {{ candidate.firstName }} {{ candidate.lastName }}
             </h1>
-            <div class="flex items-center gap-4 text-sm text-surface-500">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-surface-500">
               <a
                 :href="`mailto:${candidate.email}`"
                 target="_blank"
@@ -342,7 +342,7 @@ function formatFileSize(bytes: number | null | undefined): string {
         <!-- Contact details -->
         <div class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 mb-4">
           <h2 class="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3">Details</h2>
-          <dl class="grid grid-cols-2 gap-3 text-sm">
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
               <dt class="text-surface-400">Email</dt>
               <dd class="text-surface-700 dark:text-surface-200 font-medium">
@@ -429,7 +429,7 @@ function formatFileSize(bytes: number | null | undefined): string {
             <div
               v-for="app in candidate.applications"
               :key="app.id"
-              class="flex items-center justify-between rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-3 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all group"
+              class="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-3 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all group gap-2"
             >
               <NuxtLink
                 :to="$localePath(`/dashboard/applications/${app.id}`)"
@@ -442,7 +442,7 @@ function formatFileSize(bytes: number | null | undefined): string {
                   Applied {{ new Date(app.createdAt).toLocaleDateString() }}
                 </span>
               </NuxtLink>
-              <div class="flex items-center gap-2 shrink-0 ml-3">
+              <div class="flex items-center gap-2 shrink-0 sm:ml-3">
                 <button
                   class="inline-flex items-center gap-1 rounded-lg border border-surface-200 dark:border-surface-700 px-2 py-1 text-xs font-medium text-surface-600 dark:text-surface-400 hover:border-brand-400 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30 hover:text-brand-700 dark:hover:text-brand-300 transition-all cursor-pointer"
                   title="Schedule Interview"

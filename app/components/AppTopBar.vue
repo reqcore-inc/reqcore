@@ -508,7 +508,7 @@ onUnmounted(() => {
 
         <div class="px-4 pb-3 flex flex-col gap-2 border-t border-surface-100 dark:border-surface-800 pt-3 lg:hidden">
           <OrgSwitcher />
-          <LanguageSwitcher />
+          <LanguageSwitcher drop-up />
         </div>
       </div>
     </Transition>

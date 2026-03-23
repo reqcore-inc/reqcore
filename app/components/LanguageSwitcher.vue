@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ChevronDown } from 'lucide-vue-next'
 
+const props = withDefaults(defineProps<{
+  dropUp?: boolean
+}>(), {
+  dropUp: false,
+})
+
 const route = useRoute()
 const requestURL = useRequestURL()
 const { locale, locales, t } = useI18n()
@@ -189,7 +195,8 @@ async function handleLocaleChange(nextLocale: string) {
         v-if="isOpen"
         role="listbox"
         :aria-label="t('common.selectLanguage')"
-        class="absolute right-0 z-50 mt-1 min-w-40 rounded-md border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 shadow-lg py-1 text-xs"
+        class="absolute z-50 min-w-40 rounded-md border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 shadow-lg py-1 text-xs"
+        :class="props.dropUp ? 'left-0 bottom-full mb-1' : 'right-0 mt-1'"
       >
         <li
           v-for="option in localeOptions"

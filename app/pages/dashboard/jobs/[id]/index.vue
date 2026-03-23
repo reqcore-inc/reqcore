@@ -1690,7 +1690,7 @@ function closeDocPreview() {
 
             <!-- Detail tabs -->
             <div class="border-b border-surface-200/80 bg-white px-4 sm:px-6 dark:border-surface-800/60 dark:bg-surface-900">
-              <div class="mx-auto max-w-4xl flex gap-1 -mb-px overflow-x-auto scrollbar-none">
+              <div class="mx-auto max-w-4xl flex gap-1 -mb-px overflow-x-auto scrollbar-none whitespace-nowrap">
                 <div ref="overviewDropdownRef" class="relative">
                   <div class="flex items-center border-b-2 transition-all duration-150" :class="detailTab === 'overview'
                     ? 'border-brand-600 dark:border-brand-400'
