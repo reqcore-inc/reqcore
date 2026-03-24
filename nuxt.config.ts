@@ -111,6 +111,13 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#09090b' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1.0, maximum-scale=5.0' },
       ],
+      script: [
+        {
+          // Blocking inline script to apply dark mode before first paint (prevents white flash)
+          innerHTML: '(function(){try{var s=localStorage.getItem("reqcore-color-mode");if(s==="dark"||(!s&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()',
+          tagPosition: 'head',
+        },
+      ],
       // Plausible removed — PostHog handles all analytics
     },
   },
