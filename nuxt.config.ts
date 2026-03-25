@@ -58,6 +58,9 @@ export default defineNuxtConfig({
   // ─────────────────────────────────────────────
   // PostHog — privacy-focused product analytics & feature flags
   // ─────────────────────────────────────────────
+  // Enable source maps so PostHog error tracking can display readable stack traces
+  sourcemap: { client: 'hidden' },
+
   posthogConfig: {
     publicKey: process.env.POSTHOG_PUBLIC_KEY || '',
     host: process.env.POSTHOG_HOST || 'https://eu.i.posthog.com',
@@ -76,9 +79,19 @@ export default defineNuxtConfig({
       secure_cookie: true,
       capture_pageview: true,
       capture_pageleave: true,
+      // ── Error tracking: capture unhandled errors and rejections ──
+      capture_exceptions: {
+        capture_unhandled_errors: true,
+        capture_unhandled_rejections: true,
+        capture_console_errors: false,
+      },
       // ── Persistence ──
       persistence: 'localStorage+cookie',
       cross_subdomain_cookie: true,
+    },
+    serverConfig: {
+      // Capture uncaught exceptions and unhandled rejections on the server
+      enableExceptionAutocapture: true,
     },
   },
 

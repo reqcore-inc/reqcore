@@ -18,6 +18,7 @@ const emit = defineEmits<{
 
 const { handlePreviewReadOnlyError } = usePreviewReadOnly()
 const toast = useToast()
+const { track } = useTrack()
 
 // Detect if the job sub-nav bar is visible (adds 40px / 2.5rem)
 const route = useRoute()
@@ -116,6 +117,11 @@ async function handleTransition(newStatus: string) {
     await $fetch(`/api/applications/${props.applicationId}`, {
       method: 'PATCH',
       body: { status: newStatus },
+    })
+    track('sidebar_status_changed', {
+      application_id: props.applicationId,
+      from_status: application.value?.status,
+      to_status: newStatus,
     })
     await refresh()
     emit('updated')
@@ -241,6 +247,7 @@ function closePreview() {
 
 async function handleDownload(docId: string) {
   try {
+    track('document_downloaded', { document_id: docId })
     await downloadDocument(docId)
   } catch {
     toast.error('Failed to download document')

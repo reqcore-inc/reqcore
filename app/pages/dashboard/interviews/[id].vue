@@ -17,6 +17,7 @@ const interviewId = route.params.id as string
 const { handlePreviewReadOnlyError } = usePreviewReadOnly()
 const toast = useToast()
 const { activeOrg } = useCurrentOrg()
+const { track } = useTrack()
 
 const { interview, status: fetchStatus, error, updateInterview, deleteInterview, refresh } = useInterview(interviewId)
 
@@ -98,6 +99,11 @@ async function handleTransition(newStatus: InterviewStatus) {
   isTransitioning.value = true
   try {
     await updateInterview({ status: newStatus })
+    track('interview_status_changed', {
+      interview_id: interviewId,
+      from_status: interview.value?.status,
+      to_status: newStatus,
+    })
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
     toast.error('Failed to update status', { message: err.data?.statusMessage, statusCode: err.data?.statusCode })

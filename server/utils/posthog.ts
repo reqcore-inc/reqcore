@@ -24,6 +24,16 @@ export function useServerPostHog(): PostHog | null {
     // Flush events every 10 seconds or 20 events, whichever comes first
     flushAt: 20,
     flushInterval: 10_000,
+    // Enable automatic capture of uncaught exceptions and unhandled rejections
+    enableExceptionAutocapture: true,
+  })
+
+  // Register super properties included with every server-side event
+  client.register({
+    $app_name: 'reqcore',
+    $app_version: '1.2.0',
+    $environment: process.env.RAILWAY_ENVIRONMENT_NAME || 'development',
+    $source: 'server',
   })
 
   return client

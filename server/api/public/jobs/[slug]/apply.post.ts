@@ -532,6 +532,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Track public application on the server side (no auth session)
+  trackEvent(event, null, 'application received', {
+    job_slug: slug,
+    job_id: existingJob.id,
+    application_id: newApplication?.id,
+    has_resume: !!resumeUpload,
+    auto_score_enabled: !!existingJob.autoScoreOnApply,
+  })
+
   setResponseStatus(event, 201)
   return { success: true }
 })

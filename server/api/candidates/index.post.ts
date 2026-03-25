@@ -53,6 +53,10 @@ export default defineEventHandler(async (event) => {
     metadata: { name: `${created.firstName} ${created.lastName}` },
   })
 
+  trackEvent(event, session, 'candidate created', {
+    candidate_id: created.id,
+  })
+
   setResponseStatus(event, 201)
   return created
 })

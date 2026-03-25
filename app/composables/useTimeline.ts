@@ -49,6 +49,14 @@ export interface TimelineDayGroup {
   sections: TimelineSection[]
 }
 
+interface TimelineResponse {
+  items: TimelineItem[]
+  upcoming: TimelineItem[]
+  hasMore: boolean
+  oldestTimestamp: string | null
+  newestTimestamp: string | null
+}
+
 export function useTimeline() {
   const items = ref<TimelineItem[]>([])
   const upcoming = ref<TimelineItem[]>([])
@@ -71,13 +79,7 @@ export function useTimeline() {
       const query: Record<string, string | number> = { limit: 100 }
       if (resourceType) query.resourceType = resourceType
 
-      const result = await $fetch('/api/activity-log/timeline', { query }) as {
-        items: TimelineItem[]
-        upcoming: TimelineItem[]
-        hasMore: boolean
-        oldestTimestamp: string | null
-        newestTimestamp: string | null
-      }
+      const result = await $fetch<TimelineResponse>('/api/activity-log/timeline', { query })
 
       items.value = result.items
       upcoming.value = result.upcoming
@@ -108,13 +110,7 @@ export function useTimeline() {
       }
       if (activeFilter.value) query.resourceType = activeFilter.value
 
-      const result = await $fetch('/api/activity-log/timeline', { query }) as {
-        items: TimelineItem[]
-        upcoming: TimelineItem[]
-        hasMore: boolean
-        oldestTimestamp: string | null
-        newestTimestamp: string | null
-      }
+      const result = await $fetch<TimelineResponse>('/api/activity-log/timeline', { query })
 
       items.value.push(...result.items)
       hasMore.value = result.hasMore

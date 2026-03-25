@@ -108,6 +108,14 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  trackEvent(event, session, 'interview scheduled', {
+    interview_id: created.id,
+    application_id: body.applicationId,
+    interview_type: body.type,
+    duration_minutes: body.duration,
+    has_calendar_sync: !!calendarEventId,
+  })
+
   setResponseStatus(event, 201)
   return {
     ...created,

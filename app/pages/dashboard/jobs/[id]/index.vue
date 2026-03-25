@@ -938,7 +938,9 @@ const isJobTransitioning = ref(false)
 async function handleJobTransition(newStatus: string) {
   isJobTransitioning.value = true
   try {
+    const fromStatus = jobData.value?.status
     await updateJob({ status: newStatus as any })
+    track('job_status_changed', { job_id: jobId, from_status: fromStatus, to_status: newStatus })
     await refreshJob()
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
@@ -958,6 +960,7 @@ const showDeleteConfirm = ref(false)
 async function handleDelete() {
   isDeleting.value = true
   try {
+    track('job_deleted', { job_id: jobId })
     await deleteJob()
   } catch (err: any) {
     if (handlePreviewReadOnlyError(err)) return
@@ -995,6 +998,7 @@ async function scoreAllCandidates() {
       method: 'POST',
     })
     scoringProgress.value.total = applicationIds.length
+    track('bulk_scoring_started', { job_id: jobId, candidate_count: applicationIds.length })
     if (applicationIds.length === 0) {
       toast.info('All candidates scored', 'Every candidate already has a score.')
       return
@@ -1048,6 +1052,7 @@ async function scoreIndividualCandidate(applicationId: string) {
     if (currentApplicationId.value === applicationId) {
       await executeDetailFetch()
     }
+    track('individual_scoring_completed', { application_id: applicationId })
     toast.success('Candidate scored', 'AI analysis complete.')
   } catch (err: any) {
     const statusMessage = err?.data?.statusMessage ?? ''
@@ -1114,6 +1119,7 @@ const docPreviewDocId = ref<string | null>(null)
 const isDocPreviewPdf = computed(() => docPreviewMimeType.value === 'application/pdf')
 
 function handleDocPreview(doc: SwipeDocument) {
+  track('document_viewed', { document_type: doc.type, mime_type: doc.mimeType })
   if (doc.mimeType !== 'application/pdf') {
     // Non-PDFs: fall back to download
     window.open(`/api/documents/${doc.id}/download`, '_blank')
