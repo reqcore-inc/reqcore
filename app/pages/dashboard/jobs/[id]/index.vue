@@ -1695,9 +1695,9 @@ function closeDocPreview() {
             </div>
 
             <!-- Detail tabs -->
-            <div class="border-b border-surface-200/80 bg-white px-4 sm:px-6 dark:border-surface-800/60 dark:bg-surface-900">
+            <div ref="overviewDropdownRef" class="relative border-b border-surface-200/80 bg-white px-4 sm:px-6 dark:border-surface-800/60 dark:bg-surface-900">
               <div class="mx-auto max-w-4xl flex gap-1 -mb-px overflow-x-auto scrollbar-none whitespace-nowrap">
-                <div ref="overviewDropdownRef" class="relative">
+                <div>
                   <div class="flex items-center border-b-2 transition-all duration-150" :class="detailTab === 'overview'
                     ? 'border-brand-600 dark:border-brand-400'
                     : 'border-transparent'">
@@ -1718,39 +1718,6 @@ function closeDocPreview() {
                       <ChevronDown class="size-3.5 transition-transform duration-150" :class="showOverviewDropdown ? 'rotate-180' : ''" />
                     </button>
                   </div>
-
-                  <!-- Overview sections dropdown -->
-                  <Transition
-                    enter-active-class="transition duration-150 ease-out"
-                    enter-from-class="opacity-0 scale-95 -translate-y-1"
-                    enter-to-class="opacity-100 scale-100 translate-y-0"
-                    leave-active-class="transition duration-100 ease-in"
-                    leave-from-class="opacity-100 scale-100 translate-y-0"
-                    leave-to-class="opacity-0 scale-95 -translate-y-1"
-                  >
-                    <div
-                      v-if="showOverviewDropdown"
-                      class="absolute left-0 top-full z-50 mt-1 w-44 rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-900 shadow-xl shadow-surface-900/5 dark:shadow-black/20 py-1.5 origin-top-left"
-                    >
-                      <span class="block px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Sections</span>
-                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
-                        <input v-model="overviewSections.aiAnalysis" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
-                        AI Analysis
-                      </label>
-                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
-                        <input v-model="overviewSections.interviews" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
-                        Interviews
-                      </label>
-                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
-                        <input v-model="overviewSections.documents" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
-                        Documents
-                      </label>
-                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
-                        <input v-model="overviewSections.responses" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
-                        Responses
-                      </label>
-                    </div>
-                  </Transition>
                 </div>
                 <button
                   class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px"
@@ -1807,6 +1774,39 @@ function closeDocPreview() {
                   </span>
                 </button>
               </div>
+
+              <!-- Overview sections dropdown (outside overflow container to avoid clipping) -->
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95 -translate-y-1"
+                enter-to-class="opacity-100 scale-100 translate-y-0"
+                leave-active-class="transition duration-100 ease-in"
+                leave-from-class="opacity-100 scale-100 translate-y-0"
+                leave-to-class="opacity-0 scale-95 -translate-y-1"
+              >
+                <div
+                  v-if="showOverviewDropdown"
+                  class="absolute left-4 sm:left-6 top-full z-50 mt-1 w-44 rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-900 shadow-xl shadow-surface-900/5 dark:shadow-black/20 py-1.5 origin-top-left"
+                >
+                  <span class="block px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Sections</span>
+                  <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                    <input v-model="overviewSections.aiAnalysis" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                    AI Analysis
+                  </label>
+                  <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                    <input v-model="overviewSections.interviews" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                    Interviews
+                  </label>
+                  <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                    <input v-model="overviewSections.documents" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                    Documents
+                  </label>
+                  <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                    <input v-model="overviewSections.responses" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                    Responses
+                  </label>
+                </div>
+              </Transition>
             </div>
 
             <!-- Detail content -->

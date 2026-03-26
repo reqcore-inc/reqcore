@@ -23,6 +23,9 @@ import {
   Sparkles,
   Loader2,
   SlidersHorizontal,
+  Lock,
+  Upload,
+  CircleHelp,
 } from 'lucide-vue-next'
 import { z } from 'zod'
 
@@ -203,7 +206,8 @@ async function generateAiCriteria() {
       })
     } else {
       toast.error('Failed to generate criteria', {
-        message: statusMessage || 'An unexpected error occurred. Check your AI settings and try again.',
+        message: 'Could not generate criteria. Make sure your AI provider is configured in Settings → AI, then try again.',
+        details: statusMessage || `${statusCode ?? 'Unknown'} error — no additional details from server.`,
         statusCode,
       })
     }
@@ -306,6 +310,19 @@ onMounted(() => {
 watch([currentStep, form, applicationForm, scoringCriteria, scoringMode, autoScoreOnApply], () => {
   saveFormToStorage()
 }, { deep: true })
+
+// Notify user when entering step 3 without AI configured
+watch(currentStep, (step) => {
+  if (step === 3 && !isAiConfigured.value) {
+    toast.add({
+      type: 'warning',
+      title: 'AI integration not set up',
+      message: 'To use AI-powered candidate scoring, configure your AI provider in Settings → AI. You can still add criteria manually.',
+      link: { label: 'Go to AI Settings', href: '/dashboard/settings/ai' },
+      duration: 10000,
+    })
+  }
+})
 
 // Step 4: Publish & Share
 const publishChoice = ref<'publish' | 'draft'>('publish')
@@ -783,97 +800,194 @@ const questionTypeLabels: Record<QuestionType, string> = {
             <!-- Step 2: Application form -->
             <section v-else-if="currentStep === 2" class="space-y-8">
               <div>
-                <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-100 mb-6 pb-2 border-b border-surface-100 dark:border-surface-800">Application requirements</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    class="relative flex items-center gap-3 p-4 rounded-xl border text-left transition-colors"
-                    :class="applicationForm.requireResume
-                      ? 'border-brand-300 dark:border-brand-700 bg-brand-50/70 dark:bg-brand-950/30'
-                      : 'border-surface-200 dark:border-surface-800 hover:bg-surface-50 dark:hover:bg-surface-800/50'"
-                    :aria-pressed="applicationForm.requireResume"
-                    @click="applicationForm.requireResume = !applicationForm.requireResume"
-                  >
-                    <span
-                      v-if="applicationForm.requireResume"
-                      class="absolute top-3 right-3 inline-flex items-center justify-center size-5 rounded-full bg-brand-600 text-white"
-                      aria-hidden="true"
-                    >
-                      <Check class="size-3" />
-                    </span>
-                    <div>
-                      <span class="block text-sm font-medium text-surface-900 dark:text-surface-100">Require resume/CV</span>
-                      <span class="text-xs text-surface-500">Candidates must upload a file.</span>
+                <p class="text-xs font-semibold text-surface-400 dark:text-surface-500 uppercase tracking-wider mb-3">Customize your application form</p>
+                <p class="text-sm text-surface-500 dark:text-surface-400 leading-relaxed">
+                  Configure which fields candidates see when they apply. Locked fields are always collected and cannot be turned off.
+                </p>
+              </div>
+
+              <!-- Personal information -->
+              <div>
+                <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100 pb-3 border-b border-surface-100 dark:border-surface-800">Personal information</h2>
+                <div class="divide-y divide-surface-100 dark:divide-surface-800">
+                  <div class="flex items-center justify-between py-3.5 px-1">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-sm text-surface-900 dark:text-surface-100">First name</span>
+                      <Lock class="size-3 text-surface-300 dark:text-surface-600" />
                     </div>
-                  </button>
-                  <button
-                    type="button"
-                    class="relative flex items-center gap-3 p-4 rounded-xl border text-left transition-colors"
-                    :class="applicationForm.requireCoverLetter
-                      ? 'border-brand-300 dark:border-brand-700 bg-brand-50/70 dark:bg-brand-950/30'
-                      : 'border-surface-200 dark:border-surface-800 hover:bg-surface-50 dark:hover:bg-surface-800/50'"
-                    :aria-pressed="applicationForm.requireCoverLetter"
-                    @click="applicationForm.requireCoverLetter = !applicationForm.requireCoverLetter"
-                  >
-                    <span
-                      v-if="applicationForm.requireCoverLetter"
-                      class="absolute top-3 right-3 inline-flex items-center justify-center size-5 rounded-full bg-brand-600 text-white"
-                      aria-hidden="true"
-                    >
-                      <Check class="size-3" />
+                    <span class="inline-flex items-center rounded-md bg-brand-50 dark:bg-brand-950/50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-200 dark:ring-brand-800">
+                      Mandatory
                     </span>
-                    <div>
-                      <span class="block text-sm font-medium text-surface-900 dark:text-surface-100">Ask for cover letter</span>
-                      <span class="text-xs text-surface-500">Optional for candidates.</span>
+                  </div>
+                  <div class="flex items-center justify-between py-3.5 px-1">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-sm text-surface-900 dark:text-surface-100">Last name</span>
+                      <Lock class="size-3 text-surface-300 dark:text-surface-600" />
                     </div>
-                  </button>
+                    <span class="inline-flex items-center rounded-md bg-brand-50 dark:bg-brand-950/50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-200 dark:ring-brand-800">
+                      Mandatory
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between py-3.5 px-1">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-sm text-surface-900 dark:text-surface-100">Email</span>
+                      <Lock class="size-3 text-surface-300 dark:text-surface-600" />
+                    </div>
+                    <span class="inline-flex items-center rounded-md bg-brand-50 dark:bg-brand-950/50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-200 dark:ring-brand-800">
+                      Mandatory
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between py-3.5 px-1">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-sm text-surface-900 dark:text-surface-100">Phone</span>
+                      <Lock class="size-3 text-surface-300 dark:text-surface-600" />
+                    </div>
+                    <span class="inline-flex items-center rounded-md bg-surface-100 dark:bg-surface-800 px-2.5 py-1 text-xs font-medium text-surface-600 dark:text-surface-400 ring-1 ring-inset ring-surface-200 dark:ring-surface-700">
+                      Optional
+                    </span>
+                  </div>
                 </div>
               </div>
 
+              <!-- Documents -->
               <div>
-                <div class="flex items-center justify-between mb-6 pb-2 border-b border-surface-100 dark:border-surface-800">
-                  <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-100">Custom questions</h2>
+                <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100 pb-3 border-b border-surface-100 dark:border-surface-800">Documents</h2>
+                <div class="divide-y divide-surface-100 dark:divide-surface-800">
+                  <!-- Resume -->
+                  <div class="flex items-center justify-between py-4 px-1">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <Upload class="size-4 text-surface-400 dark:text-surface-500" />
+                        <span class="text-sm font-medium text-surface-900 dark:text-surface-100">Resume / CV</span>
+                      </div>
+                      <p class="text-xs text-surface-400 dark:text-surface-500 mt-1 ml-6">PDF, DOC, or DOCX up to 10 MB</p>
+                    </div>
+                    <div class="inline-flex items-center rounded-lg bg-surface-100 dark:bg-surface-800 p-0.5" role="radiogroup" aria-label="Resume requirement">
+                      <button
+                        type="button"
+                        role="radio"
+                        :aria-checked="applicationForm.requireResume"
+                        @click="applicationForm.requireResume = true"
+                        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+                        :class="applicationForm.requireResume
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200'"
+                      >
+                        Required
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        :aria-checked="!applicationForm.requireResume"
+                        @click="applicationForm.requireResume = false"
+                        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+                        :class="!applicationForm.requireResume
+                          ? 'bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-300 shadow-sm'
+                          : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200'"
+                      >
+                        Off
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Cover letter -->
+                  <div class="flex items-center justify-between py-4 px-1">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <FileText class="size-4 text-surface-400 dark:text-surface-500" />
+                        <span class="text-sm font-medium text-surface-900 dark:text-surface-100">Cover letter</span>
+                      </div>
+                      <p class="text-xs text-surface-400 dark:text-surface-500 mt-1 ml-6">Free-text field, max 10,000 characters</p>
+                    </div>
+                    <div class="inline-flex items-center rounded-lg bg-surface-100 dark:bg-surface-800 p-0.5" role="radiogroup" aria-label="Cover letter requirement">
+                      <button
+                        type="button"
+                        role="radio"
+                        :aria-checked="applicationForm.requireCoverLetter"
+                        @click="applicationForm.requireCoverLetter = true"
+                        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+                        :class="applicationForm.requireCoverLetter
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200'"
+                      >
+                        Required
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        :aria-checked="!applicationForm.requireCoverLetter"
+                        @click="applicationForm.requireCoverLetter = false"
+                        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+                        :class="!applicationForm.requireCoverLetter
+                          ? 'bg-white dark:bg-surface-700 text-surface-700 dark:text-surface-300 shadow-sm'
+                          : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200'"
+                      >
+                        Off
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              <!-- Screening questions -->
+              <div>
+                <div class="flex items-center justify-between pb-3 border-b border-surface-100 dark:border-surface-800">
+                  <h2 class="text-base font-semibold text-surface-900 dark:text-surface-100">Screening questions</h2>
+                  <span v-if="applicationForm.questions.length > 0" class="text-xs font-medium text-surface-400 dark:text-surface-500 tabular-nums">
+                    {{ applicationForm.questions.length }} {{ applicationForm.questions.length === 1 ? 'question' : 'questions' }} added
+                  </span>
+                </div>
+
                 <div
                   v-if="questionActionError"
-                  class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950 p-3 text-sm text-danger-700 dark:text-danger-400 mb-4"
+                  class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950 p-3 text-sm text-danger-700 dark:text-danger-400 mt-4"
                 >
                   {{ questionActionError }}
                   <button class="ml-2 underline" @click="questionActionError = null">Dismiss</button>
                 </div>
 
-                <div v-if="applicationForm.questions.length > 0" class="space-y-2 mb-4">
+                <div v-if="applicationForm.questions.length > 0" class="divide-y divide-surface-100 dark:divide-surface-800">
                   <div
                     v-for="(q, index) in applicationForm.questions"
                     :key="q.id"
-                    class="flex items-center gap-3 rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-3 group"
+                    class="flex items-center gap-3 py-3.5 px-1 group"
                   >
-                    <div class="text-surface-300">
+                    <div class="text-surface-300 dark:text-surface-600 cursor-grab">
                       <GripVertical class="size-4" />
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2">
                         <span class="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">{{ q.label }}</span>
-                        <span v-if="q.required" class="text-xs text-danger-500 font-medium">Required</span>
+                        <span
+                          v-if="q.required"
+                          class="inline-flex items-center rounded-md bg-brand-50 dark:bg-brand-950/50 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-200 dark:ring-brand-800"
+                        >
+                          Required
+                        </span>
+                        <span
+                          v-else
+                          class="inline-flex items-center rounded-md bg-surface-100 dark:bg-surface-800 px-2 py-0.5 text-[10px] font-medium text-surface-500 dark:text-surface-400 ring-1 ring-inset ring-surface-200 dark:ring-surface-700"
+                        >
+                          Optional
+                        </span>
                       </div>
-                      <div class="flex items-center gap-2 mt-0.5">
-                        <span class="text-xs text-surface-400">{{ questionTypeLabels[q.type] ?? q.type }}</span>
-                        <span v-if="q.description" class="text-xs text-surface-400 truncate">
-                          - {{ q.description }}
+                      <div class="flex items-center gap-1.5 mt-0.5 ml-0">
+                        <span class="text-xs text-surface-400 dark:text-surface-500">{{ questionTypeLabels[q.type] ?? q.type }}</span>
+                        <span v-if="q.description" class="text-xs text-surface-400 dark:text-surface-500 truncate">
+                          &middot; {{ q.description }}
                         </span>
                         <span
                           v-if="(q.type === 'single_select' || q.type === 'multi_select') && q.options"
-                          class="text-xs text-surface-400"
+                          class="text-xs text-surface-400 dark:text-surface-500"
                         >
-                          · {{ q.options.length }} options
+                          &middot; {{ q.options.length }} options
                         </span>
                       </div>
                     </div>
-                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
                       <button
                         type="button"
                         :disabled="index === 0"
-                        class="rounded p-1 text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors disabled:opacity-30"
+                        class="rounded p-1.5 text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors disabled:opacity-30"
                         title="Move up"
                         @click="moveQuestion(index, 'up')"
                       >
@@ -882,7 +996,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
                       <button
                         type="button"
                         :disabled="index === applicationForm.questions.length - 1"
-                        class="rounded p-1 text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors disabled:opacity-30"
+                        class="rounded p-1.5 text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors disabled:opacity-30"
                         title="Move down"
                         @click="moveQuestion(index, 'down')"
                       >
@@ -890,7 +1004,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
                       </button>
                       <button
                         type="button"
-                        class="rounded p-1 text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                        class="rounded p-1.5 text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
                         title="Edit"
                         @click="editingQuestion = q; showAddForm = false"
                       >
@@ -898,7 +1012,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
                       </button>
                       <button
                         type="button"
-                        class="rounded p-1 text-surface-400 hover:text-danger-600 dark:hover:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-950 transition-colors"
+                        class="rounded p-1.5 text-surface-400 hover:text-danger-600 dark:hover:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-950 transition-colors"
                         title="Delete"
                         @click="handleDeleteQuestion(q.id)"
                       >
@@ -908,34 +1022,36 @@ const questionTypeLabels: Record<QuestionType, string> = {
                   </div>
                 </div>
 
-                <p v-else class="text-sm text-surface-400 py-4">
-                  No custom questions yet. Applicants will see only the standard fields (name, email, phone).
+                <p v-else class="text-sm text-surface-400 dark:text-surface-500 py-6 text-center">
+                  No screening questions added yet.
                 </p>
 
                 <QuestionForm
                   v-if="editingQuestion"
                   :question="editingQuestion"
-                  class="mb-4"
+                  class="mt-4 mb-2"
                   @save="handleUpdateQuestion"
                   @cancel="editingQuestion = null"
                 />
 
                 <QuestionForm
                   v-if="showAddForm && !editingQuestion"
-                  class="mb-4"
+                  class="mt-4 mb-2"
                   @save="handleAddQuestion"
                   @cancel="showAddForm = false"
                 />
 
-                <button
-                  v-if="!showAddForm && !editingQuestion"
-                  type="button"
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-surface-300 dark:border-surface-700 px-3 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:border-brand-400 dark:hover:border-brand-600 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950 transition-colors"
-                  @click="showAddForm = true"
-                >
-                  <Plus class="size-4" />
-                  Add Question
-                </button>
+                <div class="mt-4 flex items-center gap-3">
+                  <button
+                    v-if="!showAddForm && !editingQuestion"
+                    type="button"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-surface-300 dark:border-surface-700 px-3 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:border-brand-400 dark:hover:border-brand-600 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 transition-colors"
+                    @click="showAddForm = true"
+                  >
+                    <Plus class="size-4" />
+                    Add a question
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -1469,7 +1585,15 @@ const questionTypeLabels: Record<QuestionType, string> = {
               </li>
               <li v-if="currentStep === 2" class="text-sm text-surface-600 dark:text-surface-400 leading-relaxed">
                 <p class="font-medium text-surface-900 dark:text-surface-100 mb-1">Keep it short</p>
-                Too many questions can deter candidates. Stick to 3-5 essential questions.
+                Too many questions can deter candidates. Stick to 3–5 essential questions.
+              </li>
+              <li v-if="currentStep === 2" class="text-sm text-surface-600 dark:text-surface-400 leading-relaxed">
+                <p class="font-medium text-surface-900 dark:text-surface-100 mb-1">Resume matters</p>
+                Requiring a resume enables AI scoring and makes it easier to evaluate candidates at scale.
+              </li>
+              <li v-if="currentStep === 2" class="text-sm text-surface-600 dark:text-surface-400 leading-relaxed">
+                <p class="font-medium text-surface-900 dark:text-surface-100 mb-1">Standard fields</p>
+                Name, email, and phone are always collected. Phone is optional for candidates by default.
               </li>
               <li v-if="currentStep === 3" class="text-sm text-surface-600 dark:text-surface-400 leading-relaxed">
                 <p class="font-medium text-surface-900 dark:text-surface-100 mb-1">Start with a template</p>
