@@ -1,4 +1,5 @@
 import { PostHog } from 'posthog-node'
+import { version as APP_VERSION } from '../../package.json'
 
 let client: PostHog | null = null
 
@@ -31,7 +32,7 @@ export function useServerPostHog(): PostHog | null {
   // Register super properties included with every server-side event
   client.register({
     $app_name: 'reqcore',
-    $app_version: '1.2.0',
+    $app_version: APP_VERSION,
     $environment: process.env.RAILWAY_ENVIRONMENT_NAME || 'development',
     $source: 'server',
   })

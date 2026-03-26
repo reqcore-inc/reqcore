@@ -6,7 +6,7 @@ const timelineQuerySchema = z.object({
   before: z.string().datetime().optional(),
   after: z.string().datetime().optional(),
   limit: z.coerce.number().int().min(1).max(200).default(100),
-  resourceType: z.string().optional(),
+  resourceType: z.enum(['job', 'candidate', 'application', 'interview', 'member']).optional(),
 })
 
 /**
@@ -109,7 +109,10 @@ export default defineEventHandler(async (event) => {
           .from(application)
           .innerJoin(job, eq(job.id, application.jobId))
           .innerJoin(candidate, eq(candidate.id, application.candidateId))
-          .where(inArray(application.id, Array.from(applicationIds)))
+          .where(and(
+            eq(application.organizationId, orgId),
+            inArray(application.id, Array.from(applicationIds)),
+          ))
       : Promise.resolve([]),
     interviewIds.size > 0
       ? db.select({
@@ -127,7 +130,10 @@ export default defineEventHandler(async (event) => {
           .innerJoin(application, eq(application.id, interview.applicationId))
           .innerJoin(job, eq(job.id, application.jobId))
           .innerJoin(candidate, eq(candidate.id, application.candidateId))
-          .where(inArray(interview.id, Array.from(interviewIds)))
+          .where(and(
+            eq(interview.organizationId, orgId),
+            inArray(interview.id, Array.from(interviewIds)),
+          ))
       : Promise.resolve([]),
   ])
 

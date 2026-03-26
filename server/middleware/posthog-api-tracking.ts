@@ -2,16 +2,23 @@
  * Server middleware: captures API request outcomes to PostHog as both events
  * and structured OpenTelemetry logs (PostHog Logs).
  *
- * - Emits a structured log for every API request (wide event pattern)
+ * - Emits a structured wide-event log for every API request (one log per request)
  * - Tracks 4xx/5xx responses as 'api error' PostHog events
  * - Tracks requests slower than 3s as 'api slow_request' events
- * - Skips static assets and non-API routes
+ * - Skips static assets, non-API routes, and health checks
  */
+
+// Paths that generate high volume with zero debugging value.
+const EXCLUDED_PATHS = new Set(['/api/health', '/api/healthz', '/api/ping'])
+
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
 
   // Only track API routes — skip static assets, ingest proxy, etc.
   if (!path.startsWith('/api/')) return
+
+  // Exclude high-frequency health checks / load balancer pings
+  if (EXCLUDED_PATHS.has(path)) return
 
   const start = Date.now()
 
@@ -20,18 +27,17 @@ export default defineEventHandler(async (event) => {
       const duration = Date.now() - start
       const statusCode = event.node.res.statusCode
       const method = getMethod(event)
-      const headers = getHeaders(event)
 
       // ── PostHog Logs: structured wide event per API request ──
+      // Uses requestAttributes() which includes $session_id and
+      // posthog_distinct_id from the PostHog cookie for Session Replay linking.
       const isError = statusCode >= 400
       const isSlow = duration > 3000
 
       const logAttrs: Record<string, unknown> = {
-        http_method: method,
-        http_path: path,
+        ...requestAttributes(event),
         http_status: statusCode,
         duration_ms: duration,
-        user_agent: headers['user-agent'],
       }
 
       if (isSlow) logAttrs.slow_request = true

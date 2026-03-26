@@ -1,8 +1,10 @@
 import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import { logs, SeverityNumber } from '@opentelemetry/api-logs'
+import type { AnyValueMap } from '@opentelemetry/api-logs'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 import type { H3Event } from 'h3'
+import { version as APP_VERSION } from '../../package.json'
 
 let loggerProvider: LoggerProvider | null = null
 
@@ -23,22 +25,21 @@ export function initLoggerProvider(): void {
   loggerProvider = new LoggerProvider({
     resource: resourceFromAttributes({
       'service.name': 'reqcore',
-      'service.version': '1.2.0',
+      'service.version': APP_VERSION,
       'deployment.environment': process.env.RAILWAY_ENVIRONMENT_NAME || 'development',
     }),
+    processors: [
+      new BatchLogRecordProcessor(
+        new OTLPLogExporter({
+          url: `${host}/i/v1/logs`,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+      ),
+    ],
   })
-
-  loggerProvider.addLogRecordProcessor(
-    new BatchLogRecordProcessor(
-      new OTLPLogExporter({
-        url: `${host}/i/v1/logs`,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }),
-    ),
-  )
 
   logs.setGlobalLoggerProvider(loggerProvider)
 }
@@ -63,9 +64,9 @@ function getLogger() {
 }
 
 interface LogContext {
-  posthogDistinctId?: string
+  posthog_distinct_id?: string
   org_id?: string
-  [key: string]: unknown
+  [key: string]: string | number | boolean | null | undefined
 }
 
 /**
@@ -77,7 +78,7 @@ export function logInfo(body: string, attributes?: LogContext): void {
       severityNumber: SeverityNumber.INFO,
       severityText: 'INFO',
       body,
-      attributes: attributes as Record<string, unknown>,
+      attributes: attributes as AnyValueMap,
     })
   }
   catch {
@@ -94,7 +95,7 @@ export function logWarn(body: string, attributes?: LogContext): void {
       severityNumber: SeverityNumber.WARN,
       severityText: 'WARN',
       body,
-      attributes: attributes as Record<string, unknown>,
+      attributes: attributes as AnyValueMap,
     })
   }
   catch {
@@ -111,7 +112,26 @@ export function logError(body: string, attributes?: LogContext): void {
       severityNumber: SeverityNumber.ERROR,
       severityText: 'ERROR',
       body,
-      attributes: attributes as Record<string, unknown>,
+      attributes: attributes as AnyValueMap,
+    })
+  }
+  catch {
+    // Logging must never break the primary operation
+  }
+}
+
+/**
+ * Emit a DEBUG-level structured log to PostHog.
+ * Use for detailed diagnostics during active investigation. Off in production
+ * by default — enable selectively for specific services.
+ */
+export function logDebug(body: string, attributes?: LogContext): void {
+  try {
+    getLogger().emit({
+      severityNumber: SeverityNumber.DEBUG,
+      severityText: 'DEBUG',
+      body,
+      attributes: attributes as AnyValueMap,
     })
   }
   catch {
@@ -121,13 +141,32 @@ export function logError(body: string, attributes?: LogContext): void {
 
 /**
  * Extract common request attributes from an H3 event for wide-event logging.
+ * Includes PostHog session_id for Session Replay linking when available.
  */
 export function requestAttributes(event: H3Event): Record<string, string | undefined> {
   const headers = getHeaders(event)
+  // Extract PostHog session_id from the cookie for Session Replay linking.
+  // The ph_<project>_posthog cookie stores a JSON blob; $sesid contains the
+  // active session ID.  We also extract the distinct_id for identity linking.
+  let sessionId: string | undefined
+  let cookieDistinctId: string | undefined
+  try {
+    const phCookie = getCookie(event, 'ph_reqcore_posthog')
+    if (phCookie) {
+      const parsed = JSON.parse(phCookie)
+      sessionId = parsed?.$sesid?.[1]
+      cookieDistinctId = parsed?.distinct_id
+    }
+  }
+  catch {
+    // Cookie may be missing or malformed — non-critical
+  }
   return {
     http_method: getMethod(event),
     http_path: getRequestURL(event).pathname,
     user_agent: headers['user-agent'],
+    ...(sessionId ? { '$session_id': sessionId } : {}),
+    ...(cookieDistinctId ? { posthog_distinct_id: cookieDistinctId } : {}),
   }
 }
 
@@ -148,7 +187,7 @@ export function logApiRequest(
 ): void {
   logInfo(body, {
     ...requestAttributes(event),
-    posthogDistinctId: session?.user?.id,
+    posthog_distinct_id: session?.user?.id,
     org_id: session?.session?.activeOrganizationId,
     ...extra,
   })
@@ -165,7 +204,7 @@ export function logApiError(
 ): void {
   logError(body, {
     ...requestAttributes(event),
-    posthogDistinctId: session?.user?.id,
+    posthog_distinct_id: session?.user?.id,
     org_id: session?.session?.activeOrganizationId,
     ...extra,
   })
