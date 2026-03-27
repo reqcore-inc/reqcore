@@ -2,16 +2,13 @@
  * Client-only plugin that identifies the current user and organization
  * in PostHog whenever the auth session is available.
  *
- * - Applies stored consent from the cross-subdomain cookie BEFORE any
- *   identity events fire, preventing the race condition where identify()
- *   is discarded because PostHog is still in opt_out_capturing_by_default
- *   mode when ConsentBanner hasn't mounted yet.
- * - Calls posthog.identify() with the user's ID and safe properties
+ * - Upgrades PostHog from cookieless to full cookie-based persistence
+ *   for returning opted-in users, BEFORE identity watchers fire.
+ * - Calls posthog.identify() with the user's ID and person properties
  * - Calls posthog.group() for the active organization (group analytics)
  * - Resets PostHog on sign-out to avoid cross-user data leakage
  */
 import { CONSENT_COOKIE_NAME } from '~/composables/useAnalyticsConsent'
-import { flushPendingEvents } from '~/composables/useTrack'
 
 // URL properties that may carry tokens or invitation IDs — always sanitized.
 // Includes referrer properties: if a user navigated from /jobs?invite_token=xxx,
@@ -65,23 +62,21 @@ export default defineNuxtPlugin({
       urlModified = true
     }
 
-    // ── Apply stored consent BEFORE any events fire ──
-    // PostHog starts with opt_out_capturing_by_default: true.  If the user has
-    // already consented, we must call opt_in_capturing() here — before the
-    // identity watchers in usePostHogIdentity fire — otherwise identify() and
-    // group() calls are silently discarded while PostHog is still opted-out.
+    // ── Apply stored consent: upgrade persistence for returning opted-in users ──
+    // PostHog starts with cookieless tracking (persistence: 'memory',
+    // person_profiles: 'never').  If the user already consented, upgrade to
+    // full cookie-based persistence before identity watchers fire so that
+    // identify() and group() calls create person profiles.
     const storedConsent = consentCookie.value
     if (storedConsent === 'granted') {
-      posthog.opt_in_capturing()
-      // Replay any events buffered in sessionStorage from a previous page load
-      // (e.g. signup_completed, org_created tracked during flows that ended
-      // with a hard window.location.href navigation).
-      flushPendingEvents()
+      posthog.set_config({
+        persistence: 'localStorage+cookie',
+        person_profiles: 'identified_only',
+        cross_subdomain_cookie: true,
+      })
     }
-    else {
-      // Ensure opt-out state is explicit for new visitors and users who declined.
-      posthog.opt_out_capturing()
-    }
+    // No else needed: cookieless tracking continues for non-consented visitors.
+    // Events still flow (aggregate analytics) but no person profiles are created.
 
     // ── Privacy: strip query params and hashes from captured URLs ──
     // These may contain tokens, invitation IDs, or other PII.
@@ -128,11 +123,12 @@ export default defineNuxtPlugin({
     // after the app has mounted and auth session is available.
     return {
       provide: {
-        // Only the user ID (UUID) is sent — name and createdAt are omitted to
-        // satisfy GDPR data minimisation (Art. 5(1)(c)): a stable distinct_id
-        // is sufficient for product analytics without exposing personal data.
-        posthogIdentifyUser: (userId: string) => {
-          posthog.identify(userId)
+        // User ID + person properties (email, name) are sent for opted-in
+        // users.  GDPR-safe: identify() in usePostHogIdentity is gated on
+        // consent, and person_profiles is 'never' until consent upgrades it
+        // to 'identified_only'.
+        posthogIdentifyUser: (userId: string, properties?: Record<string, string | undefined>) => {
+          posthog.identify(userId, properties)
         },
         // Only id and human-readable name are forwarded.  slug is redundant
         // for analytics purposes and is omitted to minimise data collection.

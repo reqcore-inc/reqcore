@@ -1,16 +1,10 @@
 /**
- * Composable for managing PostHog analytics consent (GDPR compliance).
+ * Composable for managing PostHog analytics consent.
  *
- * By default, PostHog captures events. Users can opt out via this composable.
- * The consent state is persisted in a cookie shared across subdomains
- * (e.g. reqcore.com and app.reqcore.com) via the NUXT_PUBLIC_COOKIE_DOMAIN
- * runtime config.
- *
- * Usage:
- *   const { hasConsented, acceptAnalytics, declineAnalytics } = useAnalyticsConsent()
+ * Cookieless tracking is ALWAYS active — no consent needed.
+ * Accepting analytics upgrades to full cookie-based tracking
+ * (UTM, sessions, identity). Declining keeps cookieless mode.
  */
-
-import { flushPendingEvents, discardPendingEvents } from '~/composables/useTrack'
 
 /** Cookie name — shared across reqcore-web and applirank */
 export const CONSENT_COOKIE_NAME = 'reqcore-consent'
@@ -24,7 +18,7 @@ export function useAnalyticsConsent() {
   // usePostHog() is auto-imported by @posthog/nuxt, but the module is
   // conditionally loaded.  Replicate the safe accessor so this composable
   // works even when PostHog is not configured (CI, self-hosted without key).
-  const posthog = (useNuxtApp() as Record<string, unknown>).$posthog as ((() => { opt_in_capturing: () => void, opt_out_capturing: () => void, capture: (event: string, properties?: Record<string, unknown>) => void }) | undefined)
+  const posthog = (useNuxtApp() as Record<string, unknown>).$posthog as (() => import('posthog-js').PostHog) | undefined
   const ph = posthog?.()
 
   const cookieDomain = (useRuntimeConfig().public as Record<string, string>).cookieDomain
@@ -54,50 +48,43 @@ export function useAnalyticsConsent() {
 
   function acceptAnalytics() {
     consentCookie.value = 'granted'
-    // Also clean up legacy key if it still exists
     if (import.meta.client) localStorage.removeItem(LEGACY_STORAGE_KEY)
-    ph?.opt_in_capturing()
-    // Capture the entry-page pageview now that the user has opted in.
-    // PostHog's init-time $pageview was suppressed by opt_out_capturing_by_default,
-    // and subsequent pushState events only fire after this call, so we must
-    // manually send one for the page the user is currently on.
+    if (!ph) return
+    // Upgrade from cookieless to full cookie-based persistence
+    ph.set_config({
+      persistence: 'localStorage+cookie',
+      person_profiles: 'identified_only',
+      cross_subdomain_cookie: true,
+    })
+    // Register UTM + attribution now that we have persistence
     if (import.meta.client) {
-      const url = new URL(window.location.href)
-      url.search = ''
-      url.hash = ''
-      ph?.capture('$pageview', { $current_url: url.toString() })
-    }
-    // Replay any events that were buffered before consent was granted
-    // (e.g. signup_submitted, org_created fired during the auth flow).
-    if (import.meta.client) {
-      flushPendingEvents()
+      const params = new URLSearchParams(window.location.search)
+      const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const
+      const utmProps: Record<string, string> = {}
+      for (const key of utmKeys) {
+        const val = params.get(key)
+        if (val) utmProps[key] = val
+      }
+      if (Object.keys(utmProps).length > 0) {
+        ph.register(utmProps)
+        const firstTouch: Record<string, string> = {}
+        for (const [k, v] of Object.entries(utmProps)) {
+          firstTouch[`initial_${k}`] = v
+        }
+        ph.register_once(firstTouch)
+      }
+      ph.register_once({
+        initial_referrer: document.referrer || '$direct',
+        initial_landing_page: window.location.pathname,
+      })
+      ph.capture('consent_granted')
     }
   }
 
   function declineAnalytics() {
     consentCookie.value = 'denied'
     if (import.meta.client) localStorage.removeItem(LEGACY_STORAGE_KEY)
-    ph?.opt_out_capturing()
-    // Discard any events buffered before the user declined.
-    if (import.meta.client) {
-      discardPendingEvents()
-    }
-  }
-
-  // Apply stored consent on mount.
-  // PostHog defaults to opt_out_capturing_by_default: true (GDPR), so we only
-  // need to explicitly opt-in for users who previously granted consent.
-  if (import.meta.client) {
-    if (consentCookie.value === 'granted') {
-      ph?.opt_in_capturing()
-      // Replay any events buffered (in sessionStorage) before this page load —
-      // e.g. signup_completed or org_created tracked during a flow that ended
-      // with a hard window.location.href navigation.
-      flushPendingEvents()
-    }
-    else {
-      ph?.opt_out_capturing()
-    }
+    // No action needed — cookieless tracking continues without cookies or person profiles
   }
 
   return {

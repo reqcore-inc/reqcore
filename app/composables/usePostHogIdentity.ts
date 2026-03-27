@@ -32,9 +32,15 @@ export async function usePostHogIdentity() {
       const previousUser = (prev?.[0] as typeof session.value)?.user
 
       if (user?.id && consented) {
-        // Only the user ID is forwarded — name and createdAt are intentionally
-        // omitted so PostHog receives the minimal data needed for analytics.
-        ;($posthogIdentifyUser as (userId: string) => void)(user.id)
+        // Forward person properties for opted-in users so they're identifiable
+        // in PostHog.  GDPR-safe: gated on explicit user consent.
+        ;($posthogIdentifyUser as (userId: string, properties?: Record<string, string | undefined>) => void)(
+          user.id,
+          {
+            email: user.email,
+            name: user.name || undefined,
+          },
+        )
       }
       else if (previousUser?.id && !user?.id) {
         // Always reset on log-out regardless of consent state so that

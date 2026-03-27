@@ -74,8 +74,6 @@ export default defineNuxtConfig({
       disable_session_recording: true,
       enable_recording_console_log: false,
       disable_surveys: true,
-      opt_out_capturing_by_default: true,
-      respect_dnt: true,
       secure_cookie: true,
       capture_pageview: true,
       capture_pageleave: true,
@@ -85,9 +83,13 @@ export default defineNuxtConfig({
         capture_unhandled_rejections: true,
         capture_console_errors: false,
       },
-      // ── Persistence ──
-      persistence: 'localStorage+cookie',
-      cross_subdomain_cookie: true,
+      // ── Cookieless by default ──
+      // No cookies stored until user grants consent.  Events still flow for
+      // aggregate analytics.  On consent, persistence is upgraded to
+      // 'localStorage+cookie' via set_config() in the consent composable.
+      persistence: 'memory',
+      person_profiles: 'never',
+      cross_subdomain_cookie: false,
     },
     serverConfig: {
       // Capture uncaught exceptions and unhandled rejections on the server
