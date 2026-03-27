@@ -9,6 +9,14 @@ const route = useRoute()
 const jobSlug = route.params.slug as string
 const { track } = useTrack()
 
+// Capture source tracking params from the URL
+const sourceRef = (route.query.ref as string) || undefined
+const utmSource = (route.query.utm_source as string) || undefined
+const utmMedium = (route.query.utm_medium as string) || undefined
+const utmCampaign = (route.query.utm_campaign as string) || undefined
+const utmTerm = (route.query.utm_term as string) || undefined
+const utmContent = (route.query.utm_content as string) || undefined
+
 onMounted(() => track('application_started', { slug: jobSlug }))
 
 // Fetch public job data (no auth needed)
@@ -185,6 +193,14 @@ async function handleSubmit() {
         formData.append('coverLetterText', coverLetterText.value.trim())
       }
 
+      // Source tracking params
+      if (sourceRef) formData.append('ref', sourceRef)
+      if (utmSource) formData.append('utmSource', utmSource)
+      if (utmMedium) formData.append('utmMedium', utmMedium)
+      if (utmCampaign) formData.append('utmCampaign', utmCampaign)
+      if (utmTerm) formData.append('utmTerm', utmTerm)
+      if (utmContent) formData.append('utmContent', utmContent)
+
       await $fetch(`/api/public/jobs/${jobSlug}/apply`, {
         method: 'POST',
         body: formData,
@@ -201,6 +217,12 @@ async function handleSubmit() {
           website: form.value.website, // honeypot
           coverLetterText: coverLetterText.value.trim() || undefined,
           responses: responseArray,
+          ref: sourceRef,
+          utmSource,
+          utmMedium,
+          utmCampaign,
+          utmTerm,
+          utmContent,
         },
       })
     }

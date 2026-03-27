@@ -26,6 +26,13 @@ export const publicApplicationSchema = z.object({
   coverLetterText: z.string().max(10000).optional(),
   /** Honeypot field — bots fill it, humans don't see it. Validated at runtime in the handler. */
   website: z.string().optional(),
+  /** Source attribution — captured from URL query parameters on the apply page */
+  ref: z.string().max(100).optional(),
+  utmSource: z.string().max(200).optional(),
+  utmMedium: z.string().max(200).optional(),
+  utmCampaign: z.string().max(200).optional(),
+  utmTerm: z.string().max(200).optional(),
+  utmContent: z.string().max(200).optional(),
 })
 
 /** Route param for public job slug */
