@@ -1,6 +1,6 @@
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, and, asc, sql } from 'drizzle-orm'
 import { fileTypeFromBuffer } from 'file-type'
-import { job, candidate, application, jobQuestion, questionResponse, document, organization } from '../../../../database/schema'
+import { job, candidate, application, jobQuestion, questionResponse, document, organization, applicationSource, trackingLink } from '../../../../database/schema'
 import { publicApplicationSchema, publicJobSlugSchema } from '../../../../utils/schemas/publicApplication'
 import { createPreviewReadOnlyError } from '../../../../utils/previewReadOnly'
 import { autoScoreApplication } from '../../../../utils/ai/autoScore'
@@ -66,6 +66,12 @@ export default defineEventHandler(async (event) => {
   let website: string | undefined
   let responseArray: { questionId: string; value: string | string[] | number | boolean }[] = []
   let coverLetterText: string | undefined
+  let sourceRef: string | undefined
+  let utmSource: string | undefined
+  let utmMedium: string | undefined
+  let utmCampaign: string | undefined
+  let utmTerm: string | undefined
+  let utmContent: string | undefined
   const uploadedFiles: Map<string, { data: Buffer; filename: string; type?: string }> = new Map()
   let resumeUpload: { data: Buffer; filename: string; type?: string } | null = null
 
@@ -121,6 +127,12 @@ export default defineEventHandler(async (event) => {
       website: fields.website || undefined,
       coverLetterText: fields.coverLetterText?.trim() || undefined,
       responses: rawResponses,
+      ref: fields.ref || undefined,
+      utmSource: fields.utmSource || undefined,
+      utmMedium: fields.utmMedium || undefined,
+      utmCampaign: fields.utmCampaign || undefined,
+      utmTerm: fields.utmTerm || undefined,
+      utmContent: fields.utmContent || undefined,
     })
 
     firstName = validated.firstName
@@ -130,6 +142,12 @@ export default defineEventHandler(async (event) => {
     website = validated.website
     coverLetterText = validated.coverLetterText
     responseArray = validated.responses
+    sourceRef = validated.ref
+    utmSource = validated.utmSource
+    utmMedium = validated.utmMedium
+    utmCampaign = validated.utmCampaign
+    utmTerm = validated.utmTerm
+    utmContent = validated.utmContent
   } else {
     // Standard JSON body
     const body = await readValidatedBody(event, publicApplicationSchema.parse)
@@ -140,6 +158,12 @@ export default defineEventHandler(async (event) => {
     website = body.website
     coverLetterText = body.coverLetterText
     responseArray = body.responses
+    sourceRef = body.ref
+    utmSource = body.utmSource
+    utmMedium = body.utmMedium
+    utmCampaign = body.utmCampaign
+    utmTerm = body.utmTerm
+    utmContent = body.utmContent
   }
 
   // Honeypot check — if the hidden `website` field is filled, silently reject
@@ -375,6 +399,56 @@ export default defineEventHandler(async (event) => {
   }).returning({ id: application.id })
 
   // ─────────────────────────────────────────────
+  // 8b. Record source attribution
+  // ─────────────────────────────────────────────
+
+  try {
+    const refererHeader = getHeader(event, 'referer') || getHeader(event, 'referrer')
+    const referrerDomain = refererHeader ? extractDomain(refererHeader) : null
+
+    // Resolve tracking link from ?ref= code
+    let resolvedLink: { id: string; channel: typeof trackingLink.$inferSelect['channel'] } | null = null
+    if (sourceRef) {
+      const found = await db.query.trackingLink.findFirst({
+        where: and(eq(trackingLink.code, sourceRef), eq(trackingLink.organizationId, orgId)),
+        columns: { id: true, channel: true },
+      })
+      if (found) {
+        resolvedLink = found
+        // Increment application counter on tracking link
+        await db.update(trackingLink)
+          .set({ applicationCount: sql`${trackingLink.applicationCount} + 1` })
+          .where(eq(trackingLink.id, found.id))
+      }
+    }
+
+    // Determine channel: tracking link > utm_source mapping > referrer mapping > direct
+    const channel = resolvedLink?.channel
+      ?? mapUtmToChannel(utmSource)
+      ?? mapReferrerToChannel(referrerDomain)
+      ?? 'direct'
+
+    await db.insert(applicationSource).values({
+      organizationId: orgId,
+      applicationId: newApplication!.id,
+      channel: channel as typeof applicationSource.$inferInsert.channel,
+      trackingLinkId: resolvedLink?.id ?? null,
+      utmSource: utmSource ?? null,
+      utmMedium: utmMedium ?? null,
+      utmCampaign: utmCampaign ?? null,
+      utmTerm: utmTerm ?? null,
+      utmContent: utmContent ?? null,
+      referrerDomain,
+    })
+  } catch (sourceErr) {
+    // Source tracking is best-effort — never fail an application for attribution
+    logWarn('application.source_tracking_failed', {
+      application_id: newApplication?.id,
+      error_message: sourceErr instanceof Error ? sourceErr.message : String(sourceErr),
+    })
+  }
+
+  // ─────────────────────────────────────────────
   // 9. Store question responses
   // ─────────────────────────────────────────────
 
@@ -577,3 +651,95 @@ export default defineEventHandler(async (event) => {
   setResponseStatus(event, 201)
   return { success: true }
 })
+
+// ─────────────────────────────────────────────
+// Source attribution helpers
+// ─────────────────────────────────────────────
+
+/** Extract domain from a URL, stripping www. prefix. Returns null on invalid URLs. */
+function extractDomain(url: string): string | null {
+  try {
+    const parsed = new URL(url)
+    return parsed.hostname.replace(/^www\./, '')
+  } catch {
+    return null
+  }
+}
+
+/** Map common utm_source values to canonical source channels */
+function mapUtmToChannel(utmSource: string | undefined): string | null {
+  if (!utmSource) return null
+  const source = utmSource.toLowerCase().trim()
+  const mapping: Record<string, string> = {
+    linkedin: 'linkedin',
+    indeed: 'indeed',
+    glassdoor: 'glassdoor',
+    ziprecruiter: 'ziprecruiter',
+    monster: 'monster',
+    handshake: 'handshake',
+    angellist: 'angellist',
+    wellfound: 'wellfound',
+    dice: 'dice',
+    stackoverflow: 'stackoverflow',
+    'stack overflow': 'stackoverflow',
+    weworkremotely: 'weworkremotely',
+    remoteok: 'remoteok',
+    'remote ok': 'remoteok',
+    builtin: 'builtin',
+    hired: 'hired',
+    lever: 'lever',
+    greenhouse: 'greenhouse_board',
+    'google jobs': 'google_jobs',
+    google_jobs: 'google_jobs',
+    facebook: 'facebook',
+    twitter: 'twitter',
+    x: 'twitter',
+    instagram: 'instagram',
+    tiktok: 'tiktok',
+    reddit: 'reddit',
+    referral: 'referral',
+    email: 'email',
+    newsletter: 'email',
+    event: 'event',
+    agency: 'agency',
+  }
+  return mapping[source] ?? null
+}
+
+/** Map referrer domains to canonical source channels */
+function mapReferrerToChannel(domain: string | null): string | null {
+  if (!domain) return null
+  const d = domain.toLowerCase()
+  const mapping: Record<string, string> = {
+    'linkedin.com': 'linkedin',
+    'indeed.com': 'indeed',
+    'glassdoor.com': 'glassdoor',
+    'ziprecruiter.com': 'ziprecruiter',
+    'monster.com': 'monster',
+    'joinhandshake.com': 'handshake',
+    'angel.co': 'angellist',
+    'wellfound.com': 'wellfound',
+    'dice.com': 'dice',
+    'stackoverflow.com': 'stackoverflow',
+    'weworkremotely.com': 'weworkremotely',
+    'remoteok.com': 'remoteok',
+    'builtin.com': 'builtin',
+    'hired.com': 'hired',
+    'lever.co': 'lever',
+    'boards.greenhouse.io': 'greenhouse_board',
+    'jobs.google.com': 'google_jobs',
+    'google.com': 'google_jobs',
+    'facebook.com': 'facebook',
+    'twitter.com': 'twitter',
+    'x.com': 'twitter',
+    'instagram.com': 'instagram',
+    'tiktok.com': 'tiktok',
+    'reddit.com': 'reddit',
+  }
+  // Check for exact match first, then suffix match for subdomains
+  if (mapping[d]) return mapping[d]!
+  for (const [key, channel] of Object.entries(mapping)) {
+    if (d.endsWith(`.${key}`) || d === key) return channel
+  }
+  return null
+}

@@ -41,12 +41,15 @@ const {
 // ─────────────────────────────────────────────
 
 const now = new Date()
-const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+// Truncate to start-of-day so the useFetch key is identical on server & client
+// (prevents SSR/hydration mismatch from sub-second timestamp drift)
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+const weekFromToday = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
 
 const { interviews: upcomingInterviews } = useInterviews({
   status: 'scheduled',
-  from: now.toISOString(),
-  to: weekFromNow.toISOString(),
+  from: today.toISOString(),
+  to: weekFromToday.toISOString(),
   limit: 5,
 })
 

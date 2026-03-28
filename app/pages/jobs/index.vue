@@ -5,6 +5,20 @@ definePageMeta({
   layout: 'public',
 })
 
+const route = useRoute()
+
+/** Forward source-tracking query params (?ref=, utm_*) through navigation */
+const sourceQuery = computed(() => {
+  const q: Record<string, string> = {}
+  if (route.query.ref) q.ref = route.query.ref as string
+  if (route.query.utm_source) q.utm_source = route.query.utm_source as string
+  if (route.query.utm_medium) q.utm_medium = route.query.utm_medium as string
+  if (route.query.utm_campaign) q.utm_campaign = route.query.utm_campaign as string
+  if (route.query.utm_term) q.utm_term = route.query.utm_term as string
+  if (route.query.utm_content) q.utm_content = route.query.utm_content as string
+  return q
+})
+
 useSeoMeta({
   title: 'Open Positions — Job Board',
   description:
@@ -13,7 +27,7 @@ useSeoMeta({
   ogDescription:
     'Browse open job positions and apply directly. Powered by the open-source ATS you actually own.',
   ogType: 'website',
-  ogImage: '/og-image.png',
+  ogImage: '/reqcore-banner-github.jpeg',
   twitterCard: 'summary_large_image',
   twitterTitle: 'Open Positions — Reqcore Job Board',
   twitterDescription:
@@ -161,7 +175,7 @@ function formatDate(dateStr: string) {
       <NuxtLink
         v-for="j in jobs"
         :key="j.id"
-        :to="$localePath(`/jobs/${j.slug}`)"
+        :to="{ path: $localePath(`/jobs/${j.slug}`), query: sourceQuery }"
         class="block rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-5 py-4 hover:border-surface-300 dark:hover:border-surface-700 hover:shadow-sm transition-all group"
       >
         <div class="flex items-start justify-between gap-4">

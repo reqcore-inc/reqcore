@@ -92,8 +92,10 @@ export default defineNuxtConfig({
       cross_subdomain_cookie: false,
     },
     serverConfig: {
-      // Capture uncaught exceptions and unhandled rejections on the server
-      enableExceptionAutocapture: true,
+      // Disabled: the @posthog/nuxt Nitro plugin captures ALL errors
+      // (including 404s from bot scanners). We use a filtered error hook
+      // in server/plugins/posthog.ts instead.
+      enableExceptionAutocapture: false,
     },
   },
 

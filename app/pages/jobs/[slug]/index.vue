@@ -9,6 +9,18 @@ const route = useRoute()
 const jobSlug = route.params.slug as string
 const { track } = useTrack()
 
+/** Forward source-tracking query params (?ref=, utm_*) to the apply page */
+const applyQuery = computed(() => {
+  const q: Record<string, string> = {}
+  if (route.query.ref) q.ref = route.query.ref as string
+  if (route.query.utm_source) q.utm_source = route.query.utm_source as string
+  if (route.query.utm_medium) q.utm_medium = route.query.utm_medium as string
+  if (route.query.utm_campaign) q.utm_campaign = route.query.utm_campaign as string
+  if (route.query.utm_term) q.utm_term = route.query.utm_term as string
+  if (route.query.utm_content) q.utm_content = route.query.utm_content as string
+  return q
+})
+
 onMounted(() => track('public_job_viewed', { slug: jobSlug }))
 
 const { data: job, status: fetchStatus, error: fetchError } = useFetch(
@@ -54,7 +66,7 @@ useSeoMeta({
     return `Apply for ${job.value.title}${org}. ${job.value.location ?? 'Remote'}.`
   }),
   ogType: 'website',
-  ogImage: '/og-image.png',
+  ogImage: '/reqcore-banner-github.jpeg',
   twitterCard: 'summary_large_image',
   twitterTitle: computed(() => job.value?.title ?? 'Job Details'),
   twitterDescription: computed(() => {
@@ -287,7 +299,7 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
           <!-- Apply CTA inline -->
           <div class="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-3 border-t border-surface-100 dark:border-surface-800 pt-5">
             <NuxtLink
-              :to="$localePath(`/jobs/${job.slug}/apply`)"
+              :to="{ path: $localePath(`/jobs/${job.slug}/apply`), query: applyQuery }"
               class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 active:scale-[0.98] transition-all shadow-sm"
             >
               Apply Now
@@ -346,7 +358,7 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
           <p class="text-sm text-surface-500 mt-0.5">Submit your application in just a few minutes.</p>
         </div>
         <NuxtLink
-          :to="$localePath(`/jobs/${job.slug}/apply`)"
+          :to="{ path: $localePath(`/jobs/${job.slug}/apply`), query: applyQuery }"
           class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 active:scale-[0.98] transition-all shadow-sm"
         >
           Apply for this position

@@ -26,6 +26,15 @@ import {
   Lock,
   Upload,
   CircleHelp,
+  Share2,
+  Globe,
+  Mail,
+  Users,
+  BarChart3,
+  Hash,
+  Megaphone,
+  Building2,
+  Search,
 } from 'lucide-vue-next'
 import { z } from 'zod'
 
@@ -70,7 +79,7 @@ const steps = [
   { id: 1, title: 'Job details', description: 'Tell applicants about this role.' },
   { id: 2, title: 'Application form', description: 'Design the application form.' },
   { id: 3, title: 'AI scoring criteria', description: 'Define how AI evaluates candidates.' },
-  { id: 4, title: 'Publish & share', description: 'Go live and share with candidates.' },
+  { id: 4, title: 'Publish & distribute', description: 'Go live and share across job boards.' },
 ]
 
 // Step 1: Job details (API-supported fields)
@@ -324,13 +333,131 @@ watch(currentStep, (step) => {
   }
 })
 
-// Step 4: Publish & Share
+// Step 4: Publish & Distribute
 const publishChoice = ref<'publish' | 'draft'>('publish')
 const isPublished = ref(false)
 const createdJobSlug = ref('')
 const createdJobId = ref('')
 const finalApplicationLink = ref('')
 const linkCopiedFinal = ref(false)
+
+// Distribution channels for quick tracking link creation
+const distributionChannels = [
+  { channel: 'linkedin', name: 'LinkedIn', description: 'Post on LinkedIn Jobs or share in your feed', category: 'job_board' },
+  { channel: 'indeed', name: 'Indeed', description: 'List on the Indeed job board', category: 'job_board' },
+  { channel: 'glassdoor', name: 'Glassdoor', description: 'Publish on Glassdoor listings', category: 'job_board' },
+  { channel: 'ziprecruiter', name: 'ZipRecruiter', description: 'Post on ZipRecruiter', category: 'job_board' },
+  { channel: 'email', name: 'Email campaign', description: 'Send to candidates or mailing list', category: 'outreach' },
+  { channel: 'referral', name: 'Employee referral', description: 'Share internally with your team', category: 'outreach' },
+  { channel: 'career_site', name: 'Career site', description: 'Embed on your company website', category: 'outreach' },
+  { channel: 'twitter', name: 'X (Twitter)', description: 'Share on your X timeline', category: 'social' },
+  { channel: 'facebook', name: 'Facebook', description: 'Post on Facebook page or groups', category: 'social' },
+  { channel: 'reddit', name: 'Reddit', description: 'Share in relevant subreddits', category: 'social' },
+] as const
+
+const channelIcons: Record<string, any> = {
+  linkedin: Briefcase,
+  indeed: Search,
+  glassdoor: Building2,
+  ziprecruiter: Megaphone,
+  email: Mail,
+  referral: Users,
+  career_site: Globe,
+  twitter: Hash,
+  facebook: Users,
+  reddit: MessageSquare,
+}
+
+// Track created distribution links: channel → { code, url, loading, copied }
+const createdLinks = ref<Record<string, { code: string; url: string; loading: boolean; copied: boolean }>>({})
+
+async function createChannelLink(channel: string, channelName: string) {
+  if (createdLinks.value[channel]?.code) return
+  createdLinks.value[channel] = { code: '', url: '', loading: true, copied: false }
+  try {
+    const result = await $fetch<{ id: string; code: string }>('/api/tracking-links', {
+      method: 'POST',
+      body: {
+        jobId: createdJobId.value,
+        channel,
+        name: `${form.value.title} — ${channelName}`,
+      },
+    })
+    const base = `${requestUrl.protocol}//${requestUrl.host}`
+    const trackUrl = `${base}/api/public/track/${encodeURIComponent(result.code)}`
+    createdLinks.value[channel] = { code: result.code, url: trackUrl, loading: false, copied: false }
+    track('tracking_link_created', { channel, source: 'job_wizard' })
+  } catch {
+    delete createdLinks.value[channel]
+    toast.error(`Failed to create tracking link for ${channelName}`)
+  }
+}
+
+async function copyChannelLink(channel: string) {
+  const link = createdLinks.value[channel]
+  if (!link?.url) return
+  try {
+    await navigator.clipboard.writeText(link.url)
+    link.copied = true
+    setTimeout(() => { link.copied = false }, 2500)
+  } catch {
+    toast.info(link.url)
+  }
+}
+
+const createdLinkCount = computed(() =>
+  Object.values(createdLinks.value).filter(l => l.code).length + customBoardLinks.value.length
+)
+
+// Custom job board links
+const customBoardName = ref('')
+const customBoardLinks = ref<Array<{ id: string; name: string; channel: string; code: string; url: string; copied: boolean }>>([])
+const isCreatingCustomBoard = ref(false)
+
+async function createCustomBoardLink() {
+  const name = customBoardName.value.trim()
+  if (!name) return
+  const channel = `custom_${name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 50)}`
+
+  // Prevent duplicates
+  if (customBoardLinks.value.some(l => l.channel === channel)) {
+    toast.warning('Duplicate board', `A custom link for "${name}" already exists.`)
+    return
+  }
+
+  isCreatingCustomBoard.value = true
+  try {
+    const result = await $fetch<{ id: string; code: string }>('/api/tracking-links', {
+      method: 'POST',
+      body: {
+        jobId: createdJobId.value,
+        channel,
+        name: `${form.value.title} — ${name}`,
+      },
+    })
+    const base = `${requestUrl.protocol}//${requestUrl.host}`
+    const trackUrl = `${base}/api/public/track/${encodeURIComponent(result.code)}`
+    customBoardLinks.value.push({ id: result.id, name, channel, code: result.code, url: trackUrl, copied: false })
+    customBoardName.value = ''
+    track('tracking_link_created', { channel, source: 'job_wizard_custom' })
+  } catch {
+    toast.error(`Failed to create tracking link for "${name}"`)
+  } finally {
+    isCreatingCustomBoard.value = false
+  }
+}
+
+async function copyCustomBoardLink(index: number) {
+  const link = customBoardLinks.value[index]
+  if (!link?.url) return
+  try {
+    await navigator.clipboard.writeText(link.url)
+    link.copied = true
+    setTimeout(() => { link.copied = false }, 2500)
+  } catch {
+    toast.info(link.url)
+  }
+}
 
 // Validation (only Step 1 is required to submit)
 const formSchema = z.object({
@@ -1362,34 +1489,48 @@ const questionTypeLabels: Record<QuestionType, string> = {
               </div>
             </section>
 
-            <!-- Step 4: Publish & Share -->
+            <!-- Step 4: Publish & Distribute -->
             <section v-else-if="currentStep === 4" class="space-y-8">
               <!-- Success state after publishing -->
-              <div v-if="isPublished" class="text-center py-8">
-                <div class="inline-flex items-center justify-center size-16 rounded-full bg-success-100 dark:bg-success-900/30 mb-6">
-                  <PartyPopper class="size-8 text-success-600 dark:text-success-400" />
+              <div v-if="isPublished" class="space-y-8">
+                <!-- Compact success header -->
+                <div class="flex items-center gap-4 rounded-xl border border-success-200 dark:border-success-800 bg-success-50 dark:bg-success-950/30 p-5">
+                  <div class="inline-flex items-center justify-center size-12 rounded-full bg-success-100 dark:bg-success-900/50 shrink-0">
+                    <PartyPopper class="size-6 text-success-600 dark:text-success-400" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h2 class="text-lg font-bold text-surface-900 dark:text-surface-100">Your job is live!</h2>
+                    <p class="text-sm text-surface-500 dark:text-surface-400">
+                      <strong>{{ form.title }}</strong> is now accepting applications.
+                    </p>
+                  </div>
+                  <NuxtLink
+                    :to="finalApplicationLink"
+                    target="_blank"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-brand-700 dark:text-brand-300 bg-brand-100 dark:bg-brand-900/50 rounded-lg hover:bg-brand-200 dark:hover:bg-brand-800 transition-colors shrink-0"
+                  >
+                    <ExternalLink class="size-3.5" />
+                    Preview
+                  </NuxtLink>
                 </div>
-                <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-100 mb-2">Your job is live!</h2>
-                <p class="text-sm text-surface-500 dark:text-surface-400 max-w-md mx-auto mb-8">
-                  <strong>{{ form.title }}</strong> has been published and the application link has been copied to your clipboard.
-                </p>
 
-                <!-- Application link card -->
-                <div class="mx-auto max-w-lg rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950 p-5 mb-8">
-                  <div class="flex items-center justify-center gap-2 mb-3">
-                    <Link2 class="size-4 text-brand-600 dark:text-brand-400" />
-                    <span class="text-sm font-semibold text-brand-700 dark:text-brand-300">Application Link</span>
+                <!-- Direct application link -->
+                <div class="rounded-xl border border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-900/50 p-5">
+                  <div class="flex items-center gap-2 mb-3">
+                    <Link2 class="size-4 text-surface-500 dark:text-surface-400" />
+                    <span class="text-sm font-semibold text-surface-700 dark:text-surface-300">Direct application link</span>
+                    <span class="text-xs text-surface-400 dark:text-surface-500">(no tracking)</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <input
                       type="text"
                       readonly
                       :value="finalApplicationLink"
-                      class="flex-1 rounded-lg border border-brand-200 dark:border-brand-800 bg-white dark:bg-surface-900 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 select-all text-center"
+                      class="flex-1 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 px-3 py-2 text-sm text-surface-600 dark:text-surface-400 select-all font-mono"
                     />
                     <button
                       type="button"
-                      class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+                      class="inline-flex items-center gap-1.5 rounded-lg bg-surface-200 dark:bg-surface-700 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-300 dark:hover:bg-surface-600 transition-colors shrink-0"
                       @click="copyFinalLink"
                     >
                       <Copy class="size-3.5" />
@@ -1398,16 +1539,304 @@ const questionTypeLabels: Record<QuestionType, string> = {
                   </div>
                 </div>
 
+                <!-- Distribution hub -->
+                <div>
+                  <div class="flex items-center gap-3 mb-2">
+                    <Share2 class="size-5 text-brand-600 dark:text-brand-400" />
+                    <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-100">Distribute to job boards</h3>
+                  </div>
+                  <p class="text-sm text-surface-500 dark:text-surface-400 mb-6">
+                    Create tracked links for each platform. This lets you see exactly where your applicants come from.
+                  </p>
+
+                  <!-- Job boards -->
+                  <div class="mb-6">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500 mb-3">Job boards</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div
+                        v-for="ch in distributionChannels.filter(c => c.category === 'job_board')"
+                        :key="ch.channel"
+                        class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-950 p-4 transition-all"
+                        :class="createdLinks[ch.channel]?.code ? 'ring-1 ring-brand-200 dark:ring-brand-800 border-brand-200 dark:border-brand-800' : ''"
+                      >
+                        <div class="flex items-start gap-3">
+                          <div class="inline-flex items-center justify-center size-9 rounded-lg bg-surface-100 dark:bg-surface-800 shrink-0">
+                            <component :is="channelIcons[ch.channel] ?? Globe" class="size-4 text-surface-500 dark:text-surface-400" />
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <span class="block text-sm font-semibold text-surface-900 dark:text-surface-100">{{ ch.name }}</span>
+                            <span class="text-xs text-surface-400 dark:text-surface-500">{{ ch.description }}</span>
+                          </div>
+                        </div>
+
+                        <!-- Not yet created -->
+                        <div v-if="!createdLinks[ch.channel]" class="mt-3">
+                          <button
+                            type="button"
+                            class="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/30 px-3 py-2 text-xs font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"
+                            @click="createChannelLink(ch.channel, ch.name)"
+                          >
+                            <Plus class="size-3.5" />
+                            Create tracking link
+                          </button>
+                        </div>
+
+                        <!-- Loading -->
+                        <div v-else-if="createdLinks[ch.channel]?.loading" class="mt-3 flex items-center justify-center gap-2 py-2">
+                          <Loader2 class="size-3.5 text-brand-600 animate-spin" />
+                          <span class="text-xs text-surface-500">Creating...</span>
+                        </div>
+
+                        <!-- Created - show URL -->
+                        <div v-else class="mt-3 space-y-2">
+                          <div class="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              readonly
+                              :value="createdLinks[ch.channel]?.url"
+                              class="flex-1 rounded-md border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 px-2.5 py-1.5 text-xs text-surface-600 dark:text-surface-400 select-all font-mono truncate"
+                            />
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors shrink-0"
+                              :class="createdLinks[ch.channel]?.copied
+                                ? 'bg-success-100 dark:bg-success-900/50 text-success-700 dark:text-success-300'
+                                : 'bg-brand-600 text-white hover:bg-brand-700'"
+                              @click="copyChannelLink(ch.channel)"
+                            >
+                              <Check v-if="createdLinks[ch.channel]?.copied" class="size-3" />
+                              <Copy v-else class="size-3" />
+                              {{ createdLinks[ch.channel]?.copied ? 'Copied!' : 'Copy' }}
+                            </button>
+                          </div>
+                          <p class="flex items-center gap-1 text-[11px] text-success-600 dark:text-success-400">
+                            <Check class="size-3" />
+                            Clicks and applications from this link will be tracked
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Outreach -->
+                  <div class="mb-6">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500 mb-3">Direct outreach</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div
+                        v-for="ch in distributionChannels.filter(c => c.category === 'outreach')"
+                        :key="ch.channel"
+                        class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-950 p-4 transition-all"
+                        :class="createdLinks[ch.channel]?.code ? 'ring-1 ring-brand-200 dark:ring-brand-800 border-brand-200 dark:border-brand-800' : ''"
+                      >
+                        <div class="flex items-start gap-3">
+                          <div class="inline-flex items-center justify-center size-9 rounded-lg bg-surface-100 dark:bg-surface-800 shrink-0">
+                            <component :is="channelIcons[ch.channel] ?? Globe" class="size-4 text-surface-500 dark:text-surface-400" />
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <span class="block text-sm font-semibold text-surface-900 dark:text-surface-100">{{ ch.name }}</span>
+                            <span class="text-xs text-surface-400 dark:text-surface-500">{{ ch.description }}</span>
+                          </div>
+                        </div>
+                        <div v-if="!createdLinks[ch.channel]" class="mt-3">
+                          <button
+                            type="button"
+                            class="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/30 px-3 py-2 text-xs font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"
+                            @click="createChannelLink(ch.channel, ch.name)"
+                          >
+                            <Plus class="size-3.5" />
+                            Create tracking link
+                          </button>
+                        </div>
+                        <div v-else-if="createdLinks[ch.channel]?.loading" class="mt-3 flex items-center justify-center gap-2 py-2">
+                          <Loader2 class="size-3.5 text-brand-600 animate-spin" />
+                          <span class="text-xs text-surface-500">Creating...</span>
+                        </div>
+                        <div v-else class="mt-3 space-y-2">
+                          <div class="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              readonly
+                              :value="createdLinks[ch.channel]?.url"
+                              class="flex-1 rounded-md border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 px-2.5 py-1.5 text-xs text-surface-600 dark:text-surface-400 select-all font-mono truncate"
+                            />
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors shrink-0"
+                              :class="createdLinks[ch.channel]?.copied
+                                ? 'bg-success-100 dark:bg-success-900/50 text-success-700 dark:text-success-300'
+                                : 'bg-brand-600 text-white hover:bg-brand-700'"
+                              @click="copyChannelLink(ch.channel)"
+                            >
+                              <Check v-if="createdLinks[ch.channel]?.copied" class="size-3" />
+                              <Copy v-else class="size-3" />
+                              {{ createdLinks[ch.channel]?.copied ? 'Copied!' : 'Copy' }}
+                            </button>
+                          </div>
+                          <p class="flex items-center gap-1 text-[11px] text-success-600 dark:text-success-400">
+                            <Check class="size-3" />
+                            Clicks and applications from this link will be tracked
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Social media -->
+                  <div class="mb-6">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500 mb-3">Social media</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div
+                        v-for="ch in distributionChannels.filter(c => c.category === 'social')"
+                        :key="ch.channel"
+                        class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-950 p-4 transition-all"
+                        :class="createdLinks[ch.channel]?.code ? 'ring-1 ring-brand-200 dark:ring-brand-800 border-brand-200 dark:border-brand-800' : ''"
+                      >
+                        <div class="flex items-start gap-3">
+                          <div class="inline-flex items-center justify-center size-9 rounded-lg bg-surface-100 dark:bg-surface-800 shrink-0">
+                            <component :is="channelIcons[ch.channel] ?? Globe" class="size-4 text-surface-500 dark:text-surface-400" />
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <span class="block text-sm font-semibold text-surface-900 dark:text-surface-100">{{ ch.name }}</span>
+                            <span class="text-xs text-surface-400 dark:text-surface-500">{{ ch.description }}</span>
+                          </div>
+                        </div>
+                        <div v-if="!createdLinks[ch.channel]" class="mt-3">
+                          <button
+                            type="button"
+                            class="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/30 px-3 py-2 text-xs font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"
+                            @click="createChannelLink(ch.channel, ch.name)"
+                          >
+                            <Plus class="size-3.5" />
+                            Create tracking link
+                          </button>
+                        </div>
+                        <div v-else-if="createdLinks[ch.channel]?.loading" class="mt-3 flex items-center justify-center gap-2 py-2">
+                          <Loader2 class="size-3.5 text-brand-600 animate-spin" />
+                          <span class="text-xs text-surface-500">Creating...</span>
+                        </div>
+                        <div v-else class="mt-3 space-y-2">
+                          <div class="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              readonly
+                              :value="createdLinks[ch.channel]?.url"
+                              class="flex-1 rounded-md border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 px-2.5 py-1.5 text-xs text-surface-600 dark:text-surface-400 select-all font-mono truncate"
+                            />
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors shrink-0"
+                              :class="createdLinks[ch.channel]?.copied
+                                ? 'bg-success-100 dark:bg-success-900/50 text-success-700 dark:text-success-300'
+                                : 'bg-brand-600 text-white hover:bg-brand-700'"
+                              @click="copyChannelLink(ch.channel)"
+                            >
+                              <Check v-if="createdLinks[ch.channel]?.copied" class="size-3" />
+                              <Copy v-else class="size-3" />
+                              {{ createdLinks[ch.channel]?.copied ? 'Copied!' : 'Copy' }}
+                            </button>
+                          </div>
+                          <p class="flex items-center gap-1 text-[11px] text-success-600 dark:text-success-400">
+                            <Check class="size-3" />
+                            Clicks and applications from this link will be tracked
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Custom job board -->
+                  <div class="mb-6">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500 mb-3">Custom job board</h4>
+                    <p class="text-sm text-surface-500 dark:text-surface-400 mb-3">
+                      Create a tracked link for any platform not listed above.
+                    </p>
+
+                    <!-- Add custom board form -->
+                    <div class="flex items-center gap-2 mb-4">
+                      <input
+                        v-model="customBoardName"
+                        type="text"
+                        placeholder="e.g. Hacker News, AngelList, Niche Board"
+                        class="flex-1 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 placeholder-surface-400 dark:placeholder-surface-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                        @keydown.enter.prevent="createCustomBoardLink"
+                      />
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/30 px-4 py-2 text-sm font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        :disabled="!customBoardName.trim() || isCreatingCustomBoard"
+                        @click="createCustomBoardLink"
+                      >
+                        <Loader2 v-if="isCreatingCustomBoard" class="size-3.5 animate-spin" />
+                        <Plus v-else class="size-3.5" />
+                        Create link
+                      </button>
+                    </div>
+
+                    <!-- Created custom board links -->
+                    <div v-if="customBoardLinks.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div
+                        v-for="(cbl, idx) in customBoardLinks"
+                        :key="cbl.channel"
+                        class="rounded-xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-950 p-4 ring-1 ring-brand-200 dark:ring-brand-800 border-brand-200 dark:border-brand-800"
+                      >
+                        <div class="flex items-start gap-3">
+                          <div class="inline-flex items-center justify-center size-9 rounded-lg bg-surface-100 dark:bg-surface-800 shrink-0">
+                            <Globe class="size-4 text-surface-500 dark:text-surface-400" />
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <span class="block text-sm font-semibold text-surface-900 dark:text-surface-100">{{ cbl.name }}</span>
+                            <span class="text-xs text-surface-400 dark:text-surface-500">Custom job board</span>
+                          </div>
+                        </div>
+                        <div class="mt-3 space-y-2">
+                          <div class="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              readonly
+                              :value="cbl.url"
+                              class="flex-1 rounded-md border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 px-2.5 py-1.5 text-xs text-surface-600 dark:text-surface-400 select-all font-mono truncate"
+                            />
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors shrink-0"
+                              :class="cbl.copied
+                                ? 'bg-success-100 dark:bg-success-900/50 text-success-700 dark:text-success-300'
+                                : 'bg-brand-600 text-white hover:bg-brand-700'"
+                              @click="copyCustomBoardLink(idx)"
+                            >
+                              <Check v-if="cbl.copied" class="size-3" />
+                              <Copy v-else class="size-3" />
+                              {{ cbl.copied ? 'Copied!' : 'Copy' }}
+                            </button>
+                          </div>
+                          <p class="flex items-center gap-1 text-[11px] text-success-600 dark:text-success-400">
+                            <Check class="size-3" />
+                            Clicks and applications from this link will be tracked
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Summary and link to full dashboard -->
+                  <div class="rounded-xl border border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-900/50 p-4">
+                    <div class="flex items-center gap-3">
+                      <BarChart3 class="size-5 text-surface-400 dark:text-surface-500 shrink-0" />
+                      <div class="flex-1">
+                        <p class="text-sm text-surface-700 dark:text-surface-300">
+                          <span v-if="createdLinkCount > 0">
+                            {{ createdLinkCount }} tracking {{ createdLinkCount === 1 ? 'link' : 'links' }} created.
+                          </span>
+                          View all analytics and manage links in the
+                          <NuxtLink :to="$localePath('/dashboard/source-tracking')" class="text-brand-600 dark:text-brand-400 font-medium underline underline-offset-2">Source Tracking dashboard</NuxtLink>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Action buttons -->
-                <div class="flex items-center justify-center gap-3">
-                  <NuxtLink
-                    :to="finalApplicationLink"
-                    target="_blank"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 bg-white dark:bg-surface-900 border border-surface-300 dark:border-surface-700 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
-                  >
-                    <ExternalLink class="size-4" />
-                    Preview form
-                  </NuxtLink>
+                <div class="flex items-center justify-between pt-6 border-t border-surface-100 dark:border-surface-800">
                   <NuxtLink
                     :to="$localePath(`/dashboard/jobs/${createdJobId}`)"
                     class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 bg-white dark:bg-surface-900 border border-surface-300 dark:border-surface-700 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
@@ -1428,7 +1857,7 @@ const questionTypeLabels: Record<QuestionType, string> = {
               <div v-else>
                 <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-100 mb-2 pb-2 border-b border-surface-100 dark:border-surface-800">Ready to go?</h2>
                 <p class="text-sm text-surface-500 dark:text-surface-400 mb-6">
-                  Choose how you'd like to save this job. You can always change the status later from the job detail page.
+                  Publish your job to start receiving applications. After publishing, you'll be able to create tracked links for each platform where you share it.
                 </p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -1514,6 +1943,19 @@ const questionTypeLabels: Record<QuestionType, string> = {
                       <dd class="text-surface-900 dark:text-surface-100">{{ applicationForm.questions.length }} custom {{ applicationForm.questions.length === 1 ? 'question' : 'questions' }}</dd>
                     </div>
                   </dl>
+                </div>
+
+                <!-- What happens next hint -->
+                <div v-if="publishChoice === 'publish'" class="rounded-xl border border-brand-100 dark:border-brand-900 bg-brand-50/50 dark:bg-brand-950/20 p-4 mt-6">
+                  <div class="flex items-start gap-3">
+                    <Share2 class="size-4 text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p class="text-sm font-medium text-brand-800 dark:text-brand-200">After publishing</p>
+                      <p class="text-xs text-brand-700 dark:text-brand-300 mt-0.5 leading-relaxed">
+                        You'll get tracked links for LinkedIn, Indeed, and other platforms so you can see exactly where your applicants come from.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -1612,8 +2054,12 @@ const questionTypeLabels: Record<QuestionType, string> = {
                 Publishing makes the job visible to candidates. You can unpublish at any time from the job settings.
               </li>
               <li v-if="currentStep === 4" class="text-sm text-surface-600 dark:text-surface-400 leading-relaxed">
-                <p class="font-medium text-surface-900 dark:text-surface-100 mb-1">Share the link</p>
-                After publishing, the application link is automatically copied. Paste it in emails, Slack, or social media.
+                <p class="font-medium text-surface-900 dark:text-surface-100 mb-1">Use tracking links</p>
+                Create a unique link for each platform (LinkedIn, Indeed, etc.) to see where your best applicants come from.
+              </li>
+              <li v-if="currentStep === 4" class="text-sm text-surface-600 dark:text-surface-400 leading-relaxed">
+                <p class="font-medium text-surface-900 dark:text-surface-100 mb-1">One link per channel</p>
+                Each tracking link counts clicks and applications separately so you can compare which channels work best.
               </li>
               <li v-if="currentStep === 4" class="text-sm text-surface-600 dark:text-surface-400 leading-relaxed">
                 <p class="font-medium text-surface-900 dark:text-surface-100 mb-1">Drafts are private</p>
