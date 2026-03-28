@@ -21,7 +21,6 @@ useSeoMeta({
 const localePath = useLocalePath()
 const { track } = useTrack()
 const toast = useToast()
-const { hasPermission } = usePermission()
 
 onMounted(() => track('source_tracking_viewed'))
 
@@ -79,7 +78,7 @@ const { data: jobsData } = useFetch('/api/jobs', {
 })
 const jobs = computed(() => (jobsData.value as any)?.data ?? [])
 
-const canManageLinks = computed(() => hasPermission('sourceTracking', 'create'))
+const { allowed: canManageLinks } = usePermission({ sourceTracking: ['create'] })
 
 // ─────────────────────────────────────────────
 // Create link modal
@@ -693,7 +692,7 @@ const showTab = ref<'overview' | 'links' | 'table'>('overview')
               <div v-else class="px-5 py-4 space-y-3">
                 <div
                   v-for="ref in topReferrerDomains"
-                  :key="ref.domain"
+                  :key="ref.domain ?? 'unknown'"
                   class="flex items-center justify-between"
                 >
                   <div class="flex items-center gap-2 min-w-0">

@@ -431,7 +431,7 @@ export default defineEventHandler(async (event) => {
     await db.insert(applicationSource).values({
       organizationId: orgId,
       applicationId: newApplication!.id,
-      channel,
+      channel: channel as typeof applicationSource.$inferInsert.channel,
       trackingLinkId: resolvedLink?.id ?? null,
       utmSource: utmSource ?? null,
       utmMedium: utmMedium ?? null,

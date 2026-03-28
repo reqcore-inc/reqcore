@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm'
-import { trackingLink } from '../../../../database/schema'
+import { trackingLink } from '../../../database/schema'
 
 /**
  * GET /api/public/track/:code

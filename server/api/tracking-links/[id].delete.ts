@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
-import { trackingLink } from '../../../database/schema'
-import { trackingLinkIdSchema } from '../../../utils/schemas/trackingLink'
+import { trackingLink } from '../../database/schema'
+import { trackingLinkIdSchema } from '../../utils/schemas/trackingLink'
 
 /**
  * DELETE /api/tracking-links/:id

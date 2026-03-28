@@ -74,7 +74,7 @@ export function useSourceTracking(options?: {
     error: statsError,
     refresh: refreshStats,
   } = useFetch<SourceStats>('/api/source-tracking/stats', {
-    key: computed(() => `source-stats-${jobId.value ?? 'all'}-${from.value ?? ''}-${to.value ?? ''}`).value,
+    key: 'source-stats',
     headers: useRequestHeaders(['cookie']),
     query: computed(() => {
       const q: Record<string, string> = {}
@@ -125,7 +125,7 @@ export function useTrackingLinks(options?: {
     error,
     refresh,
   } = useFetch<{ data: TrackingLink[]; total: number }>('/api/tracking-links', {
-    key: computed(() => `tracking-links-${jobId.value ?? 'all'}-${channel.value ?? 'all'}`).value,
+    key: 'tracking-links',
     headers: useRequestHeaders(['cookie']),
     query: computed(() => {
       const q: Record<string, string> = {}

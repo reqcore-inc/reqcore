@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
-import { trackingLink } from '../../../database/schema'
-import { trackingLinkIdSchema, updateTrackingLinkSchema } from '../../../utils/schemas/trackingLink'
+import { trackingLink } from '../../database/schema'
+import { trackingLinkIdSchema, updateTrackingLinkSchema } from '../../utils/schemas/trackingLink'
 
 /**
  * PATCH /api/tracking-links/:id
