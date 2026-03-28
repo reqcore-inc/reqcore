@@ -27,7 +27,7 @@ useSeoMeta({
   ogDescription:
     'Browse open job positions and apply directly. Powered by the open-source ATS you actually own.',
   ogType: 'website',
-  ogImage: '/og-image.png',
+  ogImage: '/reqcore-banner-github.jpeg',
   twitterCard: 'summary_large_image',
   twitterTitle: 'Open Positions — Reqcore Job Board',
   twitterDescription:

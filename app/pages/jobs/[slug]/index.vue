@@ -66,7 +66,7 @@ useSeoMeta({
     return `Apply for ${job.value.title}${org}. ${job.value.location ?? 'Remote'}.`
   }),
   ogType: 'website',
-  ogImage: '/og-image.png',
+  ogImage: '/reqcore-banner-github.jpeg',
   twitterCard: 'summary_large_image',
   twitterTitle: computed(() => job.value?.title ?? 'Job Details'),
   twitterDescription: computed(() => {
