@@ -38,6 +38,7 @@ interface SourceStats {
   dailyTrend: { date: string; channel: string; count: number }[]
   recentAttributed: {
     applicationId: string
+    jobId: string
     channel: string
     utmSource: string | null
     utmCampaign: string | null
@@ -68,12 +69,13 @@ export function useSourceTracking(options?: {
   const to = computed(() => toValue(options?.to))
 
   // ─── Source stats ─────────────────────────
-  const queryParams = computed(() => {
-    const q: Record<string, string> = {}
-    if (jobId.value) q.jobId = jobId.value
-    if (from.value) q.from = from.value
-    if (to.value) q.to = to.value
-    return q
+  const statsUrl = computed(() => {
+    const params = new URLSearchParams()
+    if (jobId.value) params.set('jobId', jobId.value)
+    if (from.value) params.set('from', from.value)
+    if (to.value) params.set('to', to.value)
+    const qs = params.toString()
+    return `/api/source-tracking/stats${qs ? `?${qs}` : ''}`
   })
 
   const {
@@ -81,10 +83,8 @@ export function useSourceTracking(options?: {
     status: statsStatus,
     error: statsError,
     refresh: refreshStats,
-  } = useFetch<SourceStats>('/api/source-tracking/stats', {
+  } = useFetch<SourceStats>(statsUrl, {
     headers: useRequestHeaders(['cookie']),
-    query: queryParams,
-    watch: [queryParams],
   })
 
   const channelBreakdown = computed(() => stats.value?.channelBreakdown ?? [])

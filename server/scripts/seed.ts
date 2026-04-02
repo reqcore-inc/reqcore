@@ -9,6 +9,8 @@
  * - 65+ applications across all pipeline stages
  * - Custom questions on select jobs
  * - Question responses on applications
+ * - 20 tracking links across 14+ source channels (LinkedIn, Indeed, etc.)
+ * - 55+ application source attribution records with UTM & referrer data
  * - 35+ scheduled/completed interviews across the pipeline
  * - 200+ activity log entries covering all action types (for Timeline page)
  *
@@ -1798,6 +1800,407 @@ function generateResponses(jobIndex: number, candidateIndex: number): Record<str
 }
 
 // ─────────────────────────────────────────────
+// Source Tracking — Tracking links & attribution
+// ─────────────────────────────────────────────
+
+type SourceChannel =
+  | 'linkedin' | 'indeed' | 'glassdoor' | 'ziprecruiter' | 'monster'
+  | 'handshake' | 'angellist' | 'wellfound' | 'dice' | 'stackoverflow'
+  | 'weworkremotely' | 'remoteok' | 'builtin' | 'hired' | 'lever'
+  | 'greenhouse_board' | 'google_jobs' | 'facebook' | 'twitter' | 'instagram'
+  | 'tiktok' | 'reddit' | 'referral' | 'career_site' | 'email'
+  | 'event' | 'agency' | 'direct' | 'other' | 'custom'
+
+interface TrackingLinkSeed {
+  /** null = org-wide link, number = job index */
+  jobIndex: number | null
+  channel: SourceChannel
+  name: string
+  code: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+  utmTerm?: string
+  utmContent?: string
+  clickCount: number
+  applicationCount: number
+  isActive: boolean
+  daysAgoCreated: number
+}
+
+const TRACKING_LINKS_DATA: TrackingLinkSeed[] = [
+  // ── Job 0: Senior Full-Stack Engineer ──
+  {
+    jobIndex: 0,
+    channel: 'linkedin',
+    name: 'LinkedIn – Senior Engineer Spring 2026',
+    code: 'lnk-se01',
+    utmSource: 'linkedin',
+    utmMedium: 'social',
+    utmCampaign: 'senior-engineer-spring-2026',
+    utmContent: 'sponsored-post',
+    clickCount: 284,
+    applicationCount: 4,
+    isActive: true,
+    daysAgoCreated: 25,
+  },
+  {
+    jobIndex: 0,
+    channel: 'indeed',
+    name: 'Indeed – Full-Stack Engineer Listing',
+    code: 'ind-se02',
+    utmSource: 'indeed',
+    utmMedium: 'job_board',
+    utmCampaign: 'fullstack-q1-2026',
+    clickCount: 196,
+    applicationCount: 3,
+    isActive: true,
+    daysAgoCreated: 22,
+  },
+  {
+    jobIndex: 0,
+    channel: 'stackoverflow',
+    name: 'Stack Overflow Jobs – TypeScript Senior',
+    code: 'so-se003',
+    utmSource: 'stackoverflow',
+    utmMedium: 'job_board',
+    utmCampaign: 'typescript-senior-2026',
+    clickCount: 112,
+    applicationCount: 2,
+    isActive: true,
+    daysAgoCreated: 20,
+  },
+  {
+    jobIndex: 0,
+    channel: 'referral',
+    name: 'Employee Referral – Engineering Team',
+    code: 'ref-se04',
+    utmSource: 'referral',
+    utmMedium: 'internal',
+    utmCampaign: 'eng-referral-bonus',
+    clickCount: 18,
+    applicationCount: 2,
+    isActive: true,
+    daysAgoCreated: 24,
+  },
+
+  // ── Job 1: Product Designer ──
+  {
+    jobIndex: 1,
+    channel: 'linkedin',
+    name: 'LinkedIn – Product Designer EU',
+    code: 'lnk-pd05',
+    utmSource: 'linkedin',
+    utmMedium: 'social',
+    utmCampaign: 'product-designer-eu-2026',
+    utmContent: 'carousel-post',
+    clickCount: 341,
+    applicationCount: 4,
+    isActive: true,
+    daysAgoCreated: 23,
+  },
+  {
+    jobIndex: 1,
+    channel: 'other',
+    name: 'Dribbble – Designer Position Board',
+    code: 'drb-pd06',
+    utmSource: 'dribbble',
+    utmMedium: 'job_board',
+    utmCampaign: 'designer-spring-2026',
+    clickCount: 89,
+    applicationCount: 2,
+    isActive: true,
+    daysAgoCreated: 21,
+  },
+  {
+    jobIndex: 1,
+    channel: 'twitter',
+    name: 'Twitter/X – Design Hiring Thread',
+    code: 'tw-pd007',
+    utmSource: 'twitter',
+    utmMedium: 'social',
+    utmCampaign: 'design-hiring-thread',
+    utmContent: 'thread-v2',
+    clickCount: 156,
+    applicationCount: 2,
+    isActive: true,
+    daysAgoCreated: 18,
+  },
+
+  // ── Job 2: DevOps Engineer ──
+  {
+    jobIndex: 2,
+    channel: 'linkedin',
+    name: 'LinkedIn – DevOps Contract Remote',
+    code: 'lnk-do08',
+    utmSource: 'linkedin',
+    utmMedium: 'social',
+    utmCampaign: 'devops-contract-worldwide',
+    clickCount: 203,
+    applicationCount: 3,
+    isActive: true,
+    daysAgoCreated: 20,
+  },
+  {
+    jobIndex: 2,
+    channel: 'weworkremotely',
+    name: 'WeWorkRemotely – DevOps Listing',
+    code: 'wwr-do09',
+    utmSource: 'weworkremotely',
+    utmMedium: 'job_board',
+    utmCampaign: 'devops-remote-2026',
+    clickCount: 134,
+    applicationCount: 3,
+    isActive: true,
+    daysAgoCreated: 19,
+  },
+  {
+    jobIndex: 2,
+    channel: 'reddit',
+    name: 'Reddit r/devops – Hiring Post',
+    code: 'rdt-do10',
+    utmSource: 'reddit',
+    utmMedium: 'social',
+    utmCampaign: 'r-devops-hiring',
+    utmContent: 'march-post',
+    clickCount: 78,
+    applicationCount: 1,
+    isActive: false, // expired campaign
+    daysAgoCreated: 28,
+  },
+
+  // ── Job 3: Technical Writer ──
+  {
+    jobIndex: 3,
+    channel: 'email',
+    name: 'Newsletter – Tech Writer Part-Time',
+    code: 'eml-tw11',
+    utmSource: 'newsletter',
+    utmMedium: 'email',
+    utmCampaign: 'writer-newsletter-mar-2026',
+    clickCount: 67,
+    applicationCount: 3,
+    isActive: true,
+    daysAgoCreated: 17,
+  },
+  {
+    jobIndex: 3,
+    channel: 'career_site',
+    name: 'Careers Page – Technical Writer',
+    code: 'web-tw12',
+    utmSource: 'career_site',
+    utmMedium: 'organic',
+    utmCampaign: 'careers-page',
+    clickCount: 43,
+    applicationCount: 3,
+    isActive: true,
+    daysAgoCreated: 16,
+  },
+
+  // ── Job 4: Frontend Intern ──
+  {
+    jobIndex: 4,
+    channel: 'handshake',
+    name: 'Handshake – Frontend Intern Berlin',
+    code: 'hs-fi013',
+    utmSource: 'handshake',
+    utmMedium: 'job_board',
+    utmCampaign: 'intern-summer-2026',
+    clickCount: 227,
+    applicationCount: 5,
+    isActive: true,
+    daysAgoCreated: 15,
+  },
+  {
+    jobIndex: 4,
+    channel: 'event',
+    name: 'TU Berlin Career Fair – Booth QR',
+    code: 'evt-fi14',
+    utmSource: 'tu_berlin_fair',
+    utmMedium: 'event',
+    utmCampaign: 'career-fair-spring-2026',
+    clickCount: 52,
+    applicationCount: 2,
+    isActive: true,
+    daysAgoCreated: 12,
+  },
+
+  // ── Org-wide links (no specific job) ──
+  {
+    jobIndex: null,
+    channel: 'linkedin',
+    name: 'LinkedIn Company Page – All Roles',
+    code: 'lnk-org1',
+    utmSource: 'linkedin',
+    utmMedium: 'social',
+    utmCampaign: 'company-page-hiring',
+    clickCount: 512,
+    applicationCount: 2,
+    isActive: true,
+    daysAgoCreated: 30,
+  },
+  {
+    jobIndex: null,
+    channel: 'google_jobs',
+    name: 'Google Jobs – Aggregated Listings',
+    code: 'ggl-org2',
+    utmSource: 'google_jobs',
+    utmMedium: 'aggregator',
+    utmCampaign: 'google-jobs-auto',
+    clickCount: 389,
+    applicationCount: 3,
+    isActive: true,
+    daysAgoCreated: 29,
+  },
+  {
+    jobIndex: null,
+    channel: 'agency',
+    name: 'TechTalent Agency – Q1 Pipeline',
+    code: 'agt-org3',
+    utmSource: 'techtalent_agency',
+    utmMedium: 'agency',
+    utmCampaign: 'techtalent-q1-2026',
+    clickCount: 34,
+    applicationCount: 1,
+    isActive: true,
+    daysAgoCreated: 26,
+  },
+  {
+    jobIndex: null,
+    channel: 'facebook',
+    name: 'Facebook – Berlin Tech Jobs Group',
+    code: 'fb-org04',
+    utmSource: 'facebook',
+    utmMedium: 'social',
+    utmCampaign: 'berlin-tech-group',
+    clickCount: 145,
+    applicationCount: 0,
+    isActive: false, // ended campaign
+    daysAgoCreated: 27,
+  },
+  {
+    jobIndex: null,
+    channel: 'glassdoor',
+    name: 'Glassdoor – Company Profile',
+    code: 'gd-org05',
+    utmSource: 'glassdoor',
+    utmMedium: 'job_board',
+    utmCampaign: 'glassdoor-profile-2026',
+    clickCount: 198,
+    applicationCount: 1,
+    isActive: true,
+    daysAgoCreated: 28,
+  },
+]
+
+/**
+ * Source attribution assignments for applications.
+ * Maps each application (by jobIndex-candidateIndex) to its source.
+ * Applications not listed here will get 'direct' as default.
+ */
+interface ApplicationSourceSeed {
+  jobIndex: number
+  candidateIndex: number
+  channel: SourceChannel
+  /** Index into TRACKING_LINKS_DATA if this came via a tracking link, or null */
+  trackingLinkIndex: number | null
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+  utmTerm?: string
+  utmContent?: string
+  referrerDomain?: string
+}
+
+const APPLICATION_SOURCES_DATA: ApplicationSourceSeed[] = [
+  // ── Job 0: Senior Full-Stack Engineer (14 applications) ──
+  // Via LinkedIn tracking link
+  { jobIndex: 0, candidateIndex: 0, channel: 'linkedin', trackingLinkIndex: 0, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'senior-engineer-spring-2026', utmContent: 'sponsored-post', referrerDomain: 'linkedin.com' },
+  { jobIndex: 0, candidateIndex: 1, channel: 'linkedin', trackingLinkIndex: 0, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'senior-engineer-spring-2026', utmContent: 'sponsored-post', referrerDomain: 'linkedin.com' },
+  { jobIndex: 0, candidateIndex: 3, channel: 'linkedin', trackingLinkIndex: 0, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'senior-engineer-spring-2026', referrerDomain: 'linkedin.com' },
+  // Via Indeed tracking link
+  { jobIndex: 0, candidateIndex: 2, channel: 'indeed', trackingLinkIndex: 1, utmSource: 'indeed', utmMedium: 'job_board', utmCampaign: 'fullstack-q1-2026', referrerDomain: 'indeed.com' },
+  { jobIndex: 0, candidateIndex: 4, channel: 'indeed', trackingLinkIndex: 1, utmSource: 'indeed', utmMedium: 'job_board', utmCampaign: 'fullstack-q1-2026', referrerDomain: 'indeed.com' },
+  // Via Stack Overflow tracking link
+  { jobIndex: 0, candidateIndex: 5, channel: 'stackoverflow', trackingLinkIndex: 2, utmSource: 'stackoverflow', utmMedium: 'job_board', utmCampaign: 'typescript-senior-2026', referrerDomain: 'stackoverflow.com' },
+  { jobIndex: 0, candidateIndex: 8, channel: 'stackoverflow', trackingLinkIndex: 2, utmSource: 'stackoverflow', utmMedium: 'job_board', referrerDomain: 'stackoverflow.com' },
+  // Via employee referral link
+  { jobIndex: 0, candidateIndex: 6, channel: 'referral', trackingLinkIndex: 3, utmSource: 'referral', utmMedium: 'internal', utmCampaign: 'eng-referral-bonus' },
+  { jobIndex: 0, candidateIndex: 7, channel: 'referral', trackingLinkIndex: 3, utmSource: 'referral', utmMedium: 'internal', utmCampaign: 'eng-referral-bonus' },
+  // Organic / UTM-only (no tracking link)
+  { jobIndex: 0, candidateIndex: 9, channel: 'google_jobs', trackingLinkIndex: 15, utmSource: 'google_jobs', utmMedium: 'aggregator', utmCampaign: 'google-jobs-auto', referrerDomain: 'google.com' },
+  { jobIndex: 0, candidateIndex: 10, channel: 'career_site', trackingLinkIndex: null, referrerDomain: 'reqcore.com' },
+  { jobIndex: 0, candidateIndex: 11, channel: 'direct', trackingLinkIndex: null },
+  { jobIndex: 0, candidateIndex: 12, channel: 'linkedin', trackingLinkIndex: 0, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'senior-engineer-spring-2026', referrerDomain: 'linkedin.com' },
+  { jobIndex: 0, candidateIndex: 13, channel: 'indeed', trackingLinkIndex: 1, utmSource: 'indeed', utmMedium: 'job_board', referrerDomain: 'indeed.com' },
+
+  // ── Job 1: Product Designer (12 applications) ──
+  // Via LinkedIn tracking link
+  { jobIndex: 1, candidateIndex: 14, channel: 'linkedin', trackingLinkIndex: 4, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'product-designer-eu-2026', utmContent: 'carousel-post', referrerDomain: 'linkedin.com' },
+  { jobIndex: 1, candidateIndex: 15, channel: 'linkedin', trackingLinkIndex: 4, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'product-designer-eu-2026', referrerDomain: 'linkedin.com' },
+  { jobIndex: 1, candidateIndex: 16, channel: 'linkedin', trackingLinkIndex: 4, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'product-designer-eu-2026', referrerDomain: 'linkedin.com' },
+  // Via Dribbble tracking link (custom channel since dribbble isn't in enum)
+  { jobIndex: 1, candidateIndex: 17, channel: 'other', trackingLinkIndex: 5, utmSource: 'dribbble', utmMedium: 'job_board', utmCampaign: 'designer-spring-2026', referrerDomain: 'dribbble.com' },
+  { jobIndex: 1, candidateIndex: 18, channel: 'other', trackingLinkIndex: 5, utmSource: 'dribbble', utmMedium: 'job_board', referrerDomain: 'dribbble.com' },
+  // Via Twitter tracking link
+  { jobIndex: 1, candidateIndex: 19, channel: 'twitter', trackingLinkIndex: 6, utmSource: 'twitter', utmMedium: 'social', utmCampaign: 'design-hiring-thread', referrerDomain: 'x.com' },
+  { jobIndex: 1, candidateIndex: 20, channel: 'twitter', trackingLinkIndex: 6, utmSource: 'twitter', utmMedium: 'social', utmCampaign: 'design-hiring-thread', referrerDomain: 'x.com' },
+  // Organic / no tracking link
+  { jobIndex: 1, candidateIndex: 21, channel: 'career_site', trackingLinkIndex: null, referrerDomain: 'reqcore.com' },
+  { jobIndex: 1, candidateIndex: 22, channel: 'google_jobs', trackingLinkIndex: 15, utmSource: 'google_jobs', utmMedium: 'aggregator', utmCampaign: 'google-jobs-auto', referrerDomain: 'google.com' },
+  { jobIndex: 1, candidateIndex: 23, channel: 'direct', trackingLinkIndex: null },
+  { jobIndex: 1, candidateIndex: 24, channel: 'linkedin', trackingLinkIndex: 4, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'product-designer-eu-2026', referrerDomain: 'linkedin.com' },
+  { jobIndex: 1, candidateIndex: 25, channel: 'agency', trackingLinkIndex: 16, utmSource: 'techtalent_agency', utmMedium: 'agency', utmCampaign: 'techtalent-q1-2026' },
+
+  // ── Job 2: DevOps Engineer (11 applications) ──
+  // Via LinkedIn tracking link
+  { jobIndex: 2, candidateIndex: 5, channel: 'linkedin', trackingLinkIndex: 7, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'devops-contract-worldwide', referrerDomain: 'linkedin.com' },
+  { jobIndex: 2, candidateIndex: 6, channel: 'linkedin', trackingLinkIndex: 7, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'devops-contract-worldwide', referrerDomain: 'linkedin.com' },
+  // Via WeWorkRemotely tracking link
+  { jobIndex: 2, candidateIndex: 7, channel: 'weworkremotely', trackingLinkIndex: 8, utmSource: 'weworkremotely', utmMedium: 'job_board', utmCampaign: 'devops-remote-2026', referrerDomain: 'weworkremotely.com' },
+  { jobIndex: 2, candidateIndex: 8, channel: 'weworkremotely', trackingLinkIndex: 8, utmSource: 'weworkremotely', utmMedium: 'job_board', referrerDomain: 'weworkremotely.com' },
+  { jobIndex: 2, candidateIndex: 9, channel: 'weworkremotely', trackingLinkIndex: 8, utmSource: 'weworkremotely', utmMedium: 'job_board', referrerDomain: 'weworkremotely.com' },
+  // Via Reddit tracking link (inactive link — still attributed)
+  { jobIndex: 2, candidateIndex: 10, channel: 'reddit', trackingLinkIndex: 9, utmSource: 'reddit', utmMedium: 'social', utmCampaign: 'r-devops-hiring', utmContent: 'march-post', referrerDomain: 'reddit.com' },
+  // Organic / no tracking link
+  { jobIndex: 2, candidateIndex: 26, channel: 'career_site', trackingLinkIndex: null, referrerDomain: 'reqcore.com' },
+  { jobIndex: 2, candidateIndex: 27, channel: 'glassdoor', trackingLinkIndex: 18, utmSource: 'glassdoor', utmMedium: 'job_board', utmCampaign: 'glassdoor-profile-2026', referrerDomain: 'glassdoor.com' },
+  { jobIndex: 2, candidateIndex: 28, channel: 'direct', trackingLinkIndex: null },
+  { jobIndex: 2, candidateIndex: 29, channel: 'linkedin', trackingLinkIndex: 7, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'devops-contract-worldwide', referrerDomain: 'linkedin.com' },
+  { jobIndex: 2, candidateIndex: 13, channel: 'indeed', trackingLinkIndex: null, utmSource: 'indeed', utmMedium: 'job_board', referrerDomain: 'indeed.com' },
+
+  // ── Job 3: Technical Writer (10 applications) ──
+  // Via email newsletter tracking link
+  { jobIndex: 3, candidateIndex: 12, channel: 'email', trackingLinkIndex: 10, utmSource: 'newsletter', utmMedium: 'email', utmCampaign: 'writer-newsletter-mar-2026' },
+  { jobIndex: 3, candidateIndex: 14, channel: 'email', trackingLinkIndex: 10, utmSource: 'newsletter', utmMedium: 'email', utmCampaign: 'writer-newsletter-mar-2026' },
+  { jobIndex: 3, candidateIndex: 16, channel: 'email', trackingLinkIndex: 10, utmSource: 'newsletter', utmMedium: 'email', utmCampaign: 'writer-newsletter-mar-2026' },
+  // Via careers page tracking link
+  { jobIndex: 3, candidateIndex: 18, channel: 'career_site', trackingLinkIndex: 11, utmSource: 'career_site', utmMedium: 'organic', utmCampaign: 'careers-page', referrerDomain: 'reqcore.com' },
+  { jobIndex: 3, candidateIndex: 20, channel: 'career_site', trackingLinkIndex: 11, utmSource: 'career_site', utmMedium: 'organic', referrerDomain: 'reqcore.com' },
+  // Organic / no tracking link
+  { jobIndex: 3, candidateIndex: 22, channel: 'linkedin', trackingLinkIndex: 14, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'company-page-hiring', referrerDomain: 'linkedin.com' },
+  { jobIndex: 3, candidateIndex: 24, channel: 'google_jobs', trackingLinkIndex: 15, utmSource: 'google_jobs', utmMedium: 'aggregator', utmCampaign: 'google-jobs-auto', referrerDomain: 'google.com' },
+  { jobIndex: 3, candidateIndex: 26, channel: 'direct', trackingLinkIndex: null },
+  { jobIndex: 3, candidateIndex: 28, channel: 'referral', trackingLinkIndex: null, utmSource: 'referral', utmMedium: 'internal' },
+  { jobIndex: 3, candidateIndex: 29, channel: 'career_site', trackingLinkIndex: 11, utmSource: 'career_site', utmMedium: 'organic', referrerDomain: 'reqcore.com' },
+
+  // ── Job 4: Frontend Engineering Intern (10 applications) ──
+  // Via Handshake tracking link
+  { jobIndex: 4, candidateIndex: 0, channel: 'handshake', trackingLinkIndex: 12, utmSource: 'handshake', utmMedium: 'job_board', utmCampaign: 'intern-summer-2026', referrerDomain: 'handshake.com' },
+  { jobIndex: 4, candidateIndex: 2, channel: 'handshake', trackingLinkIndex: 12, utmSource: 'handshake', utmMedium: 'job_board', utmCampaign: 'intern-summer-2026', referrerDomain: 'handshake.com' },
+  { jobIndex: 4, candidateIndex: 4, channel: 'handshake', trackingLinkIndex: 12, utmSource: 'handshake', utmMedium: 'job_board', referrerDomain: 'handshake.com' },
+  { jobIndex: 4, candidateIndex: 6, channel: 'handshake', trackingLinkIndex: 12, utmSource: 'handshake', utmMedium: 'job_board', referrerDomain: 'handshake.com' },
+  // Via career fair event tracking link
+  { jobIndex: 4, candidateIndex: 11, channel: 'event', trackingLinkIndex: 13, utmSource: 'tu_berlin_fair', utmMedium: 'event', utmCampaign: 'career-fair-spring-2026' },
+  { jobIndex: 4, candidateIndex: 15, channel: 'event', trackingLinkIndex: 13, utmSource: 'tu_berlin_fair', utmMedium: 'event', utmCampaign: 'career-fair-spring-2026' },
+  // Organic / no tracking link
+  { jobIndex: 4, candidateIndex: 17, channel: 'career_site', trackingLinkIndex: null, referrerDomain: 'reqcore.com' },
+  { jobIndex: 4, candidateIndex: 19, channel: 'linkedin', trackingLinkIndex: 14, utmSource: 'linkedin', utmMedium: 'social', utmCampaign: 'company-page-hiring', referrerDomain: 'linkedin.com' },
+  { jobIndex: 4, candidateIndex: 21, channel: 'direct', trackingLinkIndex: null },
+  { jobIndex: 4, candidateIndex: 23, channel: 'handshake', trackingLinkIndex: 12, utmSource: 'handshake', utmMedium: 'job_board', referrerDomain: 'handshake.com' },
+]
+
+// ─────────────────────────────────────────────
 // Main Seed Function
 // ─────────────────────────────────────────────
 
@@ -2082,6 +2485,77 @@ async function seed() {
   }
 
   console.log(`✅ Created ${totalApps} applications with pipeline distribution`)
+
+  // 6b. Create tracking links and application source attribution
+  const trackingLinkIds: string[] = []
+
+  for (const link of TRACKING_LINKS_DATA) {
+    const trackingLinkId = id()
+    trackingLinkIds.push(trackingLinkId)
+
+    await db.insert(schema.trackingLink).values({
+      id: trackingLinkId,
+      organizationId: orgId,
+      jobId: link.jobIndex !== null ? (jobIds[link.jobIndex] ?? null) : null,
+      channel: link.channel,
+      name: link.name,
+      code: link.code,
+      utmSource: link.utmSource ?? null,
+      utmMedium: link.utmMedium ?? null,
+      utmCampaign: link.utmCampaign ?? null,
+      utmTerm: link.utmTerm ?? null,
+      utmContent: link.utmContent ?? null,
+      clickCount: link.clickCount,
+      applicationCount: link.applicationCount,
+      isActive: link.isActive,
+      createdById: userId,
+      createdAt: daysAgo(link.daysAgoCreated),
+      updatedAt: daysAgo(Math.max(0, link.daysAgoCreated - Math.floor(Math.random() * 5))),
+    })
+  }
+
+  console.log(`✅ Created ${trackingLinkIds.length} tracking links across ${new Set(TRACKING_LINKS_DATA.map(l => l.channel)).size} channels`)
+
+  // Create application source records for attributed applications
+  let totalSources = 0
+
+  for (const src of APPLICATION_SOURCES_DATA) {
+    const applicationId = applicationMap.get(`${src.jobIndex}-${src.candidateIndex}`)
+    if (!applicationId) {
+      console.warn(`⚠️  Skipping source attribution — no application found for job ${src.jobIndex}, candidate ${src.candidateIndex}`)
+      continue
+    }
+
+    const trackingLinkId = src.trackingLinkIndex !== null
+      ? (trackingLinkIds[src.trackingLinkIndex] ?? null)
+      : null
+
+    await db.insert(schema.applicationSource).values({
+      id: id(),
+      organizationId: orgId,
+      applicationId,
+      channel: src.channel,
+      trackingLinkId,
+      utmSource: src.utmSource ?? null,
+      utmMedium: src.utmMedium ?? null,
+      utmCampaign: src.utmCampaign ?? null,
+      utmTerm: src.utmTerm ?? null,
+      utmContent: src.utmContent ?? null,
+      referrerDomain: src.referrerDomain ?? null,
+      createdAt: daysAgo(1 + Math.floor(Math.random() * 15)),
+    })
+    totalSources++
+  }
+
+  // Compute source distribution for logging
+  const channelCounts: Record<string, number> = {}
+  for (const src of APPLICATION_SOURCES_DATA) {
+    channelCounts[src.channel] = (channelCounts[src.channel] || 0) + 1
+  }
+  const trackedCount = APPLICATION_SOURCES_DATA.filter(s => s.trackingLinkIndex !== null).length
+
+  console.log(`✅ Created ${totalSources} application source records (${trackedCount} via tracking links)`)
+  console.log(`   📊 Source channels: ${Object.entries(channelCounts).map(([ch, n]) => `${ch}: ${n}`).join(', ')}`)
 
   // 7. Create AI scoring criteria and scores for first 3 jobs
   let totalCriteria = 0

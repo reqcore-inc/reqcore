@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileText, Link2, ClipboardCopy, Check } from 'lucide-vue-next'
+import { FileText, Link2, ClipboardCopy, Check, Plus, Copy, CheckCircle2, XCircle, ToggleLeft, ToggleRight, Trash2, Radio, ChevronDown, X } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'dashboard',
@@ -70,6 +70,103 @@ async function saveRequirements() {
     requirementsError.value = err?.data?.statusMessage ?? 'Failed to save requirements.'
   } finally {
     isSavingRequirements.value = false
+  }
+}
+
+// ─────────────────────────────────────────────
+// Tracking links for this job
+// ─────────────────────────────────────────────
+
+const {
+  links: trackingLinks,
+  fetchStatus: linksStatus,
+  createLink,
+  deleteLink,
+  toggleLink,
+} = useTrackingLinks({ jobId })
+
+const { allowed: canManageLinks } = usePermission({ sourceTracking: ['create'] })
+
+const showCreateLinkModal = ref(false)
+const isCreatingLink = ref(false)
+const newLink = ref({
+  name: '',
+  channel: 'custom' as string,
+  utmSource: '',
+  utmMedium: '',
+  utmCampaign: '',
+})
+
+const channelLabels: Record<string, string> = {
+  linkedin: 'LinkedIn', indeed: 'Indeed', glassdoor: 'Glassdoor',
+  ziprecruiter: 'ZipRecruiter', monster: 'Monster', handshake: 'Handshake',
+  angellist: 'AngelList', wellfound: 'Wellfound', dice: 'Dice',
+  stackoverflow: 'Stack Overflow', weworkremotely: 'We Work Remotely',
+  remoteok: 'Remote OK', builtin: 'Built In', hired: 'Hired',
+  google_jobs: 'Google Jobs', facebook: 'Facebook', twitter: 'X / Twitter',
+  instagram: 'Instagram', tiktok: 'TikTok', reddit: 'Reddit',
+  referral: 'Referral', career_site: 'Career Site', email: 'Email',
+  event: 'Event', agency: 'Agency', direct: 'Direct', other: 'Other', custom: 'Custom',
+}
+
+function getChannelLabel(channel: string) {
+  return channelLabels[channel] ?? channel
+}
+
+async function handleCreateLink() {
+  if (!newLink.value.name.trim()) return
+  isCreatingLink.value = true
+  try {
+    await createLink({
+      name: newLink.value.name.trim(),
+      channel: newLink.value.channel as any,
+      jobId,
+      utmSource: newLink.value.utmSource || undefined,
+      utmMedium: newLink.value.utmMedium || undefined,
+      utmCampaign: newLink.value.utmCampaign || undefined,
+    })
+    showCreateLinkModal.value = false
+    newLink.value = { name: '', channel: 'custom', utmSource: '', utmMedium: '', utmCampaign: '' }
+  } catch (err: any) {
+    toast.error(err?.data?.statusMessage ?? 'Failed to create link')
+  } finally {
+    isCreatingLink.value = false
+  }
+}
+
+const deletingLinkId = ref<string | null>(null)
+const showDeleteLinkConfirm = ref(false)
+
+function confirmDeleteLink(id: string) {
+  deletingLinkId.value = id
+  showDeleteLinkConfirm.value = true
+}
+
+async function handleDeleteLink() {
+  if (!deletingLinkId.value) return
+  try {
+    await deleteLink(deletingLinkId.value)
+  } catch (err: any) {
+    toast.error(err?.data?.statusMessage ?? 'Failed to delete')
+  } finally {
+    showDeleteLinkConfirm.value = false
+    deletingLinkId.value = null
+  }
+}
+
+function buildTrackingUrl(code: string): string {
+  const base = `${requestUrl.protocol}//${requestUrl.host}`
+  return `${base}/api/public/track/${encodeURIComponent(code)}`
+}
+
+const copiedLinkCode = ref<string | null>(null)
+async function copyTrackingUrl(code: string) {
+  try {
+    await navigator.clipboard.writeText(buildTrackingUrl(code))
+    copiedLinkCode.value = code
+    setTimeout(() => { copiedLinkCode.value = null }, 2000)
+  } catch {
+    toast.info(buildTrackingUrl(code))
   }
 }
 </script>
@@ -190,6 +287,96 @@ async function saveRequirements() {
         <p v-if="requirementsError" class="mt-2 text-xs text-danger-600 dark:text-danger-400">
           {{ requirementsError }}
         </p>
+      </div>
+
+      <!-- Tracking Links for this Job -->
+      <div class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 mb-6">
+        <div class="flex items-center justify-between mb-1">
+          <div class="flex items-center gap-2">
+            <Radio class="size-4 text-surface-500 dark:text-surface-400" />
+            <h2 class="text-sm font-semibold text-surface-700 dark:text-surface-300">Source Tracking Links</h2>
+          </div>
+          <button
+            v-if="canManageLinks"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
+            @click="showCreateLinkModal = true"
+          >
+            <Plus class="size-3.5" />
+            New Link
+          </button>
+        </div>
+        <p class="text-xs text-surface-400 dark:text-surface-500 mb-4">
+          Create unique tracking links for this job to measure where applications come from.
+        </p>
+
+        <div v-if="linksStatus === 'pending'" class="py-6 text-center text-sm text-surface-400">
+          Loading…
+        </div>
+
+        <div v-else-if="trackingLinks.length === 0" class="py-6 text-center">
+          <Radio class="size-5 text-surface-300 dark:text-surface-600 mx-auto mb-2" />
+          <p class="text-sm text-surface-400 dark:text-surface-500">No tracking links for this job yet.</p>
+          <p class="text-xs text-surface-300 dark:text-surface-600 mt-1">Create one to start tracking where candidates find this position.</p>
+        </div>
+
+        <div v-else class="space-y-2">
+          <div
+            v-for="link in trackingLinks"
+            :key="link.id"
+            class="flex items-center gap-3 rounded-lg border border-surface-100 dark:border-surface-800 px-4 py-3 group hover:bg-surface-50 dark:hover:bg-surface-800/40 transition-colors"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-sm font-medium text-surface-800 dark:text-surface-200 truncate">{{ link.name }}</span>
+                <span
+                  class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset bg-surface-100 text-surface-600 ring-surface-200 dark:bg-surface-800 dark:text-surface-400 dark:ring-surface-700"
+                >
+                  {{ getChannelLabel(link.channel) }}
+                </span>
+                <span
+                  class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset"
+                  :class="link.isActive
+                    ? 'bg-green-50 text-green-700 ring-green-200/60 dark:bg-green-950 dark:text-green-400 dark:ring-green-800/40'
+                    : 'bg-surface-100 text-surface-500 ring-surface-200 dark:bg-surface-800 dark:text-surface-400 dark:ring-surface-700'"
+                >
+                  <CheckCircle2 v-if="link.isActive" class="size-2.5" />
+                  <XCircle v-else class="size-2.5" />
+                  {{ link.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+              <div class="text-[11px] text-surface-400 dark:text-surface-500 tabular-nums">
+                {{ link.clickCount }} clicks · {{ link.applicationCount }} applications
+              </div>
+            </div>
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <button
+                class="p-1.5 rounded-lg text-surface-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                title="Copy tracking URL"
+                @click="copyTrackingUrl(link.code)"
+              >
+                <Copy v-if="copiedLinkCode !== link.code" class="size-3.5" />
+                <CheckCircle2 v-else class="size-3.5 text-green-500" />
+              </button>
+              <button
+                v-if="canManageLinks"
+                class="p-1.5 rounded-lg text-surface-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                :title="link.isActive ? 'Deactivate' : 'Activate'"
+                @click="toggleLink(link.id, !link.isActive)"
+              >
+                <ToggleRight v-if="link.isActive" class="size-3.5" />
+                <ToggleLeft v-else class="size-3.5" />
+              </button>
+              <button
+                v-if="canManageLinks"
+                class="p-1.5 rounded-lg text-surface-400 hover:text-danger-600 dark:hover:text-danger-400 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                title="Delete"
+                @click="confirmDeleteLink(link.id)"
+              >
+                <Trash2 class="size-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Application Form Questions -->

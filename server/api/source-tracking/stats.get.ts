@@ -106,6 +106,7 @@ export default defineEventHandler(async (event) => {
     db
       .select({
         applicationId: applicationSource.applicationId,
+        jobId: application.jobId,
         channel: applicationSource.channel,
         utmSource: applicationSource.utmSource,
         utmCampaign: applicationSource.utmCampaign,
@@ -125,7 +126,7 @@ export default defineEventHandler(async (event) => {
       .leftJoin(trackingLink, eq(trackingLink.id, applicationSource.trackingLinkId))
       .where(whereClause)
       .orderBy(desc(applicationSource.createdAt))
-      .limit(15),
+      .limit(200),
 
     // 6. Total tracked applications (have a source)
     db.$count(applicationSource, eq(applicationSource.organizationId, orgId)),

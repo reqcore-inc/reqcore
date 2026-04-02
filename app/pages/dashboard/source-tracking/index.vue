@@ -746,9 +746,10 @@ const showTab = ref<'overview' | 'links' | 'table'>('overview')
               </div>
 
               <div v-else class="divide-y divide-surface-100 dark:divide-surface-800">
-                <div
+                <NuxtLink
                   v-for="app in recentAttributed.slice(0, 5)"
                   :key="app.applicationId"
+                  :to="localePath(`/dashboard/jobs/${app.jobId}/candidates`)"
                   class="flex items-center gap-3 px-5 py-3 hover:bg-surface-50 dark:hover:bg-surface-800/40 transition-colors group"
                 >
                   <div class="flex items-center justify-center size-8 rounded-full bg-gradient-to-br from-brand-100 to-brand-200 dark:from-brand-900/80 dark:to-brand-800/80 shrink-0 ring-1 ring-brand-200/50 dark:ring-brand-800/50">
@@ -768,7 +769,7 @@ const showTab = ref<'overview' | 'links' | 'table'>('overview')
                   >
                     {{ getChannelLabel(app.channel) }}
                   </span>
-                </div>
+                </NuxtLink>
               </div>
             </div>
           </div>
@@ -953,19 +954,22 @@ const showTab = ref<'overview' | 'links' | 'table'>('overview')
                 <tr v-for="app in filteredAttributed" :key="app.applicationId" class="hover:bg-surface-50 dark:hover:bg-surface-800/40 transition-colors">
                   <!-- Candidate -->
                   <td class="px-5 py-3.5">
-                    <div class="flex items-center gap-2.5">
+                    <NuxtLink
+                      :to="localePath(`/dashboard/jobs/${app.jobId}/candidates`)"
+                      class="flex items-center gap-2.5 group/candidate"
+                    >
                       <div class="flex items-center justify-center size-8 rounded-full bg-gradient-to-br from-brand-100 to-brand-200 dark:from-brand-900/80 dark:to-brand-800/80 shrink-0 ring-1 ring-brand-200/50 dark:ring-brand-800/50">
                         <span class="text-[10px] font-bold text-brand-700 dark:text-brand-300">
                           {{ ((app.candidateFirstName?.[0] ?? '') + (app.candidateLastName?.[0] ?? '')).toUpperCase() }}
                         </span>
                       </div>
                       <div class="min-w-0">
-                        <div class="text-sm font-medium text-surface-800 dark:text-surface-200 truncate">
+                        <div class="text-sm font-medium text-surface-800 dark:text-surface-200 truncate group-hover/candidate:text-brand-600 dark:group-hover/candidate:text-brand-400 transition-colors">
                           {{ app.candidateFirstName }} {{ app.candidateLastName }}
                         </div>
                         <div class="text-[11px] text-surface-400 truncate">{{ app.candidateEmail }}</div>
                       </div>
-                    </div>
+                    </NuxtLink>
                   </td>
                   <!-- Job -->
                   <td class="px-4 py-3.5 text-surface-600 dark:text-surface-300 truncate max-w-[150px]">
