@@ -16,8 +16,13 @@ export default defineEventHandler(async (event) => {
   // Check for CRON_SECRET header (server-to-server / scheduled job)
   const cronSecret = getHeader(event, 'x-cron-secret')
   if (cronSecret && env.CRON_SECRET) {
+    // Use fixed-length buffers to avoid leaking secret length via timing
+    const a = Buffer.alloc(64)
+    const b = Buffer.alloc(64)
+    Buffer.from(cronSecret).copy(a)
+    Buffer.from(env.CRON_SECRET).copy(b)
     const valid = cronSecret.length === env.CRON_SECRET.length
-      && timingSafeEqual(Buffer.from(cronSecret), Buffer.from(env.CRON_SECRET))
+      && timingSafeEqual(a, b)
     if (!valid) {
       throw createError({ statusCode: 403, statusMessage: 'Invalid cron secret' })
     }
