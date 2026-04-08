@@ -23,7 +23,7 @@ onMounted(() => track('signin_page_viewed'))
 
 if (route.query.live === '1') {
   email.value = config.public.liveDemoEmail
-  password.value = config.public.liveDemoSecret
+  password.value = config.public.liveDemoPasscode
 }
 
 async function handleSignIn() {

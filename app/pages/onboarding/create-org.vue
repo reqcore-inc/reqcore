@@ -12,7 +12,7 @@ useSeoMeta({
   robots: 'noindex, nofollow',
 })
 
-const { orgs, isOrgsLoading, switchOrg, createOrg } = useCurrentOrg()
+const { orgs, isOrgsLoading, switchOrg, createOrg, activeOrg } = useCurrentOrg()
 const { acceptInviteLink } = useInviteLinks()
 const localePath = useLocalePath()
 const { track } = useTrack()
@@ -38,7 +38,7 @@ const autoSwitched = ref(false)
 
 watch([orgs, isOrgsLoading], async ([orgList, loading]) => {
   if (loading || autoSwitched.value || viewMode.value !== 'picker') return
-  if (orgList.length === 1) {
+  if (orgList.length === 1 && !activeOrg.value) {
     const firstOrg = orgList[0]
     if (!firstOrg) return
 
