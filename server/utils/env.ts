@@ -33,7 +33,8 @@ export function isRailwayPreviewEnvironment(environmentName?: string): boolean {
   );
 }
 
-const envSchema = z
+/** @internal Exported for unit testing. */
+export const envSchema = z
   .object({
     DATABASE_URL: z.url(),
     BETTER_AUTH_SECRET: emptyToUndefined.pipe(
@@ -131,6 +132,25 @@ const envSchema = z
         message:
           "BETTER_AUTH_URL is required when RAILWAY_PUBLIC_DOMAIN is not available",
       });
+    }
+
+    // OIDC SSO requires all three vars or none — partial config is a misconfiguration.
+    const oidcVars = [
+      ["OIDC_CLIENT_ID", data.OIDC_CLIENT_ID],
+      ["OIDC_CLIENT_SECRET", data.OIDC_CLIENT_SECRET],
+      ["OIDC_DISCOVERY_URL", data.OIDC_DISCOVERY_URL],
+    ] as const;
+    const setVars = oidcVars.filter(([, v]) => v);
+    const missingVars = oidcVars.filter(([, v]) => !v);
+
+    if (setVars.length > 0 && missingVars.length > 0) {
+      for (const [name] of missingVars) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [name],
+          message: `${name} is required when OIDC SSO is partially configured. Set all three OIDC variables (OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, OIDC_DISCOVERY_URL) or none.`,
+        });
+      }
     }
   });
 
