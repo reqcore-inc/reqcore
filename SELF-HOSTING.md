@@ -450,6 +450,68 @@ sudo dpkg-reconfigure -plow unattended-upgrades
 
 ---
 
+## OIDC Single Sign-On (SSO)
+
+Reqcore supports Single Sign-On via any OIDC-compliant identity provider — Keycloak, Authentik, Authelia, Okta, Azure AD, and more. When configured, a "Sign in with SSO" button appears on the login and registration pages.
+
+### Why SSO?
+
+- **Centralized identity** — users sign in once across all internal tools
+- **Zero-friction onboarding** — new hires get instant access, leavers are cut off centrally
+- **Enterprise security** — MFA, session policies, and brute-force protection managed in one place
+
+### Setup
+
+**1. Create an OIDC client in your identity provider:**
+
+| Setting | Value |
+|---|---|
+| Client type | OpenID Connect (confidential) |
+| Client ID | Any name (e.g., `reqcore`) |
+| Client authentication | ON (confidential/secret) |
+| Valid redirect URI | `https://your-reqcore-domain.com/api/auth/oauth2/callback/oidc` |
+| Valid post-logout redirect URI | `https://your-reqcore-domain.com/*` |
+| Scopes | `openid`, `email`, `profile` |
+
+**2. Set environment variables:**
+
+```bash
+# All three are required to activate SSO
+OIDC_CLIENT_ID=reqcore
+OIDC_CLIENT_SECRET=your-client-secret-from-provider
+OIDC_DISCOVERY_URL=https://keycloak.example.com/realms/master/.well-known/openid-configuration
+
+# Optional: customize the button label (default: "SSO")
+OIDC_PROVIDER_NAME=Company SSO
+```
+
+**3. Restart Reqcore:**
+
+```bash
+docker compose down && docker compose up -d
+```
+
+The SSO button appears automatically on the sign-in and sign-up pages.
+
+### Provider-Specific Discovery URLs
+
+| Provider | Discovery URL format |
+|---|---|
+| Keycloak | `https://keycloak.example.com/realms/YOUR_REALM/.well-known/openid-configuration` |
+| Authentik | `https://authentik.example.com/application/o/YOUR_APP/.well-known/openid-configuration` |
+| Authelia | `https://authelia.example.com/.well-known/openid-configuration` |
+| Okta | `https://YOUR_ORG.okta.com/.well-known/openid-configuration` |
+| Azure AD | `https://login.microsoftonline.com/YOUR_TENANT_ID/v2.0/.well-known/openid-configuration` |
+
+### Security
+
+- **PKCE** (Proof Key for Code Exchange) is enabled by default for protection against authorization code interception
+- **Issuer validation** (RFC 9207) is enforced to prevent OAuth mix-up attacks
+- **OIDC discovery** automatically fetches and validates all provider endpoints
+- SSO is **completely opt-in** — it has zero impact when the environment variables are not set
+
+---
+
 ## Monitoring & Health Checks
 
 ### Built-in System Health Dashboard

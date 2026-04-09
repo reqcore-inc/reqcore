@@ -1,74 +1,106 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import tailwindcss from '@tailwindcss/vite'
+import tailwindcss from "@tailwindcss/vite";
 
-const railwayEnvironmentName = process.env.RAILWAY_ENVIRONMENT_NAME?.toLowerCase() ?? ''
-const railwayPublicDomain = process.env.RAILWAY_PUBLIC_DOMAIN?.toLowerCase() ?? ''
-const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://reqcore.com'
-const i18nDefaultLocale = 'en'
+const railwayEnvironmentName =
+  process.env.RAILWAY_ENVIRONMENT_NAME?.toLowerCase() ?? "";
+const railwayPublicDomain =
+  process.env.RAILWAY_PUBLIC_DOMAIN?.toLowerCase() ?? "";
+const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || "https://reqcore.com";
+const i18nDefaultLocale = "en";
 const i18nLocales = [
-  { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
-  { code: 'es', language: 'es-ES', name: 'Español', file: 'es.json', partial: true },
-  { code: 'fr', language: 'fr-FR', name: 'Français', file: 'fr.json', partial: true },
-  { code: 'de', language: 'de-DE', name: 'Deutsch', file: 'de.json', partial: true },
-  { code: 'nb', language: 'nb-NO', name: 'Norsk Bokmål', file: 'nb.json' },
-  { code: 'vi', language: 'vi-VN', name: 'Tiếng Việt', file: 'vi.json', partial: true },
-]
+  { code: "en", language: "en-US", name: "English", file: "en.json" },
+  {
+    code: "es",
+    language: "es-ES",
+    name: "Español",
+    file: "es.json",
+    partial: true,
+  },
+  {
+    code: "fr",
+    language: "fr-FR",
+    name: "Français",
+    file: "fr.json",
+    partial: true,
+  },
+  {
+    code: "de",
+    language: "de-DE",
+    name: "Deutsch",
+    file: "de.json",
+    partial: true,
+  },
+  { code: "nb", language: "nb-NO", name: "Norsk Bokmål", file: "nb.json" },
+  {
+    code: "vi",
+    language: "vi-VN",
+    name: "Tiếng Việt",
+    file: "vi.json",
+    partial: true,
+  },
+];
 
 const localizedPublicRouteRules = Object.fromEntries(
   i18nLocales
-    .filter(locale => locale.code !== i18nDefaultLocale)
-    .flatMap(locale => ([
+    .filter((locale) => locale.code !== i18nDefaultLocale)
+    .flatMap((locale) => [
       [`/${locale.code}/jobs`, { isr: 3600 }],
       [`/${locale.code}/jobs/**`, { isr: 3600 }],
-    ])),
-)
+    ]),
+);
 
 // Allow search-engine indexing for localized job board pages
 const localizedJobsRobotsRules = Object.fromEntries(
   i18nLocales
-    .filter(locale => locale.code !== i18nDefaultLocale)
-    .flatMap(locale => ([
-      [`/${locale.code}/jobs`, { headers: { 'X-Robots-Tag': 'index, follow' } }],
-      [`/${locale.code}/jobs/**`, { headers: { 'X-Robots-Tag': 'index, follow' } }],
-    ])),
-)
+    .filter((locale) => locale.code !== i18nDefaultLocale)
+    .flatMap((locale) => [
+      [
+        `/${locale.code}/jobs`,
+        { headers: { "X-Robots-Tag": "index, follow" } },
+      ],
+      [
+        `/${locale.code}/jobs/**`,
+        { headers: { "X-Robots-Tag": "index, follow" } },
+      ],
+    ]),
+);
 
 const isRailwayPreview =
-  railwayEnvironmentName.startsWith('pr')
-  || railwayEnvironmentName.includes('pr-')
-  || railwayEnvironmentName.includes('pull request')
-  || railwayEnvironmentName.includes('pull-request')
-  || railwayEnvironmentName.includes('preview')
-  || railwayPublicDomain.includes('-pr-')
+  railwayEnvironmentName.startsWith("pr") ||
+  railwayEnvironmentName.includes("pr-") ||
+  railwayEnvironmentName.includes("pull request") ||
+  railwayEnvironmentName.includes("pull-request") ||
+  railwayEnvironmentName.includes("preview") ||
+  railwayPublicDomain.includes("-pr-");
 
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
+  compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
   modules: [
-    '@nuxtjs/i18n',
-    '@nuxtjs/mdc',
+    "@nuxtjs/i18n",
+    "@nuxtjs/mdc",
     // Only load PostHog module when the API key is available;
     // the SDK crashes during prerender/build if the key is empty.
-    ...(process.env.POSTHOG_PUBLIC_KEY ? ['@posthog/nuxt' as const] : []),
+    ...(process.env.POSTHOG_PUBLIC_KEY ? ["@posthog/nuxt" as const] : []),
   ],
 
-  css: ['~/assets/css/main.css'],
+  css: ["~/assets/css/main.css"],
 
   // ─────────────────────────────────────────────
   // PostHog — privacy-focused product analytics & feature flags
   // ─────────────────────────────────────────────
   // Enable source maps so PostHog error tracking can display readable stack traces
-  sourcemap: { client: 'hidden' },
+  sourcemap: { client: "hidden" },
 
   posthogConfig: {
-    publicKey: process.env.POSTHOG_PUBLIC_KEY || '',
-    host: process.env.POSTHOG_HOST || 'https://eu.i.posthog.com',
+    publicKey: process.env.POSTHOG_PUBLIC_KEY || "",
+    host: process.env.POSTHOG_HOST || "https://eu.i.posthog.com",
     clientConfig: {
       // ── Reverse proxy: route PostHog through reqcore.com to bypass ad blockers ──
       // Requests to /ingest/** are proxied by Nitro to eu.i.posthog.com
-      api_host: '/ingest',
-      ui_host: 'https://eu.posthog.com',
+      api_host: "/ingest",
+      ui_host: "https://eu.posthog.com",
       // ── Privacy: disable invasive features ──
       autocapture: false,
       disable_session_recording: true,
@@ -87,8 +119,8 @@ export default defineNuxtConfig({
       // No cookies stored until user grants consent.  Events still flow for
       // aggregate analytics.  On consent, persistence is upgraded to
       // 'localStorage+cookie' via set_config() in the consent composable.
-      persistence: 'memory',
-      person_profiles: 'never',
+      persistence: "memory",
+      person_profiles: "never",
       cross_subdomain_cookie: false,
     },
     serverConfig: {
@@ -102,15 +134,15 @@ export default defineNuxtConfig({
   i18n: {
     baseUrl: siteUrl,
     defaultLocale: i18nDefaultLocale,
-    strategy: 'prefix_except_default',
+    strategy: "prefix_except_default",
     locales: i18nLocales,
-    langDir: 'locales',
+    langDir: "locales",
     detectBrowserLanguage: {
       useCookie: true,
-      cookieKey: 'reqcore_i18n_redirected',
-      redirectOn: 'root',
+      cookieKey: "reqcore_i18n_redirected",
+      redirectOn: "root",
     },
-    vueI18n: './i18n.config.ts',
+    vueI18n: "./i18n.config.ts",
   },
 
   // ─────────────────────────────────────────────
@@ -118,21 +150,29 @@ export default defineNuxtConfig({
   // ─────────────────────────────────────────────
   app: {
     head: {
-      titleTemplate: '%s — Reqcore',
+      titleTemplate: "%s — Reqcore",
       link: [
-        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: "icon", type: "image/png", href: "/favicon.png" },
+        { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        {
+          rel: "apple-touch-icon",
+          sizes: "180x180",
+          href: "/apple-touch-icon.png",
+        },
       ],
       meta: [
-        { name: 'theme-color', content: '#09090b' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1.0, maximum-scale=5.0' },
+        { name: "theme-color", content: "#09090b" },
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1.0, maximum-scale=5.0",
+        },
       ],
       script: [
         {
           // Blocking inline script to apply dark mode before first paint (prevents white flash)
-          innerHTML: '(function(){try{var s=localStorage.getItem("reqcore-color-mode");if(s==="dark"||(!s&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()',
-          tagPosition: 'head',
+          innerHTML:
+            '(function(){try{var s=localStorage.getItem("reqcore-color-mode");if(s==="dark"||(!s&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()',
+          tagPosition: "head",
         },
       ],
       // Plausible removed — PostHog handles all analytics
@@ -142,33 +182,45 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       /** Base URL of the marketing site (reqcore-web) for cross-domain links */
-      marketingUrl: process.env.NUXT_PUBLIC_MARKETING_URL || 'https://reqcore.com',
+      marketingUrl:
+        process.env.NUXT_PUBLIC_MARKETING_URL || "https://reqcore.com",
       /** Cookie domain for cross-subdomain sharing (e.g. '.reqcore.com') */
-      cookieDomain: process.env.NUXT_PUBLIC_COOKIE_DOMAIN || '',
+      cookieDomain: process.env.NUXT_PUBLIC_COOKIE_DOMAIN || "",
       // PostHog runtimeConfig is managed by @posthog/nuxt via posthogConfig above.
       // Override at runtime with NUXT_PUBLIC_POSTHOG_PUBLIC_KEY / NUXT_PUBLIC_POSTHOG_HOST.
       /** When set, the dashboard shows a read-only demo banner for this org slug */
-      demoOrgSlug: process.env.DEMO_ORG_SLUG || (isRailwayPreview ? 'reqcore-demo' : ''),
+      demoOrgSlug:
+        process.env.DEMO_ORG_SLUG || (isRailwayPreview ? "reqcore-demo" : ""),
       /** Public live-demo account email used to prefill sign-in */
       liveDemoEmail: (() => {
         const email =
-          process.env.LIVE_DEMO_EMAIL
-          || process.env.DEMO_EMAIL
-          || 'demo@reqcore.com'
+          process.env.LIVE_DEMO_EMAIL ||
+          process.env.DEMO_EMAIL ||
+          "demo@reqcore.com";
         // Guard against stale applirank.com domain from old env vars
-        if (email.endsWith('@applirank.com')) {
-          console.warn('[config] Stale demo email detected (applirank.com domain) — falling back to demo@reqcore.com')
-          return 'demo@reqcore.com'
+        if (email.endsWith("@applirank.com")) {
+          console.warn(
+            "[config] Stale demo email detected (applirank.com domain) — falling back to demo@reqcore.com",
+          );
+          return "demo@reqcore.com";
         }
-        return email
+        return email;
       })(),
       /** Public live-demo passcode used to prefill sign-in */
       liveDemoPasscode:
-        process.env.LIVE_DEMO_SECRET
-        || process.env.DEMO_PASSWORD
-        || 'demo1234',
+        process.env.LIVE_DEMO_SECRET || process.env.DEMO_PASSWORD || "demo1234",
       /** Whether in-app feedback via GitHub Issues is enabled */
-      feedbackEnabled: !!(process.env.GITHUB_FEEDBACK_TOKEN && process.env.GITHUB_FEEDBACK_REPO),
+      feedbackEnabled: !!(
+        process.env.GITHUB_FEEDBACK_TOKEN && process.env.GITHUB_FEEDBACK_REPO
+      ),
+      /** Whether OIDC SSO is enabled (all three OIDC env vars are set) */
+      oidcEnabled: !!(
+        process.env.OIDC_CLIENT_ID &&
+        process.env.OIDC_CLIENT_SECRET &&
+        process.env.OIDC_DISCOVERY_URL
+      ),
+      /** Display name for the SSO provider button */
+      oidcProviderName: process.env.OIDC_PROVIDER_NAME || "SSO",
     },
   },
 
@@ -185,49 +237,52 @@ export default defineNuxtConfig({
     // NOTE: Targets are hardcoded to the EU data center (eu.i.posthog.com).
     // If you use the US data center, set POSTHOG_HOST=https://us.i.posthog.com
     // and update these two proxy targets to us-assets.i.posthog.com / us.i.posthog.com.
-    '/ingest/static/**': { proxy: 'https://eu-assets.i.posthog.com/static/**' },
-    '/ingest/**': { proxy: 'https://eu.i.posthog.com/**' },
-    '/jobs': { isr: 3600 },
-    '/jobs/**': { isr: 3600 },
+    "/ingest/static/**": { proxy: "https://eu-assets.i.posthog.com/static/**" },
+    "/ingest/**": { proxy: "https://eu.i.posthog.com/**" },
+    "/jobs": { isr: 3600 },
+    "/jobs/**": { isr: 3600 },
     ...localizedPublicRouteRules,
   },
 
   nitro: {
     routeRules: {
-      '/**': {
+      "/**": {
         headers: {
-          'X-Content-Type-Options': 'nosniff',
-          'X-Frame-Options': 'DENY',
-          'Referrer-Policy': 'strict-origin-when-cross-origin',
-          'X-XSS-Protection': '1; mode=block',
-          'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-          'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-          'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://eu.i.posthog.com https://eu.posthog.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY",
+          "Referrer-Policy": "strict-origin-when-cross-origin",
+          "X-XSS-Protection": "1; mode=block",
+          "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+          "Strict-Transport-Security":
+            "max-age=63072000; includeSubDomains; preload",
+          "Content-Security-Policy":
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://eu.i.posthog.com https://eu.posthog.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
           // Block indexing for all non-public routes by default;
           // overridden below for /jobs/** which should be indexable.
-          'X-Robots-Tag': 'noindex, nofollow',
+          "X-Robots-Tag": "noindex, nofollow",
         },
       },
       // Public job board pages — allow indexing
-      '/jobs/**': {
+      "/jobs/**": {
         headers: {
-          'X-Robots-Tag': 'index, follow',
+          "X-Robots-Tag": "index, follow",
         },
       },
-      '/jobs': {
+      "/jobs": {
         headers: {
-          'X-Robots-Tag': 'index, follow',
+          "X-Robots-Tag": "index, follow",
         },
       },
       // Localized job board pages — allow indexing
       ...localizedJobsRobotsRules,
       // Allow same-origin framing for inline PDF preview in the sidebar iframe
-      '/api/documents/*/preview': {
+      "/api/documents/*/preview": {
         headers: {
-          'X-Frame-Options': 'SAMEORIGIN',
-          'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
+          "X-Frame-Options": "SAMEORIGIN",
+          "Content-Security-Policy":
+            "default-src 'none'; style-src 'unsafe-inline'",
         },
       },
     },
   },
-})
+});
