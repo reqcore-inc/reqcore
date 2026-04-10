@@ -48,6 +48,20 @@ function resolveTrustedOrigins(baseUrl: string): string[] | ((request?: Request)
     const isSsoFlow = url.includes("/sso/") || url.includes("/sign-in/sso");
     if (!isSsoFlow) return staticOrigins;
 
+    const allOrigins = [...staticOrigins];
+
+    // During SSO provider registration, also trust the issuer being registered
+    // so better-auth can fetch its OIDC discovery document.
+    try {
+      const cloned = request.clone();
+      const body = await cloned.json();
+      if (body?.issuer) {
+        allOrigins.push(new URL(body.issuer).origin);
+      }
+    } catch {
+      // Not all SSO requests have a parseable JSON body
+    }
+
     // Dynamically load registered SSO provider issuers
     try {
       const providers = await db
@@ -60,11 +74,12 @@ function resolveTrustedOrigins(baseUrl: string): string[] | ((request?: Request)
         })
         .filter((o): o is string => o !== null);
 
-      return Array.from(new Set([...staticOrigins, ...idpOrigins]));
+      allOrigins.push(...idpOrigins);
     } catch {
-      // Table may not exist yet (pre-migration) — fall back to static
-      return staticOrigins;
+      // Table may not exist yet (pre-migration) — fall back
     }
+
+    return Array.from(new Set(allOrigins));
   };
 }
 
