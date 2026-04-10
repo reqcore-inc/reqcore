@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { eq, and, ne } from 'drizzle-orm'
 import { ssoProvider } from '~~/server/database/schema'
+import { prefetchOidcEndpointOrigins } from '~~/server/utils/auth'
 
 const registerSsoSchema = z.object({
   providerId: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/, 'Only lowercase alphanumeric and hyphens'),
@@ -56,6 +57,11 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // Pre-discover OIDC endpoint origins so better-auth trusts them during
+    // registration. IdPs like Google use separate domains for token/userinfo
+    // endpoints (oauth2.googleapis.com) vs their issuer (accounts.google.com).
+    await prefetchOidcEndpointOrigins(body.issuer)
+
     const result = await (auth.api as any).registerSSOProvider({
       headers: event.headers,
       body: {

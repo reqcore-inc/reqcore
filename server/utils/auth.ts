@@ -11,16 +11,59 @@ type Auth = ReturnType<typeof betterAuth>;
 let _auth: Auth | undefined;
 
 /**
+ * Runtime cache of OIDC endpoint origins discovered from IdP discovery documents.
+ *
+ * Populated by `prefetchOidcEndpointOrigins()` before provider registration so
+ * that better-auth's trusted-origins check passes for IdPs whose token/userinfo
+ * endpoints live on a different domain than the issuer (e.g. Google).
+ */
+const discoveredIdpOrigins = new Set<string>();
+
+/**
+ * Fetch an OIDC discovery document and cache every endpoint origin so
+ * better-auth trusts them during provider registration.
+ *
+ * Must be called **before** `auth.api.registerSSOProvider()` so the
+ * origins are available when better-auth validates discovery endpoints.
+ */
+export async function prefetchOidcEndpointOrigins(issuerUrl: string): Promise<void> {
+  const discoveryUrl = issuerUrl.replace(/\/+$/, "") + "/.well-known/openid-configuration";
+  const res = await $fetch<Record<string, unknown>>(discoveryUrl, {
+    timeout: 10_000,
+  });
+
+  // Extract origins from all *_endpoint fields in the discovery document
+  const endpointKeys = [
+    "authorization_endpoint",
+    "token_endpoint",
+    "userinfo_endpoint",
+    "revocation_endpoint",
+    "introspection_endpoint",
+    "end_session_endpoint",
+    "jwks_uri",
+  ];
+  for (const key of endpointKeys) {
+    const value = res[key];
+    if (typeof value === "string") {
+      try {
+        discoveredIdpOrigins.add(new URL(value).origin);
+      } catch {
+        // Skip malformed URLs
+      }
+    }
+  }
+}
+
+/**
  * Resolve trusted origins for CSRF checks and OIDC discovery.
  *
- * better-auth resolves trustedOrigins ONCE at init (without a request),
- * so origins must be available statically. We include:
+ * Combines:
  *  1. App origins (base URL, configured origins, dev defaults)
- *  2. Well-known OIDC identity-provider origins (for SSO discovery)
+ *  2. Origins auto-discovered from OIDC discovery documents
  *  3. Already-registered SSO provider issuers from the database
  *
- * For custom/self-hosted IdPs not in the well-known list, add their
- * origin to the BETTER_AUTH_TRUSTED_ORIGINS environment variable.
+ * For IdPs that cannot be auto-discovered, add their origin to the
+ * BETTER_AUTH_TRUSTED_ORIGINS environment variable.
  */
 function resolveTrustedOrigins(baseUrl: string): (request?: Request) => Promise<string[]> {
   const configuredOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS;
@@ -45,21 +88,8 @@ function resolveTrustedOrigins(baseUrl: string): (request?: Request) => Promise<
     new Set([baseOrigin.origin, ...configuredOrigins, ...defaultDevOrigins]),
   );
 
-  // Well-known OIDC identity-provider origins trusted for SSO discovery.
-  // These are reputable IdPs whose origins are safe to allow; an attacker
-  // cannot serve pages from these domains, so CSRF risk is negligible.
-  const wellKnownIdpOrigins = [
-    "https://accounts.google.com",
-    "https://login.microsoftonline.com",
-    "https://*.okta.com",
-    "https://*.auth0.com",
-    "https://*.onelogin.com",
-    "https://*.duendesoftware.com",
-    "https://*.pingidentity.com",
-  ];
-
   return async () => {
-    const allOrigins = [...staticOrigins, ...wellKnownIdpOrigins];
+    const allOrigins = [...staticOrigins, ...discoveredIdpOrigins];
 
     // Load already-registered SSO provider issuers from the database
     try {
