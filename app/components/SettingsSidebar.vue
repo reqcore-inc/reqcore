@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  Building2, Users, UserCircle, ChevronLeft, Settings, Plug, Brain,
+  Building2, Users, UserCircle, ChevronLeft, Settings, Plug, Brain, ShieldCheck,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -34,6 +34,14 @@ const settingsNav = [
     to: '/dashboard/settings/ai',
     icon: Brain,
     exact: true,
+  },
+  {
+    label: 'Single Sign-On',
+    description: 'Enterprise SSO',
+    to: '/dashboard/settings/sso',
+    icon: ShieldCheck,
+    exact: true,
+    badge: 'Beta',
   },
   {
     label: 'Account',
@@ -94,8 +102,16 @@ function isActive(to: string, exact: boolean) {
           >
             <component :is="item.icon" class="size-4" />
           </div>
-          <div class="min-w-0">
-            <div class="truncate leading-tight">{{ item.label }}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 leading-tight">
+              <span class="truncate">{{ item.label }}</span>
+              <span
+                v-if="item.badge"
+                class="shrink-0 inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+              >
+                {{ item.badge }}
+              </span>
+            </div>
             <div
               class="text-[11px] leading-tight mt-0.5 truncate"
               :class="isActive(item.to, item.exact)
