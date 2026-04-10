@@ -93,6 +93,7 @@ export default defineNuxtConfig({
   // Enable source maps so PostHog error tracking can display readable stack traces
   sourcemap: { client: "hidden" },
 
+  // @ts-expect-error - posthogConfig types only available when @posthog/nuxt module is loaded
   posthogConfig: {
     publicKey: process.env.POSTHOG_PUBLIC_KEY || "",
     host: process.env.POSTHOG_HOST || "https://eu.i.posthog.com",
@@ -225,7 +226,6 @@ export default defineNuxtConfig({
   },
 
   vite: {
-    // @ts-expect-error - Vite version mismatch between @tailwindcss/vite and Nuxt's bundled Vite
     plugins: [tailwindcss()],
   },
 

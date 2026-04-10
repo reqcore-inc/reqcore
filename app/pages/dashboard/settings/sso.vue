@@ -49,6 +49,13 @@ const form = reactive({
   clientSecret: '',
 })
 
+const siteOrigin = computed(() => {
+  if (import.meta.client) {
+    return window.location.origin
+  }
+  return 'https://app.reqcore.com'
+})
+
 function resetForm() {
   form.providerId = ''
   form.issuer = ''
@@ -422,7 +429,7 @@ async function copyCallbackUrl(providerId: string) {
             </h4>
             <ol class="text-xs text-surface-500 dark:text-surface-400 space-y-1.5 list-decimal list-inside">
               <li>Create an OIDC application in your identity provider (Okta, Azure AD, Google Workspace, etc.).</li>
-              <li>Set the <strong>Redirect URI</strong> to: <code class="bg-surface-100 dark:bg-surface-800 px-1 py-0.5 rounded text-xs">{{ `${typeof window !== 'undefined' ? window.location.origin : 'https://app.reqcore.com'}/api/auth/sso/callback/{provider-id}` }}</code></li>
+              <li>Set the <strong>Redirect URI</strong> to: <code class="bg-surface-100 dark:bg-surface-800 px-1 py-0.5 rounded text-xs">{{ `${siteOrigin}/api/auth/sso/callback/{provider-id}` }}</code></li>
               <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> from your IdP and paste them above.</li>
               <li>Enter the <strong>Issuer URL</strong> — Reqcore will auto-discover all OIDC endpoints.</li>
             </ol>
