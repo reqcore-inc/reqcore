@@ -1,8 +1,13 @@
 import { z } from 'zod'
+import { eq, and, ne } from 'drizzle-orm'
+import { ssoProvider } from '~~/server/database/schema'
 
 const registerSsoSchema = z.object({
   providerId: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/, 'Only lowercase alphanumeric and hyphens'),
-  issuer: z.string().url(),
+  issuer: z.string().url().refine(
+    (url) => url.startsWith('https://') || url.startsWith('http://'),
+    'Issuer URL must use HTTPS (or HTTP for local development)',
+  ),
   domain: z.string().min(1).max(253).regex(
     /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/,
     'Must be a valid domain (e.g. company.com)',
@@ -17,19 +22,38 @@ const registerSsoSchema = z.object({
  * Only org owners/admins can register providers.
  */
 export default defineEventHandler(async (event) => {
-  const session = await requireAuth(event)
+  const session = await requirePermission(event, { organization: ['update'] })
   const orgId = session.session.activeOrganizationId
 
-  // Verify org owner/admin permission
-  const { error: permError } = await (auth.api as any).hasPermission({
-    headers: event.headers,
-    body: { permissions: { organization: ['update'] } },
-  })
-  if (permError) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden: insufficient permissions' })
+  const body = await readValidatedBody(event, registerSsoSchema.parse)
+
+  // Prevent domain hijacking: reject if another org already registered this domain
+  const existingDomain = await db
+    .select({ id: ssoProvider.id })
+    .from(ssoProvider)
+    .where(and(eq(ssoProvider.domain, body.domain), ne(ssoProvider.organizationId, orgId)))
+    .limit(1)
+
+  if (existingDomain.length) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'This email domain is already registered by another organization.',
+    })
   }
 
-  const body = await readValidatedBody(event, registerSsoSchema.parse)
+  // Prevent provider ID collision: reject if providerId already exists
+  const existingProvider = await db
+    .select({ id: ssoProvider.id })
+    .from(ssoProvider)
+    .where(eq(ssoProvider.providerId, body.providerId))
+    .limit(1)
+
+  if (existingProvider.length) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'A provider with this ID already exists. Choose a different provider ID.',
+    })
+  }
 
   try {
     const result = await (auth.api as any).registerSSOProvider({

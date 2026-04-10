@@ -11,17 +11,8 @@ const deleteSsoSchema = z.object({
  * Only org owners/admins can delete providers.
  */
 export default defineEventHandler(async (event) => {
-  const session = await requireAuth(event)
+  const session = await requirePermission(event, { organization: ['update'] })
   const orgId = session.session.activeOrganizationId
-
-  // Verify org owner/admin permission
-  const { error: permError } = await (auth.api as any).hasPermission({
-    headers: event.headers,
-    body: { permissions: { organization: ['update'] } },
-  })
-  if (permError) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden: insufficient permissions' })
-  }
 
   const { id } = await getValidatedRouterParams(event, deleteSsoSchema.parse)
 

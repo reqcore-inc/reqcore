@@ -6,17 +6,8 @@ import { ssoProvider } from '~~/server/database/schema'
  * Only org owners/admins should access this.
  */
 export default defineEventHandler(async (event) => {
-  const session = await requireAuth(event)
+  const session = await requirePermission(event, { organization: ['update'] })
   const orgId = session.session.activeOrganizationId
-
-  // Verify the user has admin/owner role (org update permission)
-  const { error } = await (auth.api as any).hasPermission({
-    headers: event.headers,
-    body: { permissions: { organization: ['update'] } },
-  })
-  if (error) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden: insufficient permissions' })
-  }
 
   const providers = await db
     .select({

@@ -130,11 +130,11 @@ async function handleSsoSignUp() {
                 class="px-4 py-2.5 bg-surface-800 dark:bg-surface-200 text-white dark:text-surface-900 rounded-md text-sm font-medium hover:bg-surface-900 dark:hover:bg-surface-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 @click="handleSsoSignUp"
             >
-                {{
-                    isLoading
-                        ? "Redirecting…"
-                        : `Sign up with ${oidcProviderName}`
-                }}
+                <template v-if="isLoading">Redirecting…</template>
+                <template v-else>
+                    Sign up with {{ oidcProviderName }}
+                    <span class="inline-flex items-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-200">Beta</span>
+                </template>
             </button>
 
             <div class="relative">

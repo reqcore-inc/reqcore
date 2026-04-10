@@ -115,7 +115,12 @@ export const envSchema = z
     /** OIDC client secret for SSO authentication. */
     OIDC_CLIENT_SECRET: emptyToUndefined.pipe(z.string().min(1)).optional(),
     /** OIDC discovery URL (must point to a .well-known/openid-configuration endpoint). */
-    OIDC_DISCOVERY_URL: emptyToUndefined.pipe(z.string().url()).optional(),
+    OIDC_DISCOVERY_URL: emptyToUndefined.pipe(
+      z.string().url().refine(
+        (url) => url.startsWith('https://') || url.startsWith('http://'),
+        'OIDC_DISCOVERY_URL must use HTTPS (or HTTP for local development)',
+      ),
+    ).optional(),
     /** Display name for the SSO button (e.g., "Company SSO", "Keycloak"). Defaults to "SSO". */
     OIDC_PROVIDER_NAME: emptyToUndefined
       .pipe(z.string().min(1))

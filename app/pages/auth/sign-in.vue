@@ -166,14 +166,15 @@ async function handleEnterpriseSso() {
             <button
                 type="button"
                 :disabled="isLoading"
-                class="px-4 py-2.5 bg-surface-800 dark:bg-surface-200 text-white dark:text-surface-900 rounded-md text-sm font-medium hover:bg-surface-900 dark:hover:bg-surface-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                class="px-4 py-2.5 bg-surface-900 dark:bg-white text-white dark:text-surface-900 rounded-lg text-sm font-semibold shadow-md hover:bg-surface-800 dark:hover:bg-surface-100 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2.5 ring-1 ring-surface-700 dark:ring-surface-300"
                 @click="handleSelfHostedSso"
             >
-                {{
-                    isLoading
-                        ? "Redirecting…"
-                        : `Sign in with ${oidcProviderName}`
-                }}
+                <template v-if="isLoading">Redirecting…</template>
+                <template v-else>
+                    <ShieldCheck class="size-4" />
+                    Sign in with {{ oidcProviderName }}
+                    <span class="inline-flex items-center rounded-full bg-white/15 dark:bg-surface-900/15 px-1.5 py-0.5 text-[10px] font-medium text-white/80 dark:text-surface-900/80 ring-1 ring-white/20 dark:ring-surface-900/20">Beta</span>
+                </template>
             </button>
 
             <div class="relative">
@@ -244,11 +245,12 @@ async function handleEnterpriseSso() {
             <button
                 type="button"
                 :disabled="ssoRedirecting"
-                class="px-4 py-2.5 border border-surface-300 dark:border-surface-700 rounded-md text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                class="px-4 py-2.5 bg-surface-900 dark:bg-white text-white dark:text-surface-900 rounded-lg text-sm font-semibold shadow-md hover:bg-surface-800 dark:hover:bg-surface-100 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2.5 ring-1 ring-surface-700 dark:ring-surface-300"
                 @click="handleEnterpriseSso"
             >
                 <ShieldCheck class="size-4" />
                 {{ ssoRedirecting ? "Redirecting to your IdP…" : "Sign in with SSO" }}
+                <span v-if="!ssoRedirecting" class="inline-flex items-center rounded-full bg-white/15 dark:bg-surface-900/15 px-1.5 py-0.5 text-[10px] font-medium text-white/80 dark:text-surface-900/80 ring-1 ring-white/20 dark:ring-surface-900/20">Beta</span>
             </button>
         </template>
 

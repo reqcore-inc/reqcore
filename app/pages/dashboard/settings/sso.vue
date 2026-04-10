@@ -149,9 +149,14 @@ async function copyCallbackUrl(providerId: string) {
 <template>
   <div class="mx-auto max-w-2xl">
     <div class="mb-6">
-      <h1 class="text-lg font-semibold text-surface-900 dark:text-surface-100">
-        Single Sign-On
-      </h1>
+      <div class="flex items-center gap-2">
+        <h1 class="text-lg font-semibold text-surface-900 dark:text-surface-100">
+          Single Sign-On
+        </h1>
+        <span class="inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+          Beta
+        </span>
+      </div>
       <p class="mt-1 text-sm text-surface-500 dark:text-surface-400">
         Allow your team to sign in with their corporate identity provider (Okta, Azure AD, Google Workspace, etc.).
       </p>
