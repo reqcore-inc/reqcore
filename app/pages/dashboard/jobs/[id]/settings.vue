@@ -216,6 +216,16 @@ const salaryUnitOptions = [
   { value: 'MONTH', label: 'Per month' },
   { value: 'HOUR', label: 'Per hour' },
 ]
+
+function onSalaryMinChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (!input.value) form.value.salaryMin = null
+}
+
+function onSalaryMaxChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (!input.value) form.value.salaryMax = null
+}
 </script>
 
 <template>
@@ -382,7 +392,7 @@ const salaryUnitOptions = [
                     min="0"
                     placeholder="e.g. 50000"
                     class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-                    @change="if (!($event.target as HTMLInputElement).value) form.salaryMin = null"
+                    @change="onSalaryMinChange"
                   />
                 </div>
                 <div>
@@ -396,7 +406,7 @@ const salaryUnitOptions = [
                     min="0"
                     placeholder="e.g. 80000"
                     class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-                    @change="if (!($event.target as HTMLInputElement).value) form.salaryMax = null"
+                    @change="onSalaryMaxChange"
                   />
                 </div>
               </div>

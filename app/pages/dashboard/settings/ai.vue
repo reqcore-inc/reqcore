@@ -153,6 +153,16 @@ async function testConnection() {
     isTesting.value = false
   }
 }
+
+function onInputPriceChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  form.value.inputPricePer1m = input.value ? Number(input.value) : null
+}
+
+function onOutputPriceChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  form.value.outputPricePer1m = input.value ? Number(input.value) : null
+}
 </script>
 
 <template>
@@ -357,7 +367,7 @@ async function testConnection() {
                   step="0.01"
                   placeholder="0.00"
                   class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 pl-7 pr-3 py-2 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors tabular-nums"
-                  @input="form.inputPricePer1m = ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null"
+                  @input="onInputPriceChange"
                 />
               </div>
             </div>
@@ -375,7 +385,7 @@ async function testConnection() {
                   step="0.01"
                   placeholder="0.00"
                   class="w-full rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 pl-7 pr-3 py-2 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors tabular-nums"
-                  @input="form.outputPricePer1m = ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null"
+                  @input="onOutputPriceChange"
                 />
               </div>
             </div>

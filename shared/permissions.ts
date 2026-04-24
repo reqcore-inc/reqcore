@@ -28,6 +28,7 @@ import {
 // `as const` is mandatory for TypeScript inference.
 
 const atsStatements = {
+  organization: ['read', 'update', 'delete'],
   job: ['create', 'read', 'update', 'delete'],
   candidate: ['create', 'read', 'update', 'delete'],
   application: ['create', 'read', 'update', 'delete'],
@@ -57,6 +58,7 @@ export const ac = createAccessControl(statements)
 
 export const owner = ac.newRole({
   ...ownerAc.statements,
+  organization: ['read', 'update', 'delete'],
   job: ['create', 'read', 'update', 'delete'],
   candidate: ['create', 'read', 'update', 'delete'],
   application: ['create', 'read', 'update', 'delete'],
@@ -71,6 +73,7 @@ export const owner = ac.newRole({
 
 export const admin = ac.newRole({
   ...adminAc.statements,
+  organization: ['read', 'update', 'delete'],
   job: ['create', 'read', 'update', 'delete'],
   candidate: ['create', 'read', 'update', 'delete'],
   application: ['create', 'read', 'update', 'delete'],
@@ -85,6 +88,7 @@ export const admin = ac.newRole({
 
 export const member = ac.newRole({
   ...memberAc.statements,
+  organization: ['read'],
   job: ['read'],
   candidate: ['create', 'read', 'update'],
   application: ['create', 'read', 'update'],
