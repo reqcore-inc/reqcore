@@ -15,38 +15,48 @@ export const createJobSchema = z.object({
   /** Optional custom slug — if omitted, generated from title */
   slug: z.string().max(80).optional(),
   /** Salary range fields for SEO-rich job postings (Google Jobs) */
-  salaryMin: z.coerce.number().int().min(0).optional(),
-  salaryMax: z.coerce.number().int().min(0).optional(),
-  salaryCurrency: z.string().length(3).optional(),
-  salaryUnit: z.enum(['YEAR', 'MONTH', 'HOUR']).optional(),
+  salaryMin: z.coerce.number().int().min(0).nullable().optional(),
+  salaryMax: z.coerce.number().int().min(0).nullable().optional(),
+  salaryCurrency: z.string().length(3).nullable().optional(),
+  salaryUnit: z.enum(['YEAR', 'MONTH', 'HOUR']).nullable().optional(),
+  /** Whether salary is negotiable (hides min/max range on public listing) */
+  salaryNegotiable: z.boolean().optional().default(false),
   /** Remote work status: remote, hybrid, or onsite */
-  remoteStatus: z.enum(['remote', 'hybrid', 'onsite']).optional(),
+  remoteStatus: z.enum(['remote', 'hybrid', 'onsite']).nullable().optional(),
   /** When this job listing expires (required for Google Jobs rich results) */
-  validThrough: z.coerce.date().optional(),
+  validThrough: z.coerce.date().nullable().optional(),
   /** Whether the application form requires a resume/CV upload */
   requireResume: z.boolean().optional().default(false),
   /** Whether the application form asks for a cover letter upload */
   requireCoverLetter: z.boolean().optional().default(false),
   /** Whether to automatically run AI scoring when a candidate applies */
   autoScoreOnApply: z.boolean().optional().default(false),
+  /** Experience level required for this role */
+  experienceLevel: z.enum(['junior', 'mid', 'senior', 'lead']).optional(),
 })
 
 /** Schema for updating an existing job (all fields optional, no defaults — PATCH semantics) */
 export const updateJobSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200).optional(),
-  description: z.string().optional(),
-  location: z.string().optional(),
+  description: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
   type: z.enum(['full_time', 'part_time', 'contract', 'internship']).optional(),
   slug: z.string().max(80).optional(),
-  salaryMin: z.coerce.number().int().min(0).optional(),
-  salaryMax: z.coerce.number().int().min(0).optional(),
-  salaryCurrency: z.string().length(3).optional(),
-  salaryUnit: z.enum(['YEAR', 'MONTH', 'HOUR']).optional(),
-  remoteStatus: z.enum(['remote', 'hybrid', 'onsite']).optional(),
-  validThrough: z.coerce.date().optional(),
+  /** Pass null to explicitly clear a salary field */
+  salaryMin: z.coerce.number().int().min(0).nullable().optional(),
+  salaryMax: z.coerce.number().int().min(0).nullable().optional(),
+  salaryCurrency: z.string().length(3).nullable().optional(),
+  salaryUnit: z.enum(['YEAR', 'MONTH', 'HOUR']).nullable().optional(),
+  salaryNegotiable: z.boolean().optional(),
+  remoteStatus: z.enum(['remote', 'hybrid', 'onsite']).nullable().optional(),
+  /** Pass null to explicitly clear the expiry date */
+  validThrough: z.coerce.date().nullable().optional(),
   requireResume: z.boolean().optional(),
   requireCoverLetter: z.boolean().optional(),
+  /** Whether to automatically run AI scoring when a candidate applies */
   autoScoreOnApply: z.boolean().optional(),
+  /** Experience level required for this role */
+  experienceLevel: z.enum(['junior', 'mid', 'senior', 'lead']).nullable().optional(),
   status: z.enum(['draft', 'open', 'closed', 'archived']).optional(),
 })
 

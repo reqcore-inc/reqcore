@@ -1,4 +1,4 @@
-import { eq, and, or, ilike, desc, sql } from 'drizzle-orm'
+import { eq, and, or, ilike, desc, sql, gte, lte } from 'drizzle-orm'
 import { candidate, application } from '../../database/schema'
 import { candidateQuerySchema } from '../../utils/schemas/candidate'
 
@@ -24,6 +24,18 @@ export default defineEventHandler(async (event) => {
     )
   }
 
+  if (query.gender) {
+    conditions.push(eq(candidate.gender, query.gender))
+  }
+
+  // dateOfBirth is stored as ISO 8601 text (YYYY-MM-DD), so lexicographic comparison works
+  if (query.dobFrom) {
+    conditions.push(gte(candidate.dateOfBirth, query.dobFrom))
+  }
+  if (query.dobTo) {
+    conditions.push(lte(candidate.dateOfBirth, query.dobTo))
+  }
+
   const where = and(...conditions)
 
   const [data, total] = await Promise.all([
@@ -32,8 +44,12 @@ export default defineEventHandler(async (event) => {
         id: candidate.id,
         firstName: candidate.firstName,
         lastName: candidate.lastName,
+        displayName: candidate.displayName,
         email: candidate.email,
         phone: candidate.phone,
+        gender: candidate.gender,
+        dateOfBirth: candidate.dateOfBirth,
+        quickNotes: candidate.quickNotes,
         createdAt: candidate.createdAt,
         updatedAt: candidate.updatedAt,
         applicationCount: sql<number>`count(${application.id})::int`,

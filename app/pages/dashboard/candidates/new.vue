@@ -20,8 +20,11 @@ const { track } = useTrack()
 const form = ref({
   firstName: '',
   lastName: '',
+  displayName: '',
   email: '',
   phone: '',
+  gender: '' as '' | 'male' | 'female' | 'other' | 'prefer_not_to_say',
+  dateOfBirth: '',
 })
 
 const isSubmitting = ref(false)
@@ -31,12 +34,27 @@ const submitError = ref<string | null>(null)
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
+  displayName: z.string().max(200).optional(),
   email: z.string().min(1, 'Email is required').email('Invalid email address').max(255),
   phone: z.string().max(50).optional(),
+  gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional(),
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+    .refine((v) => {
+      const d = new Date(v)
+      return !isNaN(d.getTime()) && d.getFullYear() >= 1900 && d <= new Date()
+    }, 'Must be a valid past date')
+    .optional(),
 })
 
 function validate(): boolean {
-  const result = formSchema.safeParse(form.value)
+  const result = formSchema.safeParse({
+    ...form.value,
+    gender: form.value.gender || undefined,
+    dateOfBirth: form.value.dateOfBirth || undefined,
+    displayName: form.value.displayName || undefined,
+  })
   if (!result.success) {
     errors.value = {}
     for (const issue of result.error.issues) {
@@ -58,8 +76,11 @@ async function handleSubmit() {
     await createCandidate({
       firstName: form.value.firstName,
       lastName: form.value.lastName,
+      displayName: form.value.displayName || undefined,
       email: form.value.email,
       phone: form.value.phone || undefined,
+      gender: (form.value.gender as 'male' | 'female' | 'other' | 'prefer_not_to_say') || undefined,
+      dateOfBirth: form.value.dateOfBirth || undefined,
     })
     track('candidate_added')
     await navigateTo(localePath('/dashboard/candidates'))
@@ -131,6 +152,22 @@ async function handleSubmit() {
         <p v-if="errors.lastName" class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ errors.lastName }}</p>
       </div>
 
+      <!-- Display Name (optional) -->
+      <div>
+        <label for="displayName" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+          Display Name
+          <span class="ml-1 text-xs font-normal text-surface-400">(optional — overrides default name format)</span>
+        </label>
+        <input
+          id="displayName"
+          v-model="form.displayName"
+          type="text"
+          placeholder="e.g. Nguyễn Văn A"
+          class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+        />
+        <p v-if="errors.displayName" class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ errors.displayName }}</p>
+      </div>
+
       <!-- Email -->
       <div>
         <label for="email" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
@@ -159,6 +196,43 @@ async function handleSubmit() {
           placeholder="e.g. +1 (555) 123-4567"
           class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
         />
+      </div>
+
+      <!-- Gender + Date of Birth (side-by-side on wider screens) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <!-- Gender -->
+        <div>
+          <label for="gender" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+            Gender
+          </label>
+          <select
+            id="gender"
+            v-model="form.gender"
+            class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+          >
+            <option value="">Not specified</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
+        </div>
+
+        <!-- Date of Birth -->
+        <div>
+          <label for="dateOfBirth" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+            Date of Birth
+          </label>
+          <input
+            id="dateOfBirth"
+            v-model="form.dateOfBirth"
+            type="date"
+            :max="new Date().toISOString().split('T')[0]"
+            class="w-full rounded-lg border px-3 py-2 text-sm text-surface-900 dark:text-surface-100 bg-white dark:bg-surface-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+            :class="errors.dateOfBirth ? 'border-danger-300' : 'border-surface-300 dark:border-surface-700'"
+          />
+          <p v-if="errors.dateOfBirth" class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ errors.dateOfBirth }}</p>
+        </div>
       </div>
 
       <!-- Actions -->
