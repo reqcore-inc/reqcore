@@ -208,10 +208,11 @@ const isPopoverType = computed(
       <input
         v-if="['text', 'url', 'email', 'person'].includes(definition.type)"
         ref="inputEl"
-        v-model="draft as string"
+        :value="draft as string"
         :type="definition.type === 'email' ? 'email' : definition.type === 'url' ? 'url' : 'text'"
         class="w-full min-w-0 rounded border border-brand-500 bg-white dark:bg-surface-900 px-2 py-1 text-sm text-surface-900 dark:text-surface-50 outline-none ring-2 ring-brand-500/20"
         :placeholder="definition.type === 'url' ? 'https://…' : ''"
+        @input="(e) => { draft = (e.target as HTMLInputElement).value }"
         @keydown="onKey"
         @blur="commit()"
       />
@@ -220,9 +221,10 @@ const isPopoverType = computed(
       <textarea
         v-else-if="definition.type === 'long_text'"
         ref="inputEl"
-        v-model="draft as string"
+        :value="draft as string"
         rows="3"
         class="w-full min-w-0 rounded border border-brand-500 bg-white dark:bg-surface-900 px-2 py-1.5 text-sm text-surface-900 dark:text-surface-50 outline-none ring-2 ring-brand-500/20"
+        @input="(e) => { draft = (e.target as HTMLTextAreaElement).value }"
         @keydown="onKey"
         @blur="commit()"
       />
@@ -244,9 +246,10 @@ const isPopoverType = computed(
       <input
         v-else-if="definition.type === 'date'"
         ref="inputEl"
-        v-model="draft as string"
+        :value="draft as string"
         type="date"
         class="w-full min-w-0 rounded border border-brand-500 bg-white dark:bg-surface-900 px-2 py-1 text-sm text-surface-900 dark:text-surface-50 outline-none ring-2 ring-brand-500/20"
+        @input="(e) => { draft = (e.target as HTMLInputElement).value }"
         @keydown="onKey"
         @blur="commit()"
       />

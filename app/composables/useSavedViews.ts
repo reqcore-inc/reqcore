@@ -21,7 +21,7 @@ function genId() {
 
 export function useSavedViews<T extends Record<string, unknown>>(scope: string, defaultSettings: T) {
   const storageKey = `${STORAGE_PREFIX}${scope}`
-  const views = ref<SavedView<T>[]>([])
+  const views = ref([]) as Ref<SavedView<T>[]>
   const activeViewId = ref<string | null>(null)
   const loaded = ref(false)
 
