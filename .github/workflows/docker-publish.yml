@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
   packages: write
+  # id-token: needed by cosign for keyless OIDC signing.
+  # attestations: needed to publish build attestations to GHCR.
+  id-token: write
+  attestations: write
 
 concurrency:
   group: docker-publish-${{ github.ref }}
@@ -63,6 +67,7 @@ jobs:
 
       # ── 5. Build & push ────────────────────────────────────────────────────
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -77,3 +82,34 @@ jobs:
           sbom: true
         env:
           DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+
+      # ── 6. Keyless cosign signature (Sigstore OIDC) ────────────────────────
+      # Self-hosters can verify the image they pulled was actually built by
+      # this workflow with:
+      #   cosign verify ghcr.io/reqcore-inc/reqcore@<digest> \
+      #     --certificate-identity-regexp 'https://github.com/reqcore-inc/reqcore/.github/workflows/docker-publish.yml@.*' \
+      #     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign published images by digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          # cosign signs by immutable digest; the tags only resolve the digest.
+          # We sign each unique image reference so verification works against
+          # any tag the user pulled (latest, semver, edge, sha-…).
+          # `${tag%:*}` (single %) strips only the trailing :tag so registries
+          # with ports (e.g. registry.local:5000/repo:tag) survive intact.
+          # Pipe through `sort -u` so the same image+digest is signed once
+          # even when the tag list contains many aliases.
+          printf '%s\n' $TAGS \
+            | awk 'NF' \
+            | sed -E 's#:[^:/]+$##' \
+            | sort -u \
+            | while IFS= read -r image; do
+                echo "Signing ${image}@${DIGEST}"
+                cosign sign --yes "${image}@${DIGEST}"
+              done

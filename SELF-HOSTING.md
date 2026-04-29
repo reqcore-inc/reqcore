@@ -17,9 +17,10 @@ Everything you need to deploy, manage, and update your own Reqcore applicant tra
 9. [Custom Domain & HTTPS](#custom-domain--https)
 10. [Email Configuration](#email-configuration)
 11. [Security Best Practices](#security-best-practices)
-12. [Monitoring & Health Checks](#monitoring--health-checks)
-13. [Troubleshooting](#troubleshooting)
-14. [FAQ](#faq)
+12. [Feature Flags](#feature-flags)
+13. [Monitoring & Health Checks](#monitoring--health-checks)
+14. [Troubleshooting](#troubleshooting)
+15. [FAQ](#faq)
 
 ---
 
@@ -82,7 +83,30 @@ All of these providers offer one-click Docker installation when creating a serve
 
 ## Quick Start — Pre-built Image (Fastest)
 
-Use the official pre-built Docker image from GitHub Container Registry. No cloning, no building — just pull and run:
+Use the official pre-built Docker image from GitHub Container Registry. No cloning, no building — just pull and run.
+
+### Option A — Versioned release bundle (recommended)
+
+Every [GitHub Release](https://github.com/reqcore-inc/reqcore/releases/latest) ships with a `reqcore-<version>.tar.gz` bundle that contains `setup.sh` and a `docker-compose.production.yml` with the image tag already pinned to that exact version. This is the most reliable way to install or upgrade.
+
+```bash
+# 1. Download and extract the latest release bundle
+curl -fsSL -o reqcore.tar.gz https://github.com/reqcore-inc/reqcore/releases/latest/download/reqcore-$(curl -fsSL https://api.github.com/repos/reqcore-inc/reqcore/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/^v//').tar.gz
+tar -xzf reqcore.tar.gz && cd reqcore-*
+
+# 2. Generate secure passwords (one-time)
+./setup.sh
+
+# 3. Start everything
+docker compose -f docker-compose.production.yml up -d
+
+# 4. Open your browser
+# → http://localhost:3000
+```
+
+To upgrade later, download the newer release bundle into a new directory, copy your existing `.env` over, and run `docker compose up -d`.
+
+### Option B — Pull straight from `main`
 
 ```bash
 # 1. Download just the files you need
@@ -109,6 +133,18 @@ That's it. Sign up, create your organization, and start hiring.
 app:
   image: ghcr.io/reqcore-inc/reqcore:1.3.0
 ```
+
+### Verifying image authenticity (optional)
+
+Every published image is signed with [cosign](https://github.com/sigstore/cosign) using GitHub's keyless OIDC. To verify the image you pulled was actually built by the official release workflow:
+
+```bash
+cosign verify ghcr.io/reqcore-inc/reqcore:<version> \
+  --certificate-identity-regexp 'https://github.com/reqcore-inc/reqcore/.github/workflows/docker-publish.yml@.*' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+```
+
+A successful verification confirms the image is unmodified and was produced by the official CI pipeline.
 
 ---
 
@@ -589,6 +625,45 @@ The SSO button appears automatically on the sign-in and sign-up pages.
 - **Issuer validation** (RFC 9207) is enforced to prevent OAuth mix-up attacks
 - **OIDC discovery** automatically fetches and validates all provider endpoints
 - SSO is **completely opt-in** — it has zero impact when the environment variables are not set
+
+---
+
+## Feature Flags
+
+Reqcore ships some features behind **feature flags** so they can be tested in production before being released to everyone. The full list of flags lives in [`shared/feature-flags.ts`](shared/feature-flags.ts).
+
+### How it works for self-hosters
+
+Every flag has a safe **default value** baked into the code. You get that default automatically — **no PostHog account or external service required**.
+
+If you want to opt into an experimental feature (or disable a stable one), set an environment variable matching the pattern:
+
+```bash
+FEATURE_FLAG_<UPPERCASE_KEY_WITH_UNDERSCORES>=true
+```
+
+Examples:
+
+```bash
+# Enable the new chatbot experience for everyone on this instance
+FEATURE_FLAG_CHATBOT_EXPERIENCE=true
+
+# Force-disable a flag that defaults to on
+FEATURE_FLAG_SOMETHING_ELSE=false
+```
+
+Restart the container after editing `.env`. Env-var overrides win over any PostHog rollout, so this is the authoritative knob for self-hosters.
+
+### Resolution order
+
+1. URL query string (e.g. `?ff_chatbot-experience=true`) — handy for QA
+2. Env var override (`FEATURE_FLAG_*`) — what you'll use 99% of the time
+3. PostHog rollout — only applies when `POSTHOG_PUBLIC_KEY` is set
+4. Registry default from `shared/feature-flags.ts`
+
+### I want to use PostHog for gradual rollout
+
+Optional. Set `POSTHOG_PUBLIC_KEY` and `POSTHOG_HOST` in `.env`, then create a flag in your PostHog project with a key matching the registry (e.g. `chatbot-experience`). For server-side flags without per-request HTTP calls, also set `POSTHOG_FEATURE_FLAGS_KEY` to a personal API key with the **Feature Flags: read** scope.
 
 ---
 
