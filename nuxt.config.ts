@@ -94,7 +94,7 @@ export default defineNuxtConfig({
   // Enable source maps so PostHog error tracking can display readable stack traces
   sourcemap: { client: "hidden" },
 
-  // @ts-expect-error - posthogConfig types only available when @posthog/nuxt module is loaded
+  // @ts-ignore - posthogConfig types only available when @posthog/nuxt module is loaded
   posthogConfig: {
     publicKey: process.env.POSTHOG_PUBLIC_KEY || "",
     host: process.env.POSTHOG_HOST || "https://eu.i.posthog.com",
@@ -244,7 +244,14 @@ export default defineNuxtConfig({
        * Self-hosters use these to enable/disable flags without running PostHog.
        * See `shared/feature-flags.ts` for the full registry and resolution order.
        */
-      featureFlagOverrides: readEnvFlagOverrides(),
+      // Cast: Nuxt narrows public runtime config from the registry's literal
+      // `defaultValue` types (boolean here), but env overrides can also be
+      // multivariate strings — and entries are partial. The override map is
+      // validated at runtime by `parseFlagOverride`, so the cast is safe.
+      featureFlagOverrides: readEnvFlagOverrides() as Record<
+        string,
+        boolean | string
+      >,
     },
   },
 

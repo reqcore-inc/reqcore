@@ -788,6 +788,11 @@ export const chatbotAgent = pgTable('chatbot_agent', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (t) => ([
   index('chatbot_agent_org_user_idx').on(t.organizationId, t.userId),
+  // Enforce single default agent per (org, user) at the DB layer to backstop
+  // the application-level clear-then-set logic against concurrent requests.
+  uniqueIndex('chatbot_agent_default_per_user_idx')
+    .on(t.organizationId, t.userId)
+    .where(sql`${t.isDefault} = true`),
 ]))
 
 /**

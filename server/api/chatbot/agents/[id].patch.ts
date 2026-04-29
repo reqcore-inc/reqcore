@@ -41,16 +41,6 @@ export default defineEventHandler(async (event): Promise<{ agent: ChatbotAgent }
     throw createError({ statusCode: 404, statusMessage: 'Agent not found.' })
   }
 
-  // If switching this agent to default, clear other defaults first.
-  if (body.isDefault === true && !existing.isDefault) {
-    await db.update(chatbotAgent)
-      .set({ isDefault: false, updatedAt: new Date() })
-      .where(and(
-        eq(chatbotAgent.organizationId, orgId),
-        eq(chatbotAgent.userId, userId),
-      ))
-  }
-
   const updates: Partial<typeof chatbotAgent.$inferInsert> = { updatedAt: new Date() }
   if (body.name !== undefined) updates.name = body.name
   if (body.description !== undefined) updates.description = body.description
@@ -61,14 +51,29 @@ export default defineEventHandler(async (event): Promise<{ agent: ChatbotAgent }
   }
   if (body.isDefault !== undefined) updates.isDefault = body.isDefault
 
-  const [updated] = await db.update(chatbotAgent)
-    .set(updates)
-    .where(and(
-      eq(chatbotAgent.id, id),
-      eq(chatbotAgent.organizationId, orgId),
-      eq(chatbotAgent.userId, userId),
-    ))
-    .returning()
+  // Clear-and-set must be atomic so two concurrent "promote to default"
+  // requests cannot both observe `existing.isDefault === false` and leave
+  // multiple defaults. The partial unique index
+  // `chatbot_agent_default_per_user_idx` is the DB-level backstop.
+  const [updated] = await db.transaction(async (tx) => {
+    if (body.isDefault === true && !existing.isDefault) {
+      await tx.update(chatbotAgent)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(and(
+          eq(chatbotAgent.organizationId, orgId),
+          eq(chatbotAgent.userId, userId),
+        ))
+    }
+
+    return tx.update(chatbotAgent)
+      .set(updates)
+      .where(and(
+        eq(chatbotAgent.id, id),
+        eq(chatbotAgent.organizationId, orgId),
+        eq(chatbotAgent.userId, userId),
+      ))
+      .returning()
+  })
 
   if (!updated) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to update agent.' })

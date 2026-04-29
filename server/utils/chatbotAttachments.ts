@@ -4,7 +4,10 @@
  * Files are uploaded once, parsed, and held in memory for a short TTL so
  * the user can reference them across multiple chat turns without re-upload.
  *
- * Keyed by `${userId}:${attachmentId}` so attachments are strictly per-user.
+ * Keyed by `${orgId}:${userId}:${attachmentId}` so attachments are strictly
+ * scoped to a single user inside a single organisation. A user that is a
+ * member of multiple orgs cannot retrieve attachments uploaded under a
+ * different org's session, even if the attachment id is known.
  * Cleared via TTL eviction or on logout (best-effort).
  */
 import type { ChatbotAttachment } from '../../shared/chatbot'
@@ -21,8 +24,8 @@ const MAX_PER_USER = 20
 
 const store = new Map<string, StoredAttachment>()
 
-function key(userId: string, attachmentId: string) {
-  return `${userId}:${attachmentId}`
+function key(orgId: string, userId: string, attachmentId: string) {
+  return `${orgId}:${userId}:${attachmentId}`
 }
 
 function evictExpired() {
@@ -40,16 +43,16 @@ export function saveChatbotAttachment(input: {
 }): void {
   evictExpired()
 
-  // Enforce a per-user cap by evicting the oldest entries.
+  // Enforce a per-(org,user) cap by evicting the oldest entries.
   const userEntries = Array.from(store.entries())
-    .filter(([, v]) => v.userId === input.userId)
+    .filter(([, v]) => v.userId === input.userId && v.orgId === input.orgId)
     .sort((a, b) => a[1].expiresAt - b[1].expiresAt)
   while (userEntries.length >= MAX_PER_USER) {
     const oldest = userEntries.shift()
     if (oldest) store.delete(oldest[0])
   }
 
-  store.set(key(input.userId, input.attachment.id), {
+  store.set(key(input.orgId, input.userId, input.attachment.id), {
     ...input.attachment,
     userId: input.userId,
     orgId: input.orgId,
@@ -59,13 +62,14 @@ export function saveChatbotAttachment(input: {
 }
 
 export function getChatbotAttachments(
+  orgId: string,
   userId: string,
   ids: string[],
 ): Array<ChatbotAttachment & { text: string }> {
   evictExpired()
   const out: Array<ChatbotAttachment & { text: string }> = []
   for (const id of ids) {
-    const found = store.get(key(userId, id))
+    const found = store.get(key(orgId, userId, id))
     if (!found) continue
     out.push({
       id: found.id,
@@ -79,8 +83,11 @@ export function getChatbotAttachments(
   return out
 }
 
-export function clearChatbotAttachmentsForUser(userId: string): void {
+export function clearChatbotAttachmentsForUser(
+  orgId: string,
+  userId: string,
+): void {
   for (const [k, v] of store) {
-    if (v.userId === userId) store.delete(k)
+    if (v.userId === userId && v.orgId === orgId) store.delete(k)
   }
 }

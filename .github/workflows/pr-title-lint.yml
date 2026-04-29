@@ -15,7 +15,7 @@ name: PR Title Lint
 #   WIP
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, edited, synchronize, reopened]
 
 permissions:
@@ -42,7 +42,6 @@ jobs:
             build
             ci
             chore
-            revert
           requireScope: false
           subjectPattern: ^[A-Za-z0-9].+$
           subjectPatternError: |

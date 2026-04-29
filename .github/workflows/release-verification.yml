@@ -35,7 +35,7 @@ jobs:
   smoke-test:
     name: Smoke-test published image
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Resolve release tag
         id: tag
@@ -100,10 +100,20 @@ jobs:
       - name: Assert migrations + S3 bucket ready
         run: |
           set -euo pipefail
-          docker compose -f docker-compose.production.yml logs app | grep -q "Database migrations applied successfully" \
-            || { echo "❌ Migrations message missing"; docker compose -f docker-compose.production.yml logs app; exit 1; }
-          docker compose -f docker-compose.production.yml logs app | grep -q 'S3 bucket "reqcore" is ready' \
-            || { echo "❌ S3 bucket message missing"; docker compose -f docker-compose.production.yml logs app; exit 1; }
+          # Startup messages can land slightly after the HTTP port opens, so
+          # poll instead of one-shot grepping to avoid flaky failures.
+          for i in $(seq 40); do
+            logs="$(docker compose -f docker-compose.production.yml logs app || true)"
+            if grep -q "Database migrations applied successfully" <<<"$logs" \
+              && grep -q 'S3 bucket "reqcore" is ready' <<<"$logs"; then
+              echo "✅ Migrations + S3 ready messages found (attempt $i)"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "❌ Required startup messages missing after polling"
+          docker compose -f docker-compose.production.yml logs app
+          exit 1
 
       - name: Demote release to pre-release on failure
         if: failure() && github.event_name == 'release'

@@ -86,7 +86,10 @@ export function parseFlagOverride(
   const trimmed = raw.trim()
   if (trimmed === '') return undefined
 
-  const def = FEATURE_FLAGS[key]
+  // Cast to the public interface so optional `variants` is accessible.
+  // The `satisfies` constraint on FEATURE_FLAGS preserves narrow literal
+  // types per-entry (which omit `variants` when not set), so we widen here.
+  const def: FeatureFlagDefinition = FEATURE_FLAGS[key]
   const lower = trimmed.toLowerCase()
 
   if (lower === 'true' || lower === '1' || lower === 'on') return true

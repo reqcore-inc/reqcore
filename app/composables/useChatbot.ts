@@ -419,8 +419,13 @@ export function useChatbot() {
     const attachmentIds = userMessage.attachments?.map((a) => a.id) ?? []
     pendingAttachments.value = []
 
+    // Use a per-call controller and only mutate the shared `abortController`
+    // / `isStreaming` state when this call still owns it. This prevents a
+    // late `finally` from a previous (aborted) send from clobbering the
+    // controller and streaming flag of a newer in-flight request.
     isStreaming.value = true
-    abortController = new AbortController()
+    const controller = new AbortController()
+    abortController = controller
 
     try {
       const res = await fetch('/api/chatbot/chat', {
@@ -442,7 +447,7 @@ export function useChatbot() {
                 : {}),
             })),
         }),
-        signal: abortController.signal,
+        signal: controller.signal,
       })
 
       if (!res.ok || !res.body) {
@@ -472,8 +477,11 @@ export function useChatbot() {
     } finally {
       // Force reactivity since we mutated assistantMessage in place.
       messages.value = [...messages.value]
-      isStreaming.value = false
-      abortController = null
+      // Only reset shared state if a newer send hasn't already taken over.
+      if (abortController === controller) {
+        isStreaming.value = false
+        abortController = null
+      }
     }
   }
 

@@ -1,4 +1,4 @@
-import { and, count, eq } from 'drizzle-orm'
+import { and, count, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { chatbotAgent } from '../../../database/schema'
 import { requireChatbotAccess } from '../../../utils/chatbotAccess'
@@ -21,6 +21,14 @@ const bodySchema = z.object({
  * POST /api/chatbot/agents
  *
  * Create a custom AI agent (system prompt + persona) for the current user.
+ *
+ * The cap-check, default-clearing, and insert run inside a single
+ * transaction guarded by a Postgres advisory lock keyed on (org, user).
+ * The lock serialises concurrent create requests for the same user so the
+ * `CHATBOT_AGENT_MAX_PER_USER` cap cannot be exceeded by overlapping calls,
+ * and so a previous default is reliably cleared before a new default is
+ * inserted. The partial unique index `chatbot_agent_default_per_user_idx`
+ * is the DB-level backstop on the default invariant.
  */
 export default defineEventHandler(async (event): Promise<{ agent: ChatbotAgent }> => {
   const session = await requireChatbotAccess(event)
@@ -29,42 +37,52 @@ export default defineEventHandler(async (event): Promise<{ agent: ChatbotAgent }
 
   const body = await readValidatedBody(event, bodySchema.parse)
 
-  // Enforce per-user cap.
-  const [{ value: existing } = { value: 0 }] = await db
-    .select({ value: count() })
-    .from(chatbotAgent)
-    .where(and(
-      eq(chatbotAgent.organizationId, orgId),
-      eq(chatbotAgent.userId, userId),
-    ))
+  const created = await db.transaction(async (tx) => {
+    // Serialise concurrent create requests for the same (org, user) so the
+    // count → insert sequence is race-free. The lock is released on commit.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`chatbot_agent:${orgId}:${userId}`}))`,
+    )
 
-  if (existing >= CHATBOT_AGENT_MAX_PER_USER) {
-    throw createError({
-      statusCode: 422,
-      statusMessage: `Agent limit reached (${CHATBOT_AGENT_MAX_PER_USER}). Delete an agent before adding another.`,
-    })
-  }
-
-  // If marking this agent as default, unset any previous default.
-  if (body.isDefault) {
-    await db.update(chatbotAgent)
-      .set({ isDefault: false, updatedAt: new Date() })
+    // Enforce per-user cap (now race-safe under the advisory lock).
+    const [{ value: existing } = { value: 0 }] = await tx
+      .select({ value: count() })
+      .from(chatbotAgent)
       .where(and(
         eq(chatbotAgent.organizationId, orgId),
         eq(chatbotAgent.userId, userId),
       ))
-  }
 
-  const [created] = await db.insert(chatbotAgent).values({
-    organizationId: orgId,
-    userId,
-    name: body.name,
-    description: body.description ?? null,
-    icon: body.icon ?? null,
-    systemPrompt: body.systemPrompt,
-    temperature: typeof body.temperature === 'number' ? String(body.temperature) : null,
-    isDefault: body.isDefault === true,
-  }).returning()
+    if (existing >= CHATBOT_AGENT_MAX_PER_USER) {
+      throw createError({
+        statusCode: 422,
+        statusMessage: `Agent limit reached (${CHATBOT_AGENT_MAX_PER_USER}). Delete an agent before adding another.`,
+      })
+    }
+
+    // If marking this agent as default, unset any previous default.
+    if (body.isDefault) {
+      await tx.update(chatbotAgent)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(and(
+          eq(chatbotAgent.organizationId, orgId),
+          eq(chatbotAgent.userId, userId),
+        ))
+    }
+
+    const [row] = await tx.insert(chatbotAgent).values({
+      organizationId: orgId,
+      userId,
+      name: body.name,
+      description: body.description ?? null,
+      icon: body.icon ?? null,
+      systemPrompt: body.systemPrompt,
+      temperature: typeof body.temperature === 'number' ? String(body.temperature) : null,
+      isDefault: body.isDefault === true,
+    }).returning()
+
+    return row
+  })
 
   if (!created) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to create agent.' })

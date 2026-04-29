@@ -68,7 +68,11 @@ export async function isServerFeatureEnabled(
   key: FeatureFlagKey,
   options: { distinctId: string; groups?: Record<string, string> },
 ): Promise<boolean> {
-  const value = await resolveServerFeatureFlag(key, options)
+  // Widen the per-key narrowed return type to the union so the runtime
+  // string check is type-safe for both boolean and multivariate flags.
+  const value = (await resolveServerFeatureFlag(key, options)) as
+    | boolean
+    | string
   return value === true || (typeof value === 'string' && value.length > 0)
 }
 

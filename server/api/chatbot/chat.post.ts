@@ -182,7 +182,7 @@ export default defineEventHandler(async (event) => {
   }
   const attachmentIds = lastUser.attachmentIds ?? []
   const attachmentRecords = attachmentIds.length
-    ? getChatbotAttachments(session.user.id, attachmentIds)
+    ? getChatbotAttachments(orgId, session.user.id, attachmentIds)
     : []
 
   if (attachmentIds.length > 0 && attachmentRecords.length === 0) {
