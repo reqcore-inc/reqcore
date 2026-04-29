@@ -120,8 +120,14 @@ export async function loadPropertyEntriesForEntities(opts: {
    * is null OR in that set.
    */
   jobIds?: string[]
+  /**
+   * Optional per-entity job-id map. When provided, each entity only
+   * receives org-global defs plus defs scoped to that entity's own jobId,
+   * so mixed-job lists don't leak unrelated job properties across rows.
+   */
+  entityJobIds?: Map<string, string | null | undefined>
 }): Promise<Map<string, PropertyEntry[]>> {
-  const { organizationId, entityType, entityIds, jobIds } = opts
+  const { organizationId, entityType, entityIds, jobIds, entityJobIds } = opts
   if (entityIds.length === 0) return new Map()
 
   const where =
@@ -150,8 +156,6 @@ export async function loadPropertyEntriesForEntities(opts: {
     )) as unknown as PropertyDefinitionRow[]
 
   if (definitions.length === 0) return new Map(entityIds.map((id) => [id, []]))
-
-  const defById = new Map(definitions.map((d) => [d.id, d]))
 
   const values = await db
     .select({
@@ -189,10 +193,12 @@ export async function loadPropertyEntriesForEntities(opts: {
   for (const entityId of entityIds) {
     const list = map.get(entityId)!
     const perEntity = byEntity.get(entityId)
+    const ownJobId = entityJobIds?.get(entityId) ?? null
     for (const def of definitions) {
-      // For application entities, only include defs whose jobId is null
-      // (org-global) or matches this entity's job — but we don't have jobId
-      // here; that filtering is done at the caller's layer if needed.
+      // Each entity sees org-global defs (jobId === null) plus only the
+      // defs bound to its own jobId. When the caller doesn't pass
+      // entityJobIds, fall back to legacy behavior (include all loaded defs).
+      if (entityJobIds && def.jobId !== null && def.jobId !== ownJobId) continue
       list.push({ definition: def, value: perEntity?.get(def.id) ?? null })
     }
   }
@@ -237,21 +243,13 @@ export async function entityIdsMatchingFilters(opts: {
     let matchingRows: { entityId: string }[] = []
 
     if (f.op === 'isEmpty') {
-      // entity has no row OR row has null value — easier to find "has non-null" and invert at the end
-      matchingRows = await db
-        .select({ entityId: propertyValue.entityId })
-        .from(propertyValue)
-        .where(and(baseWhere, sql`${propertyValue.value} IS NOT NULL`))
-      const haveValue = new Set(matchingRows.map((r) => r.entityId))
-      // We don't know the universe here — caller must intersect with their primary set.
-      // Encode "isEmpty" as a marker by returning entities NOT in haveValue. We can't
-      // do that without a universe, so we mark via a sentinel: store the inverse.
-      // Simpler: return a function-of-universe via a wrapper. Instead, support it
-      // by returning special null and forcing caller to handle "isEmpty" at SQL.
-      // Simplification for v1: only support isEmpty via post-filter on attached
-      // entries (caller computes). Skip here.
-      working = working === null ? new Set() : working
-      continue
+      // Computing the complement requires a universe of entity ids that this
+      // helper doesn't have. Reject the operator at the API boundary instead
+      // of silently collapsing the match set to empty.
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Filter operator 'isEmpty' is not supported in list queries",
+      })
     }
 
     if (f.op === 'isNotEmpty') {

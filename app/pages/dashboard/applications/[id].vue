@@ -361,7 +361,7 @@ function formatResponseValue(value: unknown): string {
           entity-type="application"
           :entity-id="applicationId"
           :job-id="application.job.id"
-          :entries="(application.properties ?? []) as never"
+          :entries="(application.properties ?? []) as import('~~/shared/properties').PropertyEntry[]"
           @refresh="refresh()"
         />
       </div>

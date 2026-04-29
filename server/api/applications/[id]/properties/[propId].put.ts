@@ -12,7 +12,7 @@ const paramsSchema = z.object({ id: z.string().min(1), propId: z.string().min(1)
 /**
  * PUT /api/applications/:id/properties/:propId
  * Set a property value for an application. Body: { value: any }.
- * Passing `null` or omitting `value` clears the value.
+ * Pass `null` to clear the value (the `value` key is required).
  *
  * Requires `application: ['update']` — same gate as editing notes/status.
  */

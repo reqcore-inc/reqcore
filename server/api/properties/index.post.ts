@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, isNull } from 'drizzle-orm'
 import { job, propertyDefinition } from '../../database/schema'
 import { createPropertyDefinitionSchema } from '../../utils/schemas/property'
 
@@ -43,8 +43,7 @@ export default defineEventHandler(async (event) => {
         eq(propertyDefinition.entityType, body.entityType),
         body.jobId
           ? eq(propertyDefinition.jobId, body.jobId)
-          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (eq(propertyDefinition.jobId, null as any)),
+          : isNull(propertyDefinition.jobId),
       ),
     )
     .orderBy(desc(propertyDefinition.displayOrder))

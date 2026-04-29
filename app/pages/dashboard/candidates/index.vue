@@ -173,6 +173,7 @@ type CandidatesViewSettings = {
   gender?: string
   dobFrom?: string
   dobTo?: string
+  propertyFilters: import('~~/shared/properties').PropertyFilter[]
   sortKey: SortKey
   sortDir: SortDir
 }
@@ -181,6 +182,7 @@ const defaultSettings: CandidatesViewSettings = {
   gender: undefined,
   dobFrom: undefined,
   dobTo: undefined,
+  propertyFilters: [],
   sortKey: 'created',
   sortDir: 'desc',
 }
@@ -189,6 +191,7 @@ const currentSettings = computed<CandidatesViewSettings>(() => ({
   gender: filterGender.value,
   dobFrom: filterDobFrom.value,
   dobTo: filterDobTo.value,
+  propertyFilters: [...propertyFilters.value],
   sortKey: sortKey.value,
   sortDir: sortDir.value,
 }))
@@ -197,6 +200,7 @@ function applySettings(s: CandidatesViewSettings) {
   filterGender.value = s.gender
   filterDobFrom.value = s.dobFrom
   filterDobTo.value = s.dobTo
+  propertyFilters.value = [...(s.propertyFilters ?? [])]
   sortKey.value = s.sortKey
   sortDir.value = s.sortDir
 }
@@ -227,6 +231,7 @@ function settingsEqual(a: CandidatesViewSettings, b: CandidatesViewSettings) {
     && a.dobTo === b.dobTo
     && a.sortKey === b.sortKey
     && a.sortDir === b.sortDir
+    && JSON.stringify(a.propertyFilters ?? []) === JSON.stringify(b.propertyFilters ?? [])
 }
 
 const isDirty = computed(() => {

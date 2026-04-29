@@ -169,16 +169,26 @@ const showableDefs = computed(() => definitions.value)
       :key="`${f.propertyDefinitionId}-${idx}`"
       class="relative"
     >
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/40 px-2.5 py-1 text-xs font-medium text-brand-700 dark:text-brand-200 hover:bg-brand-100 dark:hover:bg-brand-950 cursor-pointer"
-        @click="editingIdx = editingIdx === idx ? null : idx"
+      <div
+        class="inline-flex items-center rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/40 text-xs font-medium text-brand-700 dark:text-brand-200 hover:bg-brand-100 dark:hover:bg-brand-950"
       >
-        <span class="max-w-[20rem] truncate">{{ summarizeFilter(f) }}</span>
-        <span class="ml-1 text-brand-500 hover:text-brand-700" @click.stop="removeFilter(idx)">
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 cursor-pointer"
+          :aria-label="`Edit filter: ${summarizeFilter(f)}`"
+          @click="editingIdx = editingIdx === idx ? null : idx"
+        >
+          <span class="max-w-[20rem] truncate">{{ summarizeFilter(f) }}</span>
+        </button>
+        <button
+          type="button"
+          class="pr-2 pl-1 py-1 text-brand-500 hover:text-brand-700 cursor-pointer"
+          :aria-label="`Remove filter: ${summarizeFilter(f)}`"
+          @click.stop="removeFilter(idx)"
+        >
           <X class="size-3" />
-        </span>
-      </button>
+        </button>
+      </div>
 
       <!-- Edit popover -->
       <div

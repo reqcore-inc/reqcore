@@ -1,6 +1,7 @@
-import { eq, and, desc, sql, inArray } from 'drizzle-orm'
+import { eq, and, desc, inArray } from 'drizzle-orm'
 import { application, candidate, job } from '../../database/schema'
 import { applicationQuerySchema } from '../../utils/schemas/application'
+import { propertyFiltersArraySchema } from '../../utils/schemas/property'
 import {
   entityIdsMatchingFilters,
   loadPropertyEntriesForEntities,
@@ -34,12 +35,17 @@ export default defineEventHandler(async (event) => {
   // ── Custom property filters ──
   let propertyFilters: PropertyFilter[] = []
   if (query.propertyFilters) {
+    let raw: unknown
     try {
-      const parsed = JSON.parse(query.propertyFilters)
-      if (Array.isArray(parsed)) propertyFilters = parsed.slice(0, 20) as PropertyFilter[]
+      raw = JSON.parse(query.propertyFilters)
     } catch {
       throw createError({ statusCode: 400, statusMessage: 'Invalid propertyFilters' })
     }
+    const result = propertyFiltersArraySchema.safeParse(raw)
+    if (!result.success) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid propertyFilters' })
+    }
+    propertyFilters = result.data as PropertyFilter[]
   }
   if (propertyFilters.length > 0) {
     const matching = await entityIdsMatchingFilters({
@@ -85,18 +91,17 @@ export default defineEventHandler(async (event) => {
   // Bulk-attach properties for the current page (org-global + per-job)
   const ids = data.map((a) => a.id)
   const jobIds = [...new Set(data.map((a) => a.jobId))]
+  const entityJobIds = new Map(data.map((a) => [a.id, a.jobId] as const))
   const propertyMap = await loadPropertyEntriesForEntities({
     organizationId: orgId,
     entityType: 'application',
     entityIds: ids,
     jobIds,
+    entityJobIds,
   })
-  // Filter so each row only sees org-global props OR the props bound to its own job.
   const enriched = data.map((a) => ({
     ...a,
-    properties: (propertyMap.get(a.id) ?? []).filter(
-      (e) => e.definition.jobId === null || e.definition.jobId === a.jobId,
-    ),
+    properties: propertyMap.get(a.id) ?? [],
   }))
 
   return { data: enriched, total, page: query.page, limit: query.limit }

@@ -37,7 +37,6 @@ const propertyConfigSchema = z.union([
   selectConfigSchema,
   numberConfigSchema,
   z.null(),
-  z.object({}).passthrough(),
 ])
 
 // ── Definition CRUD ──
@@ -48,6 +47,17 @@ export const createPropertyDefinitionSchema = z.object({
   description: z.string().max(500).nullish(),
   jobId: z.string().min(1).nullish(),
   config: propertyConfigSchema.nullish(),
+}).superRefine((value, ctx) => {
+  // Candidate properties are always org-global; the loader only reads
+  // candidate definitions where jobId IS NULL, so reject job-scoped candidates
+  // at the schema boundary to prevent unreadable rows.
+  if (value.entityType === 'candidate' && value.jobId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['jobId'],
+      message: 'Candidate properties cannot be scoped to a job',
+    })
+  }
 })
 
 export const updatePropertyDefinitionSchema = z.object({
@@ -60,6 +70,24 @@ export const updatePropertyDefinitionSchema = z.object({
 export const reorderPropertiesSchema = z.object({
   ids: z.array(z.string().min(1)).max(100),
 })
+
+// ── Property filter validation (query-string filters) ──
+//
+// Accepted operators correspond to those evaluated by
+// `entityIdsMatchingFilters()` in server/utils/properties.ts.
+// Note: 'isEmpty' is intentionally excluded — the helper cannot evaluate
+// the complement set without a universe of entity ids, so allowing it
+// silently collapses results to an empty match set.
+export const propertyFilterOperators = ['equals', 'contains', 'in', 'isNotEmpty'] as const
+export type PropertyFilterOperator = (typeof propertyFilterOperators)[number]
+
+export const propertyFilterSchema = z.object({
+  propertyDefinitionId: z.string().min(1),
+  op: z.enum(propertyFilterOperators),
+  value: z.unknown().optional(),
+})
+
+export const propertyFiltersArraySchema = z.array(propertyFilterSchema).max(20)
 
 export const propertyListQuerySchema = z.object({
   entityType: z.enum(propertyEntityTypes).optional(),
@@ -123,11 +151,17 @@ export function validateValueForType(
     }
     case 'url': {
       if (typeof rawValue !== 'string') return fail('Value must be a string')
+      let parsed: URL
       try {
-        // eslint-disable-next-line no-new
-        new URL(rawValue)
+        parsed = new URL(rawValue)
       } catch {
         return fail('Invalid URL')
+      }
+      // Restrict to safe schemes — the URL constructor accepts javascript:
+      // and similar dangerous schemes, which would render directly into
+      // <a :href> and execute on click (rel="noopener" does not block them).
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return fail('URL must start with http:// or https://')
       }
       return rawValue
     }
@@ -142,7 +176,7 @@ export function validateValueForType(
       return rawValue
     }
     case 'file': {
-      if (typeof rawValue !== 'object' || rawValue === null) return fail('Invalid file value')
+      if (!rawValue || typeof rawValue !== 'object') return fail('Invalid file value')
       const v = rawValue as { documentId?: unknown }
       if (typeof v.documentId !== 'string') return fail('Invalid file value')
       return { documentId: v.documentId }

@@ -238,6 +238,7 @@ const statusLabels: Record<Status, string> = {
 type ApplicationsViewSettings = {
   status?: Status
   jobId?: string
+  propertyFilters: import('~~/shared/properties').PropertyFilter[]
   sortKey: SortKey
   sortDir: SortDir
 }
@@ -245,6 +246,7 @@ type ApplicationsViewSettings = {
 const defaultSettings: ApplicationsViewSettings = {
   status: undefined,
   jobId: undefined,
+  propertyFilters: [],
   sortKey: 'created',
   sortDir: 'desc',
 }
@@ -254,6 +256,7 @@ const drawerOpen = ref(false)
 const currentSettings = computed<ApplicationsViewSettings>(() => ({
   status: activeStatus.value,
   jobId: activeJobId.value,
+  propertyFilters: [...propertyFilters.value],
   sortKey: sortKey.value,
   sortDir: sortDir.value,
 }))
@@ -261,6 +264,7 @@ const currentSettings = computed<ApplicationsViewSettings>(() => ({
 function applySettings(s: ApplicationsViewSettings) {
   activeStatus.value = s.status
   activeJobId.value = s.jobId
+  propertyFilters.value = [...(s.propertyFilters ?? [])]
   sortKey.value = s.sortKey
   sortDir.value = s.sortDir
 }
@@ -291,6 +295,7 @@ function settingsEqual(a: ApplicationsViewSettings, b: ApplicationsViewSettings)
     && a.jobId === b.jobId
     && a.sortKey === b.sortKey
     && a.sortDir === b.sortDir
+    && JSON.stringify(a.propertyFilters ?? []) === JSON.stringify(b.propertyFilters ?? [])
 }
 
 const isDirty = computed(() => {

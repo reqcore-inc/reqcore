@@ -436,7 +436,7 @@ function formatFileSize(bytes: number | null | undefined): string {
           <PropertyBlock
             entity-type="candidate"
             :entity-id="candidateId"
-            :entries="(candidate.properties ?? []) as never"
+            :entries="(candidate.properties ?? []) as import('~~/shared/properties').PropertyEntry[]"
             @refresh="refresh()"
           />
         </div>

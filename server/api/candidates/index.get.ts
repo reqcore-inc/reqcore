@@ -1,6 +1,7 @@
 import { eq, and, or, ilike, desc, sql, gte, lte, inArray } from 'drizzle-orm'
 import { candidate, application } from '../../database/schema'
 import { candidateQuerySchema } from '../../utils/schemas/candidate'
+import { propertyFiltersArraySchema } from '../../utils/schemas/property'
 import {
   entityIdsMatchingFilters,
   loadPropertyEntriesForEntities,
@@ -44,12 +45,17 @@ export default defineEventHandler(async (event) => {
   // ── Custom property filters (intersection-based) ──
   let propertyFilters: PropertyFilter[] = []
   if (query.propertyFilters) {
+    let raw: unknown
     try {
-      const parsed = JSON.parse(query.propertyFilters)
-      if (Array.isArray(parsed)) propertyFilters = parsed.slice(0, 20) as PropertyFilter[]
+      raw = JSON.parse(query.propertyFilters)
     } catch {
       throw createError({ statusCode: 400, statusMessage: 'Invalid propertyFilters' })
     }
+    const result = propertyFiltersArraySchema.safeParse(raw)
+    if (!result.success) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid propertyFilters' })
+    }
+    propertyFilters = result.data as PropertyFilter[]
   }
   if (propertyFilters.length > 0) {
     const matching = await entityIdsMatchingFilters({

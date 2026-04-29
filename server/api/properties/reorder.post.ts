@@ -5,8 +5,9 @@ import { reorderPropertiesSchema } from '../../utils/schemas/property'
 /**
  * POST /api/properties/reorder
  * Body: { ids: string[] } — applied left-to-right as displayOrder=0..N.
- * All ids must belong to the same scope (entityType + jobId) for sane results,
- * but we don't enforce that — the client controls which list it's reordering.
+ * All ids must belong to the same scope (entityType + jobId); we enforce
+ * that here so partial/mixed lists can't rewrite displayOrder across
+ * unrelated definitions.
  */
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { organization: ['update'] })
@@ -15,9 +16,13 @@ export default defineEventHandler(async (event) => {
   const { ids } = await readValidatedBody(event, reorderPropertiesSchema.parse)
   if (ids.length === 0) return { ok: true }
 
-  // Verify all ids belong to this org before mutating
+  // Verify all ids belong to this org and share a single (entityType, jobId) scope
   const owned = await db
-    .select({ id: propertyDefinition.id })
+    .select({
+      id: propertyDefinition.id,
+      entityType: propertyDefinition.entityType,
+      jobId: propertyDefinition.jobId,
+    })
     .from(propertyDefinition)
     .where(
       and(
@@ -27,6 +32,17 @@ export default defineEventHandler(async (event) => {
     )
   if (owned.length !== ids.length) {
     throw createError({ statusCode: 404, statusMessage: 'One or more properties not found' })
+  }
+
+  const firstScope = owned[0]!
+  const sameScope = owned.every(
+    (r) => r.entityType === firstScope.entityType && r.jobId === firstScope.jobId,
+  )
+  if (!sameScope) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'All ids must belong to the same property scope',
+    })
   }
 
   await db.transaction(async (tx) => {
