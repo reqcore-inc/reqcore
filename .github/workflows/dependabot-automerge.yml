@@ -53,3 +53,21 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Production dependency PATCHES are also safe to automerge — patch
+      # releases are by definition backwards-compatible bug fixes. The merge
+      # still only happens once branch-protection checks pass (build,
+      # typecheck, audit, E2E, docker-readme-validation), so a regression in
+      # a patch will block the merge.
+      #
+      # MINOR production updates intentionally remain manual: even though
+      # semver says they are backwards-compatible, in practice they often
+      # introduce new behaviour worth a human glance for an ATS.
+      - name: Enable automerge (prod deps, patch only)
+        if: |
+          steps.metadata.outputs.dependency-type == 'direct:production' &&
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

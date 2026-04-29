@@ -83,7 +83,30 @@ All of these providers offer one-click Docker installation when creating a serve
 
 ## Quick Start — Pre-built Image (Fastest)
 
-Use the official pre-built Docker image from GitHub Container Registry. No cloning, no building — just pull and run:
+Use the official pre-built Docker image from GitHub Container Registry. No cloning, no building — just pull and run.
+
+### Option A — Versioned release bundle (recommended)
+
+Every [GitHub Release](https://github.com/reqcore-inc/reqcore/releases/latest) ships with a `reqcore-<version>.tar.gz` bundle that contains `setup.sh` and a `docker-compose.production.yml` with the image tag already pinned to that exact version. This is the most reliable way to install or upgrade.
+
+```bash
+# 1. Download and extract the latest release bundle
+curl -fsSL -o reqcore.tar.gz https://github.com/reqcore-inc/reqcore/releases/latest/download/reqcore-$(curl -fsSL https://api.github.com/repos/reqcore-inc/reqcore/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/^v//').tar.gz
+tar -xzf reqcore.tar.gz && cd reqcore-*
+
+# 2. Generate secure passwords (one-time)
+./setup.sh
+
+# 3. Start everything
+docker compose -f docker-compose.production.yml up -d
+
+# 4. Open your browser
+# → http://localhost:3000
+```
+
+To upgrade later, download the newer release bundle into a new directory, copy your existing `.env` over, and run `docker compose up -d`.
+
+### Option B — Pull straight from `main`
 
 ```bash
 # 1. Download just the files you need
@@ -110,6 +133,18 @@ That's it. Sign up, create your organization, and start hiring.
 app:
   image: ghcr.io/reqcore-inc/reqcore:1.3.0
 ```
+
+### Verifying image authenticity (optional)
+
+Every published image is signed with [cosign](https://github.com/sigstore/cosign) using GitHub's keyless OIDC. To verify the image you pulled was actually built by the official release workflow:
+
+```bash
+cosign verify ghcr.io/reqcore-inc/reqcore:<version> \
+  --certificate-identity-regexp 'https://github.com/reqcore-inc/reqcore/.github/workflows/docker-publish.yml@.*' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+```
+
+A successful verification confirms the image is unmodified and was produced by the official CI pipeline.
 
 ---
 
