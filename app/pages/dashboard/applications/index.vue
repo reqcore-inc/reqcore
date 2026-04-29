@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileText, Search, X, ChevronDown, Briefcase, Mail, Clock, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-vue-next'
+import { FileText, Search, X, Briefcase, Mail, Clock, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'dashboard',
@@ -10,6 +10,44 @@ useSeoMeta({
   title: 'Applications — Reqcore',
   description: 'Manage applications across all jobs',
 })
+
+// ── Column visibility ─────────────────────────────────────────────────────────
+
+const COLUMNS_STORAGE_KEY = 'reqcore:columns:applications'
+
+const defaultColumnVisibility = {
+  email: true,
+  job: true,
+  status: true,
+  score: true,
+  applied: true,
+}
+
+const visibleColumns = ref<Record<string, boolean>>({ ...defaultColumnVisibility })
+
+const { definitions: propertyDefs } = useProperties({ entityType: () => 'application' })
+
+const applicationColumns = computed(() => [
+  { key: 'candidate', label: 'Candidate', required: true },
+  { key: 'email', label: 'Email' },
+  { key: 'job', label: 'Job' },
+  { key: 'status', label: 'Status' },
+  { key: 'score', label: 'Score' },
+  { key: 'applied', label: 'Applied' },
+  ...propertyDefs.value.map((d) => ({ key: `prop_${d.id}`, label: d.name })),
+])
+
+onMounted(() => {
+  try {
+    const raw = window.localStorage.getItem(COLUMNS_STORAGE_KEY)
+    if (raw) visibleColumns.value = { ...defaultColumnVisibility, ...JSON.parse(raw) }
+  } catch {}
+})
+
+watch(visibleColumns, (val) => {
+  if (typeof window === 'undefined') return
+  try { window.localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(val)) } catch {}
+}, { deep: true })
 
 const route = useRoute()
 const router = useRouter()
@@ -54,9 +92,11 @@ watch(activeStatus, (newStatus) => {
 })
 
 const statusFilter = computed(() => activeStatus.value)
+const propertyFilters = ref<import('~~/shared/properties').PropertyFilter[]>([])
 
 const { applications, total, fetchStatus, error, refresh } = useApplications({
   status: statusFilter,
+  propertyFilters,
 })
 
 const { formatPersonName } = useOrgSettings()
@@ -64,8 +104,6 @@ const { formatPersonName } = useOrgSettings()
 // ── Job filter (client-side) ──────────────────────────────────────────────────
 
 const activeJobId = ref<string | undefined>(undefined)
-const jobDropdownOpen = ref(false)
-const jobDropdownRef = ref<HTMLElement | null>(null)
 
 const uniqueJobs = computed(() => {
   const map = new Map<string, string>()
@@ -74,14 +112,6 @@ const uniqueJobs = computed(() => {
   }
   return Array.from(map, ([id, title]) => ({ id, title })).sort((a, b) => a.title.localeCompare(b.title))
 })
-
-function handleJobDropdownOutside(e: MouseEvent) {
-  if (jobDropdownRef.value && !jobDropdownRef.value.contains(e.target as Node)) {
-    jobDropdownOpen.value = false
-  }
-}
-onMounted(() => document.addEventListener('mousedown', handleJobDropdownOutside))
-onUnmounted(() => document.removeEventListener('mousedown', handleJobDropdownOutside))
 
 // ── Sorting ───────────────────────────────────────────────────────────────────
 
@@ -146,7 +176,7 @@ const filteredApplications = computed(() => {
 })
 
 const hasActiveFilters = computed(() =>
-  activeStatus.value != null || activeJobId.value != null || debouncedSearch.value.length > 0,
+  activeStatus.value != null || activeJobId.value != null || debouncedSearch.value.length > 0 || propertyFilters.value.length > 0,
 )
 
 function clearAllFilters() {
@@ -154,6 +184,7 @@ function clearAllFilters() {
   activeJobId.value = undefined
   searchInput.value = ''
   debouncedSearch.value = ''
+  propertyFilters.value = []
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -201,6 +232,107 @@ const statusLabels: Record<Status, string> = {
   hired: 'Hired',
   rejected: 'Rejected',
 }
+
+// ── Drawer + Saved Views ──────────────────────────────────────────────────────
+
+type ApplicationsViewSettings = {
+  status?: Status
+  jobId?: string
+  sortKey: SortKey
+  sortDir: SortDir
+}
+
+const defaultSettings: ApplicationsViewSettings = {
+  status: undefined,
+  jobId: undefined,
+  sortKey: 'created',
+  sortDir: 'desc',
+}
+
+const drawerOpen = ref(false)
+
+const currentSettings = computed<ApplicationsViewSettings>(() => ({
+  status: activeStatus.value,
+  jobId: activeJobId.value,
+  sortKey: sortKey.value,
+  sortDir: sortDir.value,
+}))
+
+function applySettings(s: ApplicationsViewSettings) {
+  activeStatus.value = s.status
+  activeJobId.value = s.jobId
+  sortKey.value = s.sortKey
+  sortDir.value = s.sortDir
+}
+
+const {
+  views,
+  activeViewId,
+  applyView,
+  saveView,
+  updateView,
+  deleteView,
+  setDefault,
+  clearActive,
+} = useSavedViews<ApplicationsViewSettings>('applications', defaultSettings)
+
+// On first mount, if a default view exists, apply its settings.
+onMounted(() => {
+  nextTick(() => {
+    if (activeViewId.value) {
+      const s = applyView(activeViewId.value)
+      if (s) applySettings(s)
+    }
+  })
+})
+
+function settingsEqual(a: ApplicationsViewSettings, b: ApplicationsViewSettings) {
+  return a.status === b.status
+    && a.jobId === b.jobId
+    && a.sortKey === b.sortKey
+    && a.sortDir === b.sortDir
+}
+
+const isDirty = computed(() => {
+  const view = views.value.find(v => v.id === activeViewId.value)
+  if (!view) return false
+  return !settingsEqual(currentSettings.value, { ...defaultSettings, ...view.settings })
+})
+
+// Mark the view inactive (chip-level highlight) when the user manually edits filters.
+watch(currentSettings, () => {
+  if (!activeViewId.value) return
+  if (isDirty.value) {
+    // Keep the chip active but show the dirty marker via SavedViewsBar.
+  }
+}, { deep: true })
+
+function onSelectView(id: string | null) {
+  if (id == null) {
+    clearActive()
+    applySettings(defaultSettings)
+    return
+  }
+  const s = applyView(id)
+  if (s) applySettings(s)
+}
+
+function onSaveView(name: string) {
+  saveView(name, currentSettings.value)
+}
+
+function onUpdateView(id: string) {
+  updateView(id, { settings: currentSettings.value })
+}
+
+const drawerActiveCount = computed(() =>
+  [activeStatus.value, activeJobId.value].filter(Boolean).length + propertyFilters.value.length,
+)
+
+// ── Property value lookup helper ──────────────────────────────────────────────
+function getPropertyValue(entity: { properties?: import('~~/shared/properties').PropertyEntry[] | null }, definitionId: string): unknown {
+  return entity.properties?.find((p) => p.definition.id === definitionId)?.value ?? null
+}
 </script>
 
 <template>
@@ -215,89 +347,137 @@ const statusLabels: Record<Status, string> = {
       </div>
     </div>
 
-    <!-- Search bar -->
-    <div class="relative mb-4">
-      <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-surface-400" />
-      <input
-        v-model="searchInput"
-        type="text"
-        placeholder="Search by candidate name, email, or job title…"
-        class="w-full rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 pl-10 pr-3 py-2.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+    <!-- Search + Views + Filters -->
+    <div class="flex items-center gap-2 mb-4">
+      <div class="relative flex-1">
+        <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-surface-400" />
+        <input
+          v-model="searchInput"
+          type="text"
+          placeholder="Search by candidate name, email, or job title…"
+          class="w-full rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 pl-10 pr-3 py-2 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+        />
+      </div>
+      <SavedViewsMenu
+        :views="views"
+        :active-view-id="activeViewId"
+        :is-dirty="isDirty"
+        @select="onSelectView"
+        @save="onSaveView"
+        @update="onUpdateView"
+        @delete="deleteView"
+        @set-default="setDefault"
       />
-    </div>
-
-    <!-- Filter bar -->
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-      <!-- Job dropdown filter -->
-      <div ref="jobDropdownRef" class="relative">
-        <button
-          class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors"
-          :class="activeJobId
-            ? 'border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-400'
-            : 'border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 text-surface-600 dark:text-surface-300 hover:border-surface-300 dark:hover:border-surface-700'"
-          @click="jobDropdownOpen = !jobDropdownOpen"
-        >
-          <Briefcase class="size-3.5" />
-          {{ activeJobId ? uniqueJobs.find(j => j.id === activeJobId)?.title ?? 'Job' : 'Job' }}
-          <ChevronDown class="size-3.5" />
-        </button>
-        <div
-          v-if="jobDropdownOpen"
-          class="absolute left-0 top-full mt-1 z-20 w-64 max-h-56 overflow-y-auto rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-lg py-1"
-        >
-          <button
-            class="w-full text-left px-3 py-2 text-sm hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
-            :class="!activeJobId ? 'text-brand-600 font-medium' : 'text-surface-700 dark:text-surface-300'"
-            @click="activeJobId = undefined; jobDropdownOpen = false"
-          >
-            All jobs
-          </button>
-          <button
-            v-for="j in uniqueJobs"
-            :key="j.id"
-            class="w-full text-left px-3 py-2 text-sm hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors truncate"
-            :class="activeJobId === j.id ? 'text-brand-600 font-medium' : 'text-surface-700 dark:text-surface-300'"
-            @click="activeJobId = j.id; jobDropdownOpen = false"
-          >
-            {{ j.title }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Status filter tabs -->
-      <div class="flex items-center gap-1">
-        <button
-          class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-          :class="!activeStatus
-            ? 'bg-surface-900 text-white dark:bg-surface-100 dark:text-surface-900'
-            : 'bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-700'"
-          @click="activeStatus = undefined"
-        >
-          All
-        </button>
-        <button
-          v-for="s in STATUS_OPTIONS"
-          :key="s"
-          class="rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors"
-          :class="activeStatus === s
-            ? 'bg-surface-900 text-white dark:bg-surface-100 dark:text-surface-900'
-            : 'bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-700'"
-          @click="activeStatus = activeStatus === s ? undefined : s"
-        >
-          {{ statusLabels[s] }}
-        </button>
-      </div>
-
-      <!-- Clear all -->
+      <ColumnsMenu
+        v-model="visibleColumns"
+        :columns="applicationColumns"
+      />
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+        :class="drawerActiveCount > 0
+          ? 'border-surface-400 bg-surface-100 text-surface-800 dark:border-surface-500 dark:bg-surface-800 dark:text-surface-200'
+          : 'border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800'"
+        @click="drawerOpen = true"
+      >
+        <SlidersHorizontal class="size-4" />
+        Filters
+        <span
+          v-if="drawerActiveCount > 0"
+          class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full bg-surface-700 dark:bg-surface-300 text-white dark:text-surface-900 text-[10px] font-semibold"
+        >{{ drawerActiveCount }}</span>
+      </button>
       <button
         v-if="hasActiveFilters"
-        class="inline-flex items-center gap-1 text-xs text-surface-400 hover:text-danger-600 transition-colors ml-auto"
+        class="inline-flex items-center gap-1 text-xs text-surface-400 hover:text-danger-600 transition-colors"
         @click="clearAllFilters"
       >
         <X class="size-3" />
-        Clear filters
+        Clear
       </button>
     </div>
+
+    <!-- Filter drawer -->
+    <FilterDrawer
+      v-model="drawerOpen"
+      title="Filter applications"
+      description="Customize your view, then save it for quick access."
+      :active-count="drawerActiveCount"
+      saveable
+      :default-save-name="`View ${views.length + 1}`"
+      @reset="applySettings(defaultSettings)"
+      @save-view="onSaveView"
+    >
+      <div class="space-y-6">
+        <!-- Status -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-2">Status</label>
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+              :class="!activeStatus
+                ? 'bg-surface-900 text-white dark:bg-surface-100 dark:text-surface-900'
+                : 'bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-700'"
+              @click="activeStatus = undefined"
+            >Any</button>
+            <button
+              v-for="s in STATUS_OPTIONS"
+              :key="s"
+              type="button"
+              class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+              :class="activeStatus === s
+                ? 'bg-surface-900 text-white dark:bg-surface-100 dark:text-surface-900'
+                : 'bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-700'"
+              @click="activeStatus = activeStatus === s ? undefined : s"
+            >{{ statusLabels[s] }}</button>
+          </div>
+        </div>
+
+        <!-- Job -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-2">Job</label>
+          <select
+            v-model="activeJobId"
+            class="w-full rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm bg-white dark:bg-surface-900 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+          >
+            <option :value="undefined">All jobs</option>
+            <option v-for="j in uniqueJobs" :key="j.id" :value="j.id">{{ j.title }}</option>
+          </select>
+        </div>
+
+        <!-- Sort -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-2">Sort by</label>
+          <div class="flex gap-2">
+            <select
+              v-model="sortKey"
+              class="flex-1 rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm bg-white dark:bg-surface-900 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+            >
+              <option value="created">Applied date</option>
+              <option value="name">Candidate name</option>
+              <option value="email">Email</option>
+              <option value="job">Job title</option>
+              <option value="status">Status</option>
+              <option value="score">Score</option>
+            </select>
+            <select
+              v-model="sortDir"
+              class="w-32 rounded-lg border border-surface-300 dark:border-surface-700 px-3 py-2 text-sm bg-white dark:bg-surface-900 text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+            >
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Property filters -->
+        <div v-if="propertyDefs.length > 0">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-2">Properties</label>
+          <PropertyFilterBar v-model="propertyFilters" entity-type="application" />
+        </div>
+      </div>
+    </FilterDrawer>
 
     <!-- Loading -->
     <div v-if="fetchStatus === 'pending'" class="text-center py-16 text-surface-400">
@@ -357,7 +537,7 @@ const statusLabels: Record<Status, string> = {
                   <ArrowUpDown v-else class="size-3.5 opacity-40" />
                 </button>
               </th>
-              <th class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden lg:table-cell">
+              <th v-if="visibleColumns.email" class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden lg:table-cell">
                 <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('email')">
                   Email
                   <ArrowUp v-if="sortKey === 'email' && sortDir === 'asc'" class="size-3.5" />
@@ -365,7 +545,7 @@ const statusLabels: Record<Status, string> = {
                   <ArrowUpDown v-else class="size-3.5 opacity-40" />
                 </button>
               </th>
-              <th class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden md:table-cell">
+              <th v-if="visibleColumns.job" class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden md:table-cell">
                 <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('job')">
                   Job
                   <ArrowUp v-if="sortKey === 'job' && sortDir === 'asc'" class="size-3.5" />
@@ -373,7 +553,7 @@ const statusLabels: Record<Status, string> = {
                   <ArrowUpDown v-else class="size-3.5 opacity-40" />
                 </button>
               </th>
-              <th class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400">
+              <th v-if="visibleColumns.status" class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400">
                 <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('status')">
                   Status
                   <ArrowUp v-if="sortKey === 'status' && sortDir === 'asc'" class="size-3.5" />
@@ -381,7 +561,7 @@ const statusLabels: Record<Status, string> = {
                   <ArrowUpDown v-else class="size-3.5 opacity-40" />
                 </button>
               </th>
-              <th class="text-center px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden sm:table-cell">
+              <th v-if="visibleColumns.score" class="text-center px-4 py-3 font-medium text-surface-500 dark:text-surface-400 hidden sm:table-cell">
                 <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('score')">
                   Score
                   <ArrowUp v-if="sortKey === 'score' && sortDir === 'asc'" class="size-3.5" />
@@ -389,7 +569,7 @@ const statusLabels: Record<Status, string> = {
                   <ArrowUpDown v-else class="size-3.5 opacity-40" />
                 </button>
               </th>
-              <th class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400">
+              <th v-if="visibleColumns.applied" class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400">
                 <button class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors" @click="toggleSort('created')">
                   Applied
                   <ArrowUp v-if="sortKey === 'created' && sortDir === 'asc'" class="size-3.5" />
@@ -397,13 +577,18 @@ const statusLabels: Record<Status, string> = {
                   <ArrowUpDown v-else class="size-3.5 opacity-40" />
                 </button>
               </th>
+              <template v-for="d in propertyDefs" :key="d.id">
+                <th v-if="visibleColumns[`prop_${d.id}`]" class="text-left px-4 py-3 font-medium text-surface-500 dark:text-surface-400 whitespace-nowrap">
+                  {{ d.name }}
+                </th>
+              </template>
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-100 dark:divide-surface-800">
             <tr
               v-for="app in filteredApplications"
               :key="app.id"
-              class="group bg-white dark:bg-surface-900 hover:bg-surface-50 dark:hover:bg-surface-800/60 transition-colors cursor-pointer"
+              class="group bg-white dark:bg-surface-900 hover:bg-surface-50 dark:hover:bg-surface-800/60 transition-colors cursor-pointer [&>td]:align-top"
               @click="$router.push($localePath(`/dashboard/applications/${app.id}`))"
             >
               <td class="px-4 py-3">
@@ -414,19 +599,19 @@ const statusLabels: Record<Status, string> = {
                   {{ formatPersonName(app.candidateFirstName, app.candidateLastName) }}
                 </NuxtLink>
               </td>
-              <td class="px-4 py-3 text-surface-500 dark:text-surface-400 hidden lg:table-cell">
+              <td v-if="visibleColumns.email" class="px-4 py-3 text-surface-500 dark:text-surface-400 hidden lg:table-cell">
                 <span class="inline-flex items-center gap-1.5">
                   <Mail class="size-3.5 shrink-0" />
                   <span class="truncate max-w-[200px]">{{ app.candidateEmail }}</span>
                 </span>
               </td>
-              <td class="px-4 py-3 text-surface-600 dark:text-surface-300 hidden md:table-cell">
+              <td v-if="visibleColumns.job" class="px-4 py-3 text-surface-600 dark:text-surface-300 hidden md:table-cell">
                 <span class="inline-flex items-center gap-1.5 truncate max-w-[200px]">
                   <Briefcase class="size-3.5 shrink-0 text-surface-400" />
                   {{ app.jobTitle }}
                 </span>
               </td>
-              <td class="px-4 py-3">
+              <td v-if="visibleColumns.status" class="px-4 py-3">
                 <span
                   class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium capitalize whitespace-nowrap"
                   :class="statusBadgeClasses[app.status] ?? 'bg-surface-100 text-surface-600'"
@@ -435,7 +620,7 @@ const statusLabels: Record<Status, string> = {
                   {{ statusLabels[app.status as Status] ?? app.status }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-center hidden sm:table-cell">
+              <td v-if="visibleColumns.score" class="px-4 py-3 text-center hidden sm:table-cell">
                 <span
                   v-if="app.score != null"
                   class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-inset"
@@ -445,12 +630,23 @@ const statusLabels: Record<Status, string> = {
                 </span>
                 <span v-else class="text-surface-300 dark:text-surface-600">—</span>
               </td>
-              <td class="px-4 py-3 text-surface-400 whitespace-nowrap">
+              <td v-if="visibleColumns.applied" class="px-4 py-3 text-surface-400 whitespace-nowrap">
                 <TimelineDateLink :date="app.createdAt" class="inline-flex items-center gap-1.5">
                   <Clock class="size-3.5 shrink-0" />
                   {{ timeAgo(app.createdAt) }}
                 </TimelineDateLink>
               </td>
+              <!-- Property columns -->
+              <template v-for="d in propertyDefs" :key="d.id">
+                <td v-if="visibleColumns[`prop_${d.id}`]" class="px-4 py-3 text-surface-500 dark:text-surface-400 align-top">
+                  <PropertyTableCell
+                    entity-type="application"
+                    :entity-id="app.id"
+                    :definition="d"
+                    :value="getPropertyValue(app, d.id)"
+                  />
+                </td>
+              </template>
             </tr>
           </tbody>
         </table>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UserPlus, Pencil, Trash2, MoreHorizontal, Brain } from 'lucide-vue-next'
+import { UserPlus, Pencil, Trash2, MoreHorizontal, Brain, Settings2 } from 'lucide-vue-next'
 import { JOB_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
 
 const props = defineProps<{
@@ -182,6 +182,18 @@ watch(showMoreMenu, (val) => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+// ─────────────────────────────────────────────
+// Property schema editor (per-job)
+// ─────────────────────────────────────────────
+
+const showPropertyEditor = ref(false)
+const propertyEditorScope = ref<'org' | 'job'>('job')
+function openPropertyEditor(scope: 'org' | 'job') {
+  propertyEditorScope.value = scope
+  showPropertyEditor.value = true
+  showMoreMenu.value = false
+}
 </script>
 
 <template>
@@ -255,6 +267,20 @@ onBeforeUnmount(() => {
                 <Brain class="size-3.5 text-surface-400" />
                 {{ isScoringAll ? `Scoring ${scoringProgress.done}/${scoringProgress.total}…` : 'Score All Candidates' }}
               </button>
+              <button
+                class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors"
+                @click="openPropertyEditor('job')"
+              >
+                <Settings2 class="size-3.5 text-surface-400" />
+                Manage Job Properties
+              </button>
+              <button
+                class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 transition-colors"
+                @click="openPropertyEditor('org')"
+              >
+                <Settings2 class="size-3.5 text-surface-400" />
+                Manage Application Properties
+              </button>
               <template v-if="secondaryJobTransitions.length > 0">
                 <div class="border-t border-surface-100 dark:border-surface-800 my-1.5 mx-2" />
                 <button
@@ -281,6 +307,14 @@ onBeforeUnmount(() => {
       </div>
     </div>
   </Teleport>
+
+  <!-- Property schema editor (per-job application properties) -->
+  <PropertySchemaEditor
+    :open="showPropertyEditor"
+    entity-type="application"
+    :job-id="propertyEditorScope === 'job' ? jobId : null"
+    @close="showPropertyEditor = false"
+  />
 
   <!-- Delete Job Confirm -->
   <Teleport to="body">

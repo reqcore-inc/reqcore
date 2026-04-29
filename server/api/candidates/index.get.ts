@@ -1,6 +1,11 @@
-import { eq, and, or, ilike, desc, sql, gte, lte } from 'drizzle-orm'
+import { eq, and, or, ilike, desc, sql, gte, lte, inArray } from 'drizzle-orm'
 import { candidate, application } from '../../database/schema'
 import { candidateQuerySchema } from '../../utils/schemas/candidate'
+import {
+  entityIdsMatchingFilters,
+  loadPropertyEntriesForEntities,
+  type PropertyFilter,
+} from '../../utils/properties'
 
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { candidate: ['read'] })
@@ -36,6 +41,28 @@ export default defineEventHandler(async (event) => {
     conditions.push(lte(candidate.dateOfBirth, query.dobTo))
   }
 
+  // ── Custom property filters (intersection-based) ──
+  let propertyFilters: PropertyFilter[] = []
+  if (query.propertyFilters) {
+    try {
+      const parsed = JSON.parse(query.propertyFilters)
+      if (Array.isArray(parsed)) propertyFilters = parsed.slice(0, 20) as PropertyFilter[]
+    } catch {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid propertyFilters' })
+    }
+  }
+  if (propertyFilters.length > 0) {
+    const matching = await entityIdsMatchingFilters({
+      organizationId: orgId,
+      entityType: 'candidate',
+      filters: propertyFilters,
+    })
+    if (!matching || matching.size === 0) {
+      return { data: [], total: 0, page: query.page, limit: query.limit }
+    }
+    conditions.push(inArray(candidate.id, [...matching]))
+  }
+
   const where = and(...conditions)
 
   const [data, total] = await Promise.all([
@@ -64,5 +91,14 @@ export default defineEventHandler(async (event) => {
     db.$count(candidate, where),
   ])
 
-  return { data, total, page: query.page, limit: query.limit }
+  // Bulk-attach properties for the current page
+  const ids = data.map((c) => c.id)
+  const propertyMap = await loadPropertyEntriesForEntities({
+    organizationId: orgId,
+    entityType: 'candidate',
+    entityIds: ids,
+  })
+  const enriched = data.map((c) => ({ ...c, properties: propertyMap.get(c.id) ?? [] }))
+
+  return { data: enriched, total, page: query.page, limit: query.limit }
 })

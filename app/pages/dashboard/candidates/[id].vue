@@ -430,6 +430,17 @@ function formatFileSize(bytes: number | null | undefined): string {
           </dl>
         </div>
 
+        <!-- Custom properties (Notion-style) -->
+        <div class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 mb-4">
+          <h2 class="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2 px-2">Properties</h2>
+          <PropertyBlock
+            entity-type="candidate"
+            :entity-id="candidateId"
+            :entries="(candidate.properties ?? []) as never"
+            @refresh="refresh()"
+          />
+        </div>
+
         <!-- Tabs -->
         <div class="border-b border-surface-200 dark:border-surface-800 mb-4">
           <div class="flex gap-1">

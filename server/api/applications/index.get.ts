@@ -1,11 +1,16 @@
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql, inArray } from 'drizzle-orm'
 import { application, candidate, job } from '../../database/schema'
 import { applicationQuerySchema } from '../../utils/schemas/application'
+import {
+  entityIdsMatchingFilters,
+  loadPropertyEntriesForEntities,
+  type PropertyFilter,
+} from '../../utils/properties'
 
 /**
  * GET /api/applications
  * List applications for the current organization.
- * Filterable by jobId, candidateId, and status. Paginated.
+ * Filterable by jobId, candidateId, status, and custom property filters. Paginated.
  */
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { application: ['read'] })
@@ -24,6 +29,28 @@ export default defineEventHandler(async (event) => {
   }
   if (query.status) {
     conditions.push(eq(application.status, query.status))
+  }
+
+  // ── Custom property filters ──
+  let propertyFilters: PropertyFilter[] = []
+  if (query.propertyFilters) {
+    try {
+      const parsed = JSON.parse(query.propertyFilters)
+      if (Array.isArray(parsed)) propertyFilters = parsed.slice(0, 20) as PropertyFilter[]
+    } catch {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid propertyFilters' })
+    }
+  }
+  if (propertyFilters.length > 0) {
+    const matching = await entityIdsMatchingFilters({
+      organizationId: orgId,
+      entityType: 'application',
+      filters: propertyFilters,
+    })
+    if (!matching || matching.size === 0) {
+      return { data: [], total: 0, page: query.page, limit: query.limit }
+    }
+    conditions.push(inArray(application.id, [...matching]))
   }
 
   const where = and(...conditions)
@@ -55,5 +82,23 @@ export default defineEventHandler(async (event) => {
     db.$count(application, where),
   ])
 
-  return { data, total, page: query.page, limit: query.limit }
+  // Bulk-attach properties for the current page (org-global + per-job)
+  const ids = data.map((a) => a.id)
+  const jobIds = [...new Set(data.map((a) => a.jobId))]
+  const propertyMap = await loadPropertyEntriesForEntities({
+    organizationId: orgId,
+    entityType: 'application',
+    entityIds: ids,
+    jobIds,
+  })
+  // Filter so each row only sees org-global props OR the props bound to its own job.
+  const enriched = data.map((a) => ({
+    ...a,
+    properties: (propertyMap.get(a.id) ?? []).filter(
+      (e) => e.definition.jobId === null || e.definition.jobId === a.jobId,
+    ),
+  }))
+
+  return { data: enriched, total, page: query.page, limit: query.limit }
 })
+
