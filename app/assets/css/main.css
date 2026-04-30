@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@source "../../../shared/properties.ts";
 
 /* ─────────────────────────────────────────────────────────
    Reqcore — Design System
@@ -122,47 +123,7 @@
   --color-info-900: oklch(39.1% 0.090 241);
   --color-info-950: oklch(18.0% 0.035 243);
 
-  /* ── Red ─────────────────────────────────────────────────
-     True red — used for property option chips. */
-  --color-red-50:  oklch(97.5% 0.010 25);
-  --color-red-100: oklch(94.0% 0.033 25);
-  --color-red-200: oklch(88.5% 0.070 25);
-  --color-red-300: oklch(80.5% 0.125 25);
-  --color-red-400: oklch(71.0% 0.192 26);
-  --color-red-500: oklch(62.5% 0.238 26);
-  --color-red-600: oklch(54.5% 0.240 26);
-  --color-red-700: oklch(46.5% 0.208 25);
-  --color-red-800: oklch(40.5% 0.172 23);
-  --color-red-900: oklch(35.5% 0.138 20);
-  --color-red-950: oklch(19.0% 0.058 20);
 
-  /* ── Orange ───────────────────────────────────────────────
-     True orange — used for property option chips. */
-  --color-orange-50:  oklch(98.0% 0.015 57);
-  --color-orange-100: oklch(95.0% 0.045 55);
-  --color-orange-200: oklch(90.0% 0.095 54);
-  --color-orange-300: oklch(83.0% 0.155 52);
-  --color-orange-400: oklch(75.5% 0.200 49);
-  --color-orange-500: oklch(70.0% 0.200 47);
-  --color-orange-600: oklch(62.0% 0.190 45);
-  --color-orange-700: oklch(53.0% 0.165 43);
-  --color-orange-800: oklch(46.0% 0.133 41);
-  --color-orange-900: oklch(40.0% 0.103 39);
-  --color-orange-950: oklch(19.0% 0.042 38);
-
-  /* ── Yellow ───────────────────────────────────────────────
-     True yellow — used for property option chips. */
-  --color-yellow-50:  oklch(98.5% 0.020 102);
-  --color-yellow-100: oklch(96.5% 0.062 100);
-  --color-yellow-200: oklch(93.0% 0.122 97);
-  --color-yellow-300: oklch(88.0% 0.175 92);
-  --color-yellow-400: oklch(83.0% 0.200 85);
-  --color-yellow-500: oklch(78.0% 0.197 75);
-  --color-yellow-600: oklch(68.0% 0.185 60);
-  --color-yellow-700: oklch(58.0% 0.168 50);
-  --color-yellow-800: oklch(49.5% 0.138 46);
-  --color-yellow-900: oklch(43.0% 0.108 44);
-  --color-yellow-950: oklch(19.0% 0.046 42);
 }
 
 /* ── Base reset & defaults ──────────────────────────────── */

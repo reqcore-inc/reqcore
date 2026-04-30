@@ -145,10 +145,10 @@ export const PROPERTY_COLOR_CLASSES: Record<
   { chip: string; dot: string }
 > = {
   gray: { chip: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200', dot: 'bg-surface-400' },
-  red: { chip: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300', dot: 'bg-red-500' },
-  orange: { chip: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300', dot: 'bg-orange-500' },
-  amber: { chip: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300', dot: 'bg-amber-500' },
-  yellow: { chip: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300', dot: 'bg-yellow-500' },
+  red: { chip: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300', dot: 'bg-rose-500' },
+  orange: { chip: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300', dot: 'bg-orange-500' },
+  amber: { chip: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300', dot: 'bg-amber-500' },
+  yellow: { chip: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-300', dot: 'bg-yellow-400' },
   green: { chip: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300', dot: 'bg-green-500' },
   teal: { chip: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300', dot: 'bg-teal-500' },
   blue: { chip: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300', dot: 'bg-blue-500' },
