@@ -589,7 +589,7 @@ function getEventDescription(item: TimelineItem): string {
 
           <!-- Events for this day, grouped by purpose -->
           <div class="ml-3.5 pl-5 space-y-3 mt-1">
-            <div v-for="section in group.sections" :key="section.jobId ?? section.type" class="rounded-lg border border-surface-150 dark:border-surface-800 bg-white dark:bg-surface-900/60 overflow-hidden">
+            <div v-for="section in group.sections" :key="section.jobId ?? section.type" class="rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900/60 overflow-hidden">
               <!-- Section header (collapsible) -->
               <button
                 class="flex items-center gap-2 px-3 py-2 w-full border-b border-surface-100 dark:border-surface-800 bg-surface-50/50 dark:bg-surface-800/40 cursor-pointer hover:bg-surface-100/60 dark:hover:bg-surface-800/60 transition-colors"

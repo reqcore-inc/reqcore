@@ -6,7 +6,7 @@ import {
   ChevronDown, Menu, X, Users, ChevronLeft,
   LayoutDashboard, Calendar, ArrowUpCircle,
   Cloud, Server, Sparkles, Radio, History,
-  MessageCircle,
+  MessageCircle, MoreHorizontal,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -20,6 +20,8 @@ const showFeedbackModal = ref(false)
 const showUserMenu = ref(false)
 const showMobileMenu = ref(false)
 const showGetStartedMenu = ref(false)
+const showMoreNav = ref(false)
+const showMoreActions = ref(false)
 
 const config = useRuntimeConfig()
 const { activeOrg } = useCurrentOrg()
@@ -162,6 +164,10 @@ function isActiveRoute(to: string, exact: boolean) {
   return route.path === localizedTo || route.path.startsWith(`${localizedTo}/`)
 }
 
+const primaryNavLabels = ['Dashboard', 'Jobs', 'Candidates', 'Applications', 'Interviews']
+const primaryNavItems = computed(() => navItems.value.filter(i => primaryNavLabels.includes(i.label)))
+const moreNavItems = computed(() => navItems.value.filter(i => !primaryNavLabels.includes(i.label)))
+
 // Close menus on route change
 watch(() => route.path, () => {
   showUserMenu.value = false
@@ -221,23 +227,66 @@ onUnmounted(() => {
           <!-- Desktop nav links -->
           <nav class="hidden md:flex items-center gap-0.5">
             <NuxtLink
-              v-for="item in navItems"
+              v-for="item in primaryNavItems"
               :key="item.to"
               :to="$localePath(item.to)"
-              class="relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 no-underline"
+              class="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 no-underline"
               :class="isActiveRoute(item.to, item.exact)
                 ? 'text-brand-700 dark:text-brand-300 bg-brand-50/80 dark:bg-brand-950/40'
                 : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-100 hover:bg-surface-100/80 dark:hover:bg-surface-800/60'"
             >
               <component :is="item.icon" class="size-4" />
               {{ item.label }}
-              <span
-                v-if="item.comingSoon"
-                class="ml-0.5 inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-amber-700 dark:text-amber-400 ring-1 ring-inset ring-amber-200/60 dark:ring-amber-800/40"
-              >
-                Soon
-              </span>
             </NuxtLink>
+
+            <!-- More nav dropdown -->
+            <div
+              v-if="moreNavItems.length"
+              class="relative"
+              @mouseenter="showMoreNav = true"
+              @mouseleave="showMoreNav = false"
+            >
+              <button
+                class="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 cursor-pointer border-0 bg-transparent"
+                :class="moreNavItems.some(i => isActiveRoute(i.to, i.exact))
+                  ? 'text-brand-700 dark:text-brand-300 bg-brand-50/80 dark:bg-brand-950/40'
+                  : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-100 hover:bg-surface-100/80 dark:hover:bg-surface-800/60'"
+              >
+                More
+                <ChevronDown
+                  class="size-3 opacity-60 transition-transform duration-200"
+                  :class="showMoreNav ? 'rotate-180' : ''"
+                />
+              </button>
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95 -translate-y-1"
+                enter-to-class="opacity-100 scale-100 translate-y-0"
+                leave-active-class="transition duration-100 ease-in"
+                leave-from-class="opacity-100 scale-100 translate-y-0"
+                leave-to-class="opacity-0 scale-95 -translate-y-1"
+              >
+                <div
+                  v-if="showMoreNav"
+                  class="absolute left-0 top-full z-50 pt-1.5"
+                >
+                  <div class="w-52 rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 shadow-xl shadow-surface-900/8 dark:shadow-surface-950/30 overflow-hidden py-1">
+                    <NuxtLink
+                      v-for="item in moreNavItems"
+                      :key="item.to"
+                      :to="$localePath(item.to)"
+                      class="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors no-underline"
+                      :class="isActiveRoute(item.to, item.exact)
+                        ? 'text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/40'
+                        : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800'"
+                    >
+                      <component :is="item.icon" class="size-4" />
+                      {{ item.label }}
+                    </NuxtLink>
+                  </div>
+                </div>
+              </Transition>
+            </div>
           </nav>
         </div>
 
@@ -325,39 +374,64 @@ onUnmounted(() => {
 
           <!-- Color mode toggle -->
           <button
-            class="flex items-center justify-center size-8 rounded-lg text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200 cursor-pointer border-0 bg-transparent"
-            :title="isDark ? 'Switch to light' : 'Switch to dark'"
+            class="inline-flex items-center justify-center size-8 rounded-lg text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200 cursor-pointer border-0 bg-transparent"
+            :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             @click="toggleColorMode"
           >
             <Sun v-if="isDark" class="size-4" />
             <Moon v-else class="size-4" />
           </button>
 
-          <!-- Updates button -->
-          <NuxtLink
-            :to="$localePath('/dashboard/updates')"
-            class="hidden sm:flex items-center justify-center size-8 rounded-lg transition-all duration-200 no-underline"
-            :class="isActiveRoute('/dashboard/updates', false)
-              ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40'
-              : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800'"
-            title="Updates & changelog"
-            aria-label="Updates & changelog"
+          <!-- More actions dropdown -->
+          <div
+            class="relative hidden sm:block"
+            @mouseenter="showMoreActions = true"
+            @mouseleave="showMoreActions = false"
           >
-            <ArrowUpCircle class="size-4" />
-          </NuxtLink>
-
-          <!-- Feedback button -->
-          <button
-            v-if="isFeedbackEnabled"
-            class="flex items-center justify-center size-8 rounded-lg text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200 cursor-pointer border-0 bg-transparent"
-            title="Report issue"
-            @click="showFeedbackModal = true"
-          >
-            <MessageSquarePlus class="size-4" />
-          </button>
+            <button
+              class="inline-flex items-center justify-center size-8 rounded-lg text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200 cursor-pointer border-0 bg-transparent"
+              title="More options"
+            >
+              <MoreHorizontal class="size-4" />
+            </button>
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 scale-95 -translate-y-1"
+              enter-to-class="opacity-100 scale-100 translate-y-0"
+              leave-active-class="transition duration-100 ease-in"
+              leave-from-class="opacity-100 scale-100 translate-y-0"
+              leave-to-class="opacity-0 scale-95 -translate-y-1"
+            >
+              <div
+                v-if="showMoreActions"
+                class="absolute right-0 top-full z-50 pt-1.5"
+              >
+                <div class="w-52 rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 shadow-xl shadow-surface-900/8 dark:shadow-surface-950/30 overflow-hidden py-1">
+                  <NuxtLink
+                    :to="$localePath('/dashboard/updates')"
+                    class="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors no-underline"
+                    :class="isActiveRoute('/dashboard/updates', false)
+                      ? 'text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/40'
+                      : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800'"
+                  >
+                    <ArrowUpCircle class="size-4" />
+                    Updates & changelog
+                  </NuxtLink>
+                  <button
+                    v-if="isFeedbackEnabled"
+                    class="flex items-center gap-2.5 w-full px-3 py-2 text-[13px] font-medium text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer border-0 bg-transparent text-left"
+                    @click="showFeedbackModal = true; showMoreActions = false"
+                  >
+                    <MessageSquarePlus class="size-4" />
+                    Report issue
+                  </button>
+                </div>
+              </div>
+            </Transition>
+          </div>
 
           <!-- Divider -->
-          <div class="hidden sm:block w-px h-6 bg-surface-200 dark:bg-surface-700 mx-1" />
+          <div class="hidden sm:block w-px h-6 bg-surface-200 dark:bg-surface-700 mx-0.5" />
 
           <!-- User menu -->
           <div ref="userMenuRoot" class="relative">

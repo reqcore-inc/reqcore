@@ -5,8 +5,9 @@ import {
   Pencil, Trash2, Globe, ChevronDown, X,
   Video, Building2, Code2, UsersRound, Save, Check, MapPin, Users, Plus,
   CheckCircle2, XCircle, AlertTriangle, ArrowUpDown, ListFilter,
-  Maximize2, Minimize2, Brain, Loader2, History,
+  Maximize2, Minimize2, Brain, Loader2, History, SlidersHorizontal,
 } from 'lucide-vue-next'
+import type { PropertyEntry, PropertyFilter } from '~~/shared/properties'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 import { APPLICATION_STATUS_TRANSITIONS, INTERVIEW_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
 
@@ -73,20 +74,23 @@ type InterviewFilter = 'all' | 'has-interview' | 'no-interview'
 const sortBy = ref<SortOption>('score-desc')
 const scoreFilter = ref<ScoreFilter>('all')
 const interviewFilter = ref<InterviewFilter>('all')
+const propertyFilters = ref<PropertyFilter[]>([])
 const showSortPanel = ref(false)
 const showFilterPanel = ref(false)
 
-const hasActiveFilters = computed(() => scoreFilter.value !== 'all' || interviewFilter.value !== 'all')
+const hasActiveFilters = computed(() => scoreFilter.value !== 'all' || interviewFilter.value !== 'all' || propertyFilters.value.length > 0)
 const activeFilterCount = computed(() => {
   let count = 0
   if (scoreFilter.value !== 'all') count++
   if (interviewFilter.value !== 'all') count++
+  count += propertyFilters.value.length
   return count
 })
 
 function clearFilters() {
   scoreFilter.value = 'all'
   interviewFilter.value = 'all'
+  propertyFilters.value = []
 }
 
 const sortOptions: { value: SortOption; label: string }[] = [
@@ -162,7 +166,26 @@ const filteredApplications = computed(() => {
     })
   }
 
-  // Sorting
+  // Property filters
+  if (propertyFilters.value.length > 0) {
+    result = result.filter((app) => {
+      const props = (app as any).properties as PropertyEntry[] | undefined ?? []
+      return propertyFilters.value.every((pf) => {
+        const entry = props.find((e) => e.definition.id === pf.propertyDefinitionId)
+        const val = entry?.value ?? null
+        switch (pf.op) {
+          case 'isEmpty': return val === null || val === '' || (Array.isArray(val) && val.length === 0)
+          case 'isNotEmpty': return val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
+          case 'equals': return String(val ?? '') === String(pf.value ?? '')
+          case 'contains': return String(val ?? '').toLowerCase().includes(String(pf.value ?? '').toLowerCase())
+          case 'in': return Array.isArray(pf.value) && Array.isArray(val)
+            ? (pf.value as string[]).some((v) => (val as string[]).includes(v))
+            : Array.isArray(pf.value) && (pf.value as string[]).includes(String(val ?? ''))
+          default: return true
+        }
+      })
+    })
+  }
   return [...result].sort((a, b) => {
     switch (sortBy.value) {
       case 'date-desc':
@@ -225,9 +248,21 @@ watch(focusedApplications, () => {
   }
 }, { immediate: true })
 
+// Also clamp when property/score/interview filters change and shrink filteredApplications
+watch(filteredApplications, (apps) => {
+  if (apps.length === 0) {
+    currentIndex.value = 0
+    return
+  }
+  if (currentIndex.value >= apps.length) {
+    currentIndex.value = apps.length - 1
+  }
+})
+
 watch(focusStatus, () => {
   currentIndex.value = 0
   searchTerm.value = ''
+  propertyFilters.value = []
   closePanels()
 })
 
@@ -244,7 +279,7 @@ watch(currentIndex, () => {
 const currentSummary = computed(() => filteredApplications.value[currentIndex.value] ?? null)
 
 // Detail tab for center panel
-type DetailTab = 'overview' | 'interviews' | 'documents' | 'responses' | 'ai-analysis' | 'timeline'
+type DetailTab = 'overview' | 'interviews' | 'documents' | 'responses' | 'ai-analysis' | 'timeline' | 'properties'
 const detailTab = ref<DetailTab>('overview')
 
 // Overview section visibility toggles
@@ -253,6 +288,7 @@ const overviewSections = reactive({
   interviews: true,
   documents: true,
   responses: true,
+  properties: true,
 })
 const showOverviewDropdown = ref(false)
 const overviewDropdownRef = ref<HTMLElement | null>(null)
@@ -278,6 +314,7 @@ const showSection = computed(() => ({
   interviews: detailTab.value === 'overview' ? overviewSections.interviews : detailTab.value === 'interviews',
   documents: detailTab.value === 'overview' ? overviewSections.documents : detailTab.value === 'documents',
   responses: detailTab.value === 'overview' ? overviewSections.responses : detailTab.value === 'responses',
+  properties: detailTab.value === 'overview' ? overviewSections.properties : detailTab.value === 'properties',
   timeline: detailTab.value === 'timeline',
 }))
 
@@ -413,6 +450,7 @@ type SwipeApplicationDetail = {
     documents: SwipeDocument[]
   }
   responses: SwipeResponse[]
+  properties: PropertyEntry[]
 }
 
 const currentApplicationId = ref('')
@@ -1339,6 +1377,16 @@ function closeDocPreview() {
                   </div>
                 </div>
 
+                <!-- Property filters -->
+                <div>
+                  <p class="text-[10px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500 mb-1.5">Properties</p>
+                  <PropertyFilterBar
+                    v-model="propertyFilters"
+                    entity-type="application"
+                    :job-id="jobId"
+                  />
+                </div>
+
                 <!-- Clear filters -->
                 <button
                   v-if="hasActiveFilters"
@@ -1634,6 +1682,10 @@ function closeDocPreview() {
                         <input v-model="overviewSections.responses" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
                         Responses
                       </label>
+                      <label class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/80 cursor-pointer select-none transition-colors">
+                        <input v-model="overviewSections.properties" type="checkbox" class="size-3.5 rounded border-surface-300 text-brand-600 focus:ring-brand-500 dark:border-surface-600 dark:bg-surface-800" />
+                        Properties
+                      </label>
                     </div>
                   </Transition>
                 </div>
@@ -1700,6 +1752,16 @@ function closeDocPreview() {
                 >
                   <History class="size-3.5" />
                   Timeline
+                </button>
+                <button
+                  class="cursor-pointer px-3.5 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px flex items-center gap-1.5"
+                  :class="detailTab === 'properties'
+                    ? 'border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300'
+                    : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 dark:text-surface-400 dark:hover:text-surface-300 dark:hover:border-surface-600'"
+                  @click="detailTab = 'properties'"
+                >
+                  <SlidersHorizontal class="size-3.5" />
+                  Properties
                 </button>
               </div>
             </div>
@@ -2166,8 +2228,7 @@ function closeDocPreview() {
                 <h2 class="text-sm font-semibold text-surface-800 dark:text-surface-200 flex items-center gap-2 mb-3">
                   <MessageSquare class="size-4 text-surface-400 dark:text-surface-500" />
                   Responses
-                </h2>
-                <template v-if="resolvedCurrentApplication?.responses?.length">
+                </h2>                <template v-if="resolvedCurrentApplication?.responses?.length">
                   <div class="space-y-3">
                     <div
                       v-for="response in resolvedCurrentApplication.responses"
@@ -2189,6 +2250,25 @@ function closeDocPreview() {
                   </div>
                   <p class="text-sm font-medium text-surface-600 dark:text-surface-300">No responses</p>
                   <p class="mt-1 text-xs text-surface-400 dark:text-surface-500">Application form responses will appear here.</p>
+                </div>
+              </div>
+
+              <!-- PROPERTIES SECTION -->
+              <div v-if="showSection.properties && resolvedCurrentApplication" class="max-w-4xl mx-auto" :class="detailTab === 'overview' ? 'mt-10' : ''">
+                <div class="rounded-xl border border-surface-200/80 bg-white p-5 shadow-sm shadow-surface-900/[0.03] dark:border-surface-800/60 dark:bg-surface-900 dark:shadow-none">
+                  <div class="flex items-center gap-2.5 mb-4">
+                    <div class="flex size-7 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-950/40">
+                      <SlidersHorizontal class="size-3.5 text-brand-600 dark:text-brand-400" />
+                    </div>
+                    <h3 class="text-sm font-semibold text-surface-800 dark:text-surface-200">Properties</h3>
+                  </div>
+                  <PropertyBlock
+                    entity-type="application"
+                    :entity-id="resolvedCurrentApplication.id"
+                    :job-id="jobId"
+                    :entries="resolvedCurrentApplication.properties ?? []"
+                    @refresh="executeDetailFetch(); refreshApps()"
+                  />
                 </div>
               </div>
 
@@ -2233,20 +2313,22 @@ function closeDocPreview() {
                 </div>
 
                 <!-- Timeline list -->
-                <div v-else class="relative">
-                  <!-- Vertical timeline line -->
-                  <div class="absolute left-3 top-0 bottom-0 w-px bg-surface-200 dark:bg-surface-800" />
-
-                  <div class="space-y-0.5">
-                    <div
-                      v-for="item in timelineItems"
-                      :key="item.id"
-                      class="group relative flex items-start gap-3 py-2 px-1 transition-colors duration-150 hover:bg-surface-50 dark:hover:bg-surface-800/40 rounded-lg"
-                    >
-                      <!-- Action icon -->
-                      <div class="relative z-10 flex items-center justify-center size-6 rounded shrink-0" :class="getTimelineActionStyle(item.action).bg">
+                <div v-else>
+                  <div
+                    v-for="(item, index) in timelineItems"
+                    :key="item.id"
+                    class="group flex items-start gap-3 py-1.5 px-1 transition-colors duration-150 hover:bg-surface-50 dark:hover:bg-surface-800/40 rounded-lg"
+                  >
+                    <!-- Left column: icon + connector -->
+                    <div class="flex flex-col items-center shrink-0">
+                      <div class="flex items-center justify-center size-6 rounded shrink-0" :class="getTimelineActionStyle(item.action).bg">
                         <component :is="getTimelineActionStyle(item.action).icon" class="size-3" :class="getTimelineActionStyle(item.action).color" />
                       </div>
+                      <div
+                        v-if="index < timelineItems.length - 1"
+                        class="w-px flex-1 min-h-[10px] bg-surface-200 dark:bg-surface-800 mt-0.5"
+                      />
+                    </div>
 
                       <!-- Content -->
                       <div class="min-w-0 flex-1">
@@ -2276,7 +2358,6 @@ function closeDocPreview() {
                     </div>
                   </div>
                 </div>
-              </div>
 
               </template>
             </div>

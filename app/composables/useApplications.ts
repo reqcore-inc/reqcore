@@ -1,5 +1,6 @@
 import type { Ref } from 'vue'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
+import type { PropertyFilter } from '~~/shared/properties'
 
 /**
  * Composable for managing the applications list with filtering, pagination, and mutations.
@@ -9,14 +10,19 @@ export function useApplications(options?: {
   jobId?: Ref<string | undefined> | string
   candidateId?: Ref<string | undefined> | string
   status?: Ref<string | undefined> | string
+  propertyFilters?: Ref<PropertyFilter[] | undefined> | PropertyFilter[]
 }) {
   const { handlePreviewReadOnlyError } = usePreviewReadOnly()
 
-  const query = computed(() => ({
-    ...(toValue(options?.jobId) && { jobId: toValue(options?.jobId) }),
-    ...(toValue(options?.candidateId) && { candidateId: toValue(options?.candidateId) }),
-    ...(toValue(options?.status) && { status: toValue(options?.status) }),
-  }))
+  const query = computed(() => {
+    const pf = toValue(options?.propertyFilters)
+    return {
+      ...(toValue(options?.jobId) && { jobId: toValue(options?.jobId) }),
+      ...(toValue(options?.candidateId) && { candidateId: toValue(options?.candidateId) }),
+      ...(toValue(options?.status) && { status: toValue(options?.status) }),
+      ...(pf && pf.length > 0 && { propertyFilters: JSON.stringify(pf) }),
+    }
+  })
 
   const { data, status: fetchStatus, error, refresh } = useFetch('/api/applications', {
     key: 'applications',

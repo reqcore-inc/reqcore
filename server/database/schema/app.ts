@@ -27,6 +27,11 @@ export const questionTypeEnum = pgEnum('question_type', [
   'short_text', 'long_text', 'single_select', 'multi_select',
   'number', 'date', 'url', 'checkbox', 'file_upload',
 ])
+export const propertyEntityTypeEnum = pgEnum('property_entity_type', ['candidate', 'application'])
+export const propertyTypeEnum = pgEnum('property_type', [
+  'text', 'long_text', 'number', 'select', 'multi_select',
+  'date', 'checkbox', 'url', 'email', 'person', 'file',
+])
 export const genderEnum = pgEnum('gender', ['male', 'female', 'other', 'prefer_not_to_say'])
 export const experienceLevelEnum = pgEnum('experience_level', ['junior', 'mid', 'senior', 'lead'])
 export const nameDisplayFormatEnum = pgEnum('name_display_format', ['first_last', 'last_first'])
@@ -180,6 +185,69 @@ export const questionResponse = pgTable('question_response', {
   index('question_response_organization_id_idx').on(t.organizationId),
   index('question_response_application_id_idx').on(t.applicationId),
   index('question_response_question_id_idx').on(t.questionId),
+]))
+
+// ─────────────────────────────────────────────
+// Custom Properties (Notion-style "database properties")
+// ─────────────────────────────────────────────
+//
+// Two-table design:
+//   - propertyDefinition: schema. Org-global when jobId IS NULL; per-job otherwise.
+//                         entityType=candidate is always org-global (jobId must be NULL).
+//                         entityType=application can be org-global OR per-job.
+//   - propertyValue:      values, polymorphic to candidate.id or application.id.
+//
+// `value` is jsonb shaped by the property type:
+//   text/long_text/url/email/person → string
+//   number                          → number
+//   select                          → string (one option id)
+//   multi_select                    → string[] (option ids)
+//   date                            → string (ISO YYYY-MM-DD)
+//   checkbox                        → boolean
+//   file                            → { documentId: string }
+//
+// `config` jsonb:
+//   select / multi_select → { options: [{ id, label, color }] }
+//   number                → { format?: 'plain' | 'percent' | 'currency', currency?: string }
+//   others                → null
+//
+// Per-job overrides are NOT supported (additive only): per-job props are merged
+// after org-global ones, ordered by displayOrder.
+
+export const propertyDefinition = pgTable('property_definition', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
+  /** NULL = org-global. Non-null = per-job (only valid when entityType='application'). */
+  jobId: text('job_id').references(() => job.id, { onDelete: 'cascade' }),
+  entityType: propertyEntityTypeEnum('entity_type').notNull(),
+  type: propertyTypeEnum('type').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  displayOrder: integer('display_order').notNull().default(0),
+  config: jsonb('config').$type<Record<string, unknown> | null>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => ([
+  index('property_definition_org_idx').on(t.organizationId),
+  index('property_definition_org_entity_idx').on(t.organizationId, t.entityType),
+  index('property_definition_job_idx').on(t.jobId),
+]))
+
+export const propertyValue = pgTable('property_value', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
+  propertyDefinitionId: text('property_definition_id').notNull().references(() => propertyDefinition.id, { onDelete: 'cascade' }),
+  entityType: propertyEntityTypeEnum('entity_type').notNull(),
+  /** candidate.id when entityType='candidate', application.id when 'application' */
+  entityId: text('entity_id').notNull(),
+  value: jsonb('value'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => ([
+  index('property_value_org_idx').on(t.organizationId),
+  index('property_value_entity_idx').on(t.entityType, t.entityId),
+  index('property_value_definition_idx').on(t.propertyDefinitionId),
+  uniqueIndex('property_value_def_entity_idx').on(t.propertyDefinitionId, t.entityId),
 ]))
 
 // ─────────────────────────────────────────────
@@ -676,6 +744,17 @@ export const questionResponseRelations = relations(questionResponse, ({ one }) =
   organization: one(organization, { fields: [questionResponse.organizationId], references: [organization.id] }),
   application: one(application, { fields: [questionResponse.applicationId], references: [application.id] }),
   question: one(jobQuestion, { fields: [questionResponse.questionId], references: [jobQuestion.id] }),
+}))
+
+export const propertyDefinitionRelations = relations(propertyDefinition, ({ one, many }) => ({
+  organization: one(organization, { fields: [propertyDefinition.organizationId], references: [organization.id] }),
+  job: one(job, { fields: [propertyDefinition.jobId], references: [job.id] }),
+  values: many(propertyValue),
+}))
+
+export const propertyValueRelations = relations(propertyValue, ({ one }) => ({
+  organization: one(organization, { fields: [propertyValue.organizationId], references: [organization.id] }),
+  definition: one(propertyDefinition, { fields: [propertyValue.propertyDefinitionId], references: [propertyDefinition.id] }),
 }))
 
 export const commentRelations = relations(comment, ({ one }) => ({

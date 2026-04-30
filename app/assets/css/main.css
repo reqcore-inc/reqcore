@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@source "../../../shared/properties.ts";
 
 /* ─────────────────────────────────────────────────────────
    Reqcore — Design System
@@ -121,6 +122,8 @@
   --color-info-800: oklch(44.3% 0.110 241);
   --color-info-900: oklch(39.1% 0.090 241);
   --color-info-950: oklch(18.0% 0.035 243);
+
+
 }
 
 /* ── Base reset & defaults ──────────────────────────────── */

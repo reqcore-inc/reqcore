@@ -1,6 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 import { candidate } from '../../database/schema'
 import { candidateIdParamSchema } from '../../utils/schemas/candidate'
+import { loadPropertyEntriesForEntity } from '../../utils/properties'
 
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { candidate: ['read'] })
@@ -46,11 +47,19 @@ export default defineEventHandler(async (event) => {
 
   // Replace heavy parsedContent with a lightweight `parsed` boolean
   const { documents, ...rest } = result
+
+  const properties = await loadPropertyEntriesForEntity({
+    organizationId: orgId,
+    entityType: 'candidate',
+    entityId: result.id,
+  })
+
   return {
     ...rest,
     documents: documents.map(({ parsedContent, ...doc }) => ({
       ...doc,
       parsed: parsedContent != null,
     })),
+    properties,
   }
 })

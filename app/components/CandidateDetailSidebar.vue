@@ -1061,20 +1061,21 @@ function formatInterviewDate(dateStr: string) {
             </div>
 
             <!-- Timeline list -->
-            <div v-else class="relative">
-              <!-- Vertical line -->
-              <div class="absolute left-[11px] top-2 bottom-2 w-px bg-surface-200 dark:bg-surface-700" />
-
+            <div v-else>
               <div
-                v-for="item in timelineItems"
+                v-for="(item, index) in timelineItems"
                 :key="item.id"
-                class="relative flex gap-3 py-2.5 group"
+                class="flex gap-3 py-2 group"
               >
-                <!-- Dot -->
-                <div class="relative z-10 mt-1 shrink-0">
+                <!-- Dot + connector -->
+                <div class="flex flex-col items-center shrink-0 mt-[3px]">
                   <div
-                    class="size-[9px] rounded-full ring-2 ring-white dark:ring-surface-900"
+                    class="size-[9px] rounded-full ring-2 ring-white dark:ring-surface-950 shrink-0"
                     :class="getTimelineActionColor(item.action)"
+                  />
+                  <div
+                    v-if="index < timelineItems.length - 1"
+                    class="w-px flex-1 min-h-[14px] bg-surface-200 dark:bg-surface-700 mt-1"
                   />
                 </div>
 
