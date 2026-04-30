@@ -178,11 +178,14 @@ const isPopoverType = computed(
   >
     <button
       type="button"
-      :disabled="readOnly || saving"
+      :disabled="readOnly"
       class="flex size-5 cursor-pointer items-center justify-center rounded border transition-colors disabled:cursor-not-allowed"
-      :class="modelValue
-        ? 'bg-brand-600 border-brand-600 hover:bg-brand-700 hover:border-brand-700'
-        : 'border-surface-300 dark:border-surface-600 hover:border-surface-400 dark:hover:border-surface-500'"
+      :class="[
+        modelValue
+          ? 'bg-brand-600 border-brand-600 hover:bg-brand-700 hover:border-brand-700'
+          : 'border-surface-300 dark:border-surface-600 hover:border-surface-400 dark:hover:border-surface-500',
+        saving ? 'pointer-events-none opacity-60' : ''
+      ]"
       @click="emit('update', !modelValue)"
     >
       <Check v-if="modelValue" class="size-3.5 text-white" />

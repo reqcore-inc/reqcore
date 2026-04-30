@@ -150,7 +150,7 @@ function openEditor(scope: 'org' | 'job') {
         class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-surface-500 hover:text-surface-800 dark:hover:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800 cursor-pointer"
         @click="openEditor('org')"
       >
-        <Plus class="size-3.5" /> Add property
+        <Plus class="size-3.5" /> Add org-wide property
       </button>
       <button
         v-if="jobId && entityType === 'application'"
@@ -158,7 +158,7 @@ function openEditor(scope: 'org' | 'job') {
         class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-surface-500 hover:text-surface-800 dark:hover:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800 cursor-pointer"
         @click="openEditor('job')"
       >
-        <Settings2 class="size-3.5" /> Manage job properties
+        <Settings2 class="size-3.5" /> Manage job-specific properties
       </button>
     </div>
 
