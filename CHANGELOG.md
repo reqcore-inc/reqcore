@@ -15,6 +15,68 @@ Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Add
 
 ---
 
+## [1.4.0](https://github.com/reqcore-inc/reqcore/compare/v1.3.0...v1.4.0) (2026-04-30)
+
+
+### ✨ Features
+
+* add AI chatbot feature with configuration, access control, and attachment management ([e139b72](https://github.com/reqcore-inc/reqcore/commit/e139b7296c1f3b0275ade32f5f44bac373559bf3))
+* add AI chatbot feature with configuration, access control, and attachment management ([912d55d](https://github.com/reqcore-inc/reqcore/commit/912d55d864efee44bf6f17c18c4dff77dfd0a86a))
+* add ApplicationDetailDrawer and CandidateDetailDrawer components ([1371e7d](https://github.com/reqcore-inc/reqcore/commit/1371e7ddfdefb09d152b3945951c5abbce068602))
+* add column visibility management to Applications and Candidates views ([a5237a5](https://github.com/reqcore-inc/reqcore/commit/a5237a54448cc5f6de88e2509d44ee3701e96975))
+* add docker entrypoint script to derive NUXT_PUBLIC_* flags from environment variables ([39e098e](https://github.com/reqcore-inc/reqcore/commit/39e098ece0e8823513be402a8d68636bd3ebea3d))
+* add Docker support with pre-built image instructions and CI workflow ([753b37e](https://github.com/reqcore-inc/reqcore/commit/753b37ea15eeb3c8ccbe6249d634d736574da13a))
+* add Docker support with pre-built image instructions and CI workflow ([6f9223d](https://github.com/reqcore-inc/reqcore/commit/6f9223d520baa5dada4379cd175c78738837d290))
+* add document re-parsing functionality and improve error handling in candidate analysis ([8842c6f](https://github.com/reqcore-inc/reqcore/commit/8842c6fb69b78b3f07326bba98c14032ff7a02e6))
+* add experience level and quick notes fields to job and candidate schemas ([d36b5a0](https://github.com/reqcore-inc/reqcore/commit/d36b5a07ae2aecb0ffc3faa52eabf5219f8da468))
+* add new migration entries for candidate demographics organization settings and salary negotiable ([36e3e81](https://github.com/reqcore-inc/reqcore/commit/36e3e8171fc367c89afe17c38522e0ea447e0911))
+* add Nitro plugin to recompute public auth-provider flags at server startup ([6b7b699](https://github.com/reqcore-inc/reqcore/commit/6b7b6999a6c12f21009f8bd9b474412fdf86c9fc))
+* add OIDC SSO environment validation and unit tests ([1b23af3](https://github.com/reqcore-inc/reqcore/commit/1b23af31b04d150e277701401e29424a07f9b8a8))
+* add organization localization settings and candidate demographics ([f828877](https://github.com/reqcore-inc/reqcore/commit/f828877ff1090cc9001ede9e5be3cfdfa26cec7f))
+* add property management utilities and schemas ([a62eea1](https://github.com/reqcore-inc/reqcore/commit/a62eea1f5644ba0cd4cd892cea14a376746994ce))
+* add property management utilities and schemas ([4dc5aad](https://github.com/reqcore-inc/reqcore/commit/4dc5aad0252a67306633b9f63e56d9d5737bce7d))
+* add raw tag support for Docker image publishing ([29775cb](https://github.com/reqcore-inc/reqcore/commit/29775cb1b17d560f76bfe2e73e5d5dc2c5d99a9c))
+* add salary input change handlers and update permissions for organization ([6c238c2](https://github.com/reqcore-inc/reqcore/commit/6c238c2fae2341639bde2f961ba1bbd36708044f))
+* add site origin computation for dynamic redirect URI in SSO setup ([9e5aa68](https://github.com/reqcore-inc/reqcore/commit/9e5aa688006e9254bc44f4c93c180c300ed9ad12))
+* add SSO provider schema and relations for better authentication integration ([62fdf39](https://github.com/reqcore-inc/reqcore/commit/62fdf399d79132e30889ded51b312642454de2f9))
+* **ai-config:** add connection test functionality and update AI settings UI ([c9f4afd](https://github.com/reqcore-inc/reqcore/commit/c9f4afd15b8787ce4c9414db2bde7a21ed3ffc10))
+* enhance authentication security with stricter password policy, email verification, and session management ([aaae17f](https://github.com/reqcore-inc/reqcore/commit/aaae17f66c6ee3f669843526c38d9f38983aa662))
+* enhance forgot password functionality and improve SSRF protection ([8e0abd6](https://github.com/reqcore-inc/reqcore/commit/8e0abd6efcc1b1ad8bceacd32491d46909fea46c))
+* enhance OIDC endpoint origin fetching to directly inject discovered origins into trusted-origins list ([ee34d86](https://github.com/reqcore-inc/reqcore/commit/ee34d86125e3de07b2ca0e200c52f94c4d8f87a2))
+* Enhance PostHog proxy handling with explicit header management and error handling ([8b9ea20](https://github.com/reqcore-inc/reqcore/commit/8b9ea205c32b86e43268d2ffb26cc6972a9855cb))
+* enhance property management with new color variables and update component interactions ([349ec6a](https://github.com/reqcore-inc/reqcore/commit/349ec6a76f2bec70a0b1410e1c8fdd990fa28600))
+* enhance PropertyFilterBar and PropertySchemaEditor with improved element references and state management ([cd7524e](https://github.com/reqcore-inc/reqcore/commit/cd7524e4b7d716dc4c732ee88ca60d4c66c91c7e))
+* enhance SSO sign-in and sign-up error handling, and enforce email requirement in profile mapping ([76c54b4](https://github.com/reqcore-inc/reqcore/commit/76c54b4026eb3de9e5aa6de57eaf682393f24a27))
+* enhance trusted origins resolution for CSRF checks and OIDC discovery ([3c24417](https://github.com/reqcore-inc/reqcore/commit/3c244175cd07e428624217a6d609bd5d3ae155a5))
+* enhance trusted origins resolution for SSO provider registration ([b5832b6](https://github.com/reqcore-inc/reqcore/commit/b5832b64c975c9dab88ba2a3b84208758bb1fbc9))
+* enhance workflows and documentation for release process, including PR title linting and release verification ([4785db5](https://github.com/reqcore-inc/reqcore/commit/4785db56bd7d282ce28f63a18f3687c976c525e0))
+* implement forgot password and reset password functionality ([aa00e89](https://github.com/reqcore-inc/reqcore/commit/aa00e8947d5c0b37410971624d3e036504ca8ceb))
+* implement forgot password and reset password functionality ([ad864ef](https://github.com/reqcore-inc/reqcore/commit/ad864efff2456ad08aa7038d7f1e9a312263d9a9))
+* implement OIDC endpoint origin prefetching for trusted origins resolution ([9c355ab](https://github.com/reqcore-inc/reqcore/commit/9c355abc6720fe129255107462472fada48ba76e))
+* implement social sign-in for Google, GitHub, and Microsoft with configuration support ([d4ceaf8](https://github.com/reqcore-inc/reqcore/commit/d4ceaf811134d881af5fe74d70db78d85717f802))
+* implement social sign-in for Google, GitHub, and Microsoft with configuration support ([0e4d4bd](https://github.com/reqcore-inc/reqcore/commit/0e4d4bd686c9c7014a149289f2e87b2c359c395d))
+* Implement two-tier consent model for PostHog analytics ([0d51cd5](https://github.com/reqcore-inc/reqcore/commit/0d51cd53dbae1c20267a04220f2b6bd42e3ae2c9))
+* Implement two-tier consent model for PostHog analytics ([ef7fee5](https://github.com/reqcore-inc/reqcore/commit/ef7fee50cfa5cf0fa079f264453cdba873fa97df))
+* implement unique default chatbot agent constraint and enhance related logic for attachment management ([f11a78f](https://github.com/reqcore-inc/reqcore/commit/f11a78fced7dcc82e1a98bce28b94f2010bfe705))
+* improve edit element reference handling in PropertyFilterBar ([486d0e1](https://github.com/reqcore-inc/reqcore/commit/486d0e148b7a10ba36d59931c776a26ea6b1ee77))
+* refactor authentication handling to use runtime-config for providers and remove entrypoint script ([ad91cc9](https://github.com/reqcore-inc/reqcore/commit/ad91cc9ae61ee7d30c95fed4bc52cf09596ada1e))
+* streamline authentication configuration by removing deprecated social sign-in options and enhancing OAuth token encryption ([b94ffd9](https://github.com/reqcore-inc/reqcore/commit/b94ffd925fc250c59aa397924a0e4b303406c342))
+* update button styles for social sign-in and sign-up to improve user interaction ([d8d0e6e](https://github.com/reqcore-inc/reqcore/commit/d8d0e6ebbcb6456797051f6baeb6bddaec43f033))
+* update color classes for property options to enhance visual consistency ([c827d56](https://github.com/reqcore-inc/reqcore/commit/c827d56f358dc18f0864444dc9ae051629f38d99))
+* Update PostHog consent model to use sessionStorage for cookieless tracking ([1368dbb](https://github.com/reqcore-inc/reqcore/commit/1368dbb4da7efa58ed18eb041fff605565d7da7d))
+
+
+### 🐛 Bug Fixes
+
+* address CodeRabbit review comments on PR [#166](https://github.com/reqcore-inc/reqcore/issues/166) ([3b9e52b](https://github.com/reqcore-inc/reqcore/commit/3b9e52bd33c597346b6defeb0ab1d4c068b03feb))
+* correct syntax error in prefetchOidcEndpointOrigins function ([3f6a56b](https://github.com/reqcore-inc/reqcore/commit/3f6a56bb21f3ca5648f1f8874c1579b07748bc7a))
+* register migrations 0023 and 0024 in drizzle journal ([93ed4b1](https://github.com/reqcore-inc/reqcore/commit/93ed4b1cd341e3f8cb7d541fd7dd595241dd618b))
+* remove orphaned code after &lt;/template&gt; in candidates/new.vue ([a976d8d](https://github.com/reqcore-inc/reqcore/commit/a976d8d45292e051d9a51a48fd348024ef56c9ca))
+* resolve esbuild and typecheck errors in PR validation ([e3d9994](https://github.com/reqcore-inc/reqcore/commit/e3d9994ecc05cc03d4086443e97497e76156bc50))
+* Rewrite Host headers in proxyRequest to prevent Cloudflare errors ([fee0be6](https://github.com/reqcore-inc/reqcore/commit/fee0be64df209fee9cddc1844863a395460b3c31))
+* update token reference in release-please workflow to prioritize RELEASE_PLEASE_TOKEN ([7a57891](https://github.com/reqcore-inc/reqcore/commit/7a57891bcfae98080e9268a2d38bce5dec29c71d))
+* update token reference in release-please workflow to use GITHUB_TOKEN ([b2733f8](https://github.com/reqcore-inc/reqcore/commit/b2733f89c69f3dfff1005368f8a15d6e49081ecd))
+
 ## [1.3.0](https://github.com/reqcore-inc/reqcore/compare/v1.2.0...v1.3.0) (2026-04-03)
 
 
