@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Users, Plus, Search, Mail, Phone, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, X, StickyNote, Maximize2, Minimize2 } from 'lucide-vue-next'
+import { Users, Plus, Search, Mail, Phone, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, X, StickyNote, Maximize2, Minimize2, Check } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'dashboard',
@@ -177,6 +177,7 @@ type CandidatesViewSettings = {
   propertyFilters: import('~~/shared/properties').PropertyFilter[]
   sortKey: SortKey
   sortDir: SortDir
+  visibleColumns?: Record<string, boolean>
 }
 
 const defaultSettings: CandidatesViewSettings = {
@@ -186,6 +187,7 @@ const defaultSettings: CandidatesViewSettings = {
   propertyFilters: [],
   sortKey: 'created',
   sortDir: 'desc',
+  visibleColumns: undefined,
 }
 
 const currentSettings = computed<CandidatesViewSettings>(() => ({
@@ -195,6 +197,7 @@ const currentSettings = computed<CandidatesViewSettings>(() => ({
   propertyFilters: [...propertyFilters.value],
   sortKey: sortKey.value,
   sortDir: sortDir.value,
+  visibleColumns: { ...visibleColumns.value },
 }))
 
 function applySettings(s: CandidatesViewSettings) {
@@ -204,6 +207,7 @@ function applySettings(s: CandidatesViewSettings) {
   propertyFilters.value = [...(s.propertyFilters ?? [])]
   sortKey.value = s.sortKey
   sortDir.value = s.sortDir
+  if (s.visibleColumns) visibleColumns.value = { ...defaultColumnVisibility, ...s.visibleColumns }
 }
 
 const {
@@ -233,6 +237,7 @@ function settingsEqual(a: CandidatesViewSettings, b: CandidatesViewSettings) {
     && a.sortKey === b.sortKey
     && a.sortDir === b.sortDir
     && JSON.stringify(a.propertyFilters ?? []) === JSON.stringify(b.propertyFilters ?? [])
+    && JSON.stringify(a.visibleColumns ?? {}) === JSON.stringify(b.visibleColumns ?? {})
 }
 
 const isDirty = computed(() => {
@@ -419,6 +424,27 @@ const selectedCandidateId = ref<string | null>(null)
         <div v-if="propertyDefs.length > 0">
           <label class="block text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-2">Properties</label>
           <PropertyFilterBar v-model="propertyFilters" entity-type="candidate" />
+        </div>
+
+        <!-- Columns -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-2">Columns</label>
+          <div class="space-y-1.5">
+            <label
+              v-for="col in candidateColumns.filter(c => !c.required)"
+              :key="col.key"
+              class="flex items-center gap-2.5 cursor-pointer select-none group"
+            >
+              <span
+                class="flex size-4 shrink-0 items-center justify-center rounded border transition-colors"
+                :class="visibleColumns[col.key] ? 'bg-brand-600 border-brand-600 text-white' : 'border-surface-300 dark:border-surface-600'"
+                @click="visibleColumns = { ...visibleColumns, [col.key]: !visibleColumns[col.key] }"
+              >
+                <Check v-if="visibleColumns[col.key]" class="size-3" />
+              </span>
+              <span class="text-sm text-surface-700 dark:text-surface-300 group-hover:text-surface-900 dark:group-hover:text-surface-100 transition-colors">{{ col.label }}</span>
+            </label>
+          </div>
         </div>
       </div>
     </FilterDrawer>
