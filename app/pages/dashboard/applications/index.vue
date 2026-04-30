@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileText, Search, X, Briefcase, Mail, Clock, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal } from 'lucide-vue-next'
+import { FileText, Search, X, Briefcase, Mail, Clock, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, Maximize2, Minimize2 } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'dashboard',
@@ -252,7 +252,7 @@ const defaultSettings: ApplicationsViewSettings = {
 }
 
 const drawerOpen = ref(false)
-
+const isFullscreen = ref(false)
 const currentSettings = computed<ApplicationsViewSettings>(() => ({
   status: activeStatus.value,
   jobId: activeJobId.value,
@@ -338,6 +338,9 @@ const drawerActiveCount = computed(() =>
 function getPropertyValue(entity: { properties?: import('~~/shared/properties').PropertyEntry[] | null }, definitionId: string): unknown {
   return entity.properties?.find((p) => p.definition.id === definitionId)?.value ?? null
 }
+
+// ── Application detail drawer ─────────────────────────────────────────────────
+const selectedApplicationId = ref<string | null>(null)
 </script>
 
 <template>
@@ -399,6 +402,15 @@ function getPropertyValue(entity: { properties?: import('~~/shared/properties').
       >
         <X class="size-3" />
         Clear
+      </button>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-2.5 py-2 text-surface-500 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 hover:text-surface-700 dark:hover:text-surface-200 transition-colors"
+        :title="isFullscreen ? 'Exit fullscreen' : 'Fullscreen table'"
+        @click="isFullscreen = !isFullscreen"
+      >
+        <Maximize2 v-if="!isFullscreen" class="size-4" />
+        <Minimize2 v-else class="size-4" />
       </button>
     </div>
 
@@ -530,7 +542,24 @@ function getPropertyValue(entity: { properties?: import('~~/shared/properties').
 
     <!-- Application table -->
     <div v-else>
-      <div class="overflow-x-auto rounded-lg border border-surface-200 dark:border-surface-800">
+      <Teleport to="body" :disabled="!isFullscreen">
+        <div :class="isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-surface-950 flex flex-col' : ''">
+          <!-- Fullscreen header -->
+          <div v-if="isFullscreen" class="flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-800 shrink-0 bg-white dark:bg-surface-950">
+            <span class="text-sm font-semibold text-surface-900 dark:text-surface-100">
+              Applications — {{ filteredApplications.length }} result{{ filteredApplications.length === 1 ? '' : 's' }}
+            </span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 dark:border-surface-800 px-2.5 py-1.5 text-sm text-surface-500 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 hover:text-surface-700 dark:hover:text-surface-200 transition-colors"
+              @click="isFullscreen = false"
+            >
+              <Minimize2 class="size-4" />
+              Exit fullscreen
+            </button>
+          </div>
+          <div :class="isFullscreen ? 'flex-1 overflow-auto p-4' : ''">
+            <div class="overflow-x-auto rounded-lg border border-surface-200 dark:border-surface-800">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-surface-50 dark:bg-surface-800/50 border-b border-surface-200 dark:border-surface-800">
@@ -594,15 +623,16 @@ function getPropertyValue(entity: { properties?: import('~~/shared/properties').
               v-for="app in filteredApplications"
               :key="app.id"
               class="group bg-white dark:bg-surface-900 hover:bg-surface-50 dark:hover:bg-surface-800/60 transition-colors cursor-pointer [&>td]:align-top"
-              @click="$router.push($localePath(`/dashboard/applications/${app.id}`))"
+              @click="selectedApplicationId = app.id"
             >
               <td class="px-4 py-3">
-                <NuxtLink
-                  :to="$localePath(`/dashboard/applications/${app.id}`)"
-                  class="font-semibold text-surface-900 dark:text-surface-100 group-hover:text-brand-600 transition-colors whitespace-nowrap"
+                <button
+                  type="button"
+                  class="font-semibold text-surface-900 dark:text-surface-100 group-hover:text-brand-600 transition-colors whitespace-nowrap text-left"
+                  @click.stop="selectedApplicationId = app.id"
                 >
                   {{ formatPersonName(app.candidateFirstName, app.candidateLastName) }}
-                </NuxtLink>
+                </button>
               </td>
               <td v-if="visibleColumns.email" class="px-4 py-3 text-surface-500 dark:text-surface-400 hidden lg:table-cell">
                 <span class="inline-flex items-center gap-1.5">
@@ -661,6 +691,16 @@ function getPropertyValue(entity: { properties?: import('~~/shared/properties').
       <p class="text-xs text-surface-400 pt-3">
         Showing {{ filteredApplications.length }} of {{ total }} application{{ total === 1 ? '' : 's' }}
       </p>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </div>
+
+  <!-- Application detail drawer -->
+  <ApplicationDetailDrawer
+    v-if="selectedApplicationId"
+    :application-id="selectedApplicationId"
+    @close="selectedApplicationId = null"
+  />
 </template>

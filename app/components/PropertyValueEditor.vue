@@ -65,7 +65,7 @@ function updatePopoverPosition() {
       bottom: `${Math.max(8, vh - rect.top + 4)}px`,
       left: `${left}px`,
       width: `${POPOVER_WIDTH}px`,
-      zIndex: '50',
+      zIndex: '70',
     }
   } else {
     popoverStyle.value = {
@@ -73,7 +73,7 @@ function updatePopoverPosition() {
       top: `${rect.bottom + 4}px`,
       left: `${left}px`,
       width: `${POPOVER_WIDTH}px`,
-      zIndex: '50',
+      zIndex: '70',
     }
   }
 }

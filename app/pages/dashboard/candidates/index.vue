@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Users, Plus, Search, Mail, Phone, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, X, StickyNote } from 'lucide-vue-next'
+import { Users, Plus, Search, Mail, Phone, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, X, StickyNote, Maximize2, Minimize2 } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'dashboard',
@@ -63,6 +63,7 @@ watch(searchInput, (val) => {
 // ── Filters ───────────────────────────────────────────────────────────────────
 
 const drawerOpen = ref(false)
+const isFullscreen = ref(false)
 const filterGender = ref<string | undefined>(undefined)
 const filterDobFrom = ref<string | undefined>(undefined)
 const filterDobTo = ref<string | undefined>(undefined)
@@ -257,6 +258,9 @@ function onSaveView(name: string) {
 function onUpdateView(id: string) {
   updateView(id, { settings: currentSettings.value })
 }
+
+// ── Candidate detail drawer ───────────────────────────────────────────────────
+const selectedCandidateId = ref<string | null>(null)
 </script>
 
 <template>
@@ -325,6 +329,15 @@ function onUpdateView(id: string) {
       >
         <X class="size-3" />
         Clear
+      </button>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-2.5 py-2 text-surface-500 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 hover:text-surface-700 dark:hover:text-surface-200 transition-colors"
+        :title="isFullscreen ? 'Exit fullscreen' : 'Fullscreen table'"
+        @click="isFullscreen = !isFullscreen"
+      >
+        <Maximize2 v-if="!isFullscreen" class="size-4" />
+        <Minimize2 v-else class="size-4" />
       </button>
     </div>
 
@@ -451,7 +464,24 @@ function onUpdateView(id: string) {
 
     <!-- Candidate table -->
     <div v-else>
-      <div class="overflow-x-auto rounded-lg border border-surface-200 dark:border-surface-800">
+      <Teleport to="body" :disabled="!isFullscreen">
+        <div :class="isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-surface-950 flex flex-col' : ''">
+          <!-- Fullscreen header -->
+          <div v-if="isFullscreen" class="flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-800 shrink-0 bg-white dark:bg-surface-950">
+            <span class="text-sm font-semibold text-surface-900 dark:text-surface-100">
+              Candidates — {{ sortedCandidates.length }} result{{ sortedCandidates.length === 1 ? '' : 's' }}
+            </span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 dark:border-surface-800 px-2.5 py-1.5 text-sm text-surface-500 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 hover:text-surface-700 dark:hover:text-surface-200 transition-colors"
+              @click="isFullscreen = false"
+            >
+              <Minimize2 class="size-4" />
+              Exit fullscreen
+            </button>
+          </div>
+          <div :class="isFullscreen ? 'flex-1 overflow-auto p-4' : ''">
+            <div class="overflow-x-auto rounded-lg border border-surface-200 dark:border-surface-800">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-surface-50 dark:bg-surface-800/50 border-b border-surface-200 dark:border-surface-800">
@@ -510,15 +540,16 @@ function onUpdateView(id: string) {
               v-for="c in sortedCandidates"
               :key="c.id"
               class="group bg-white dark:bg-surface-900 hover:bg-surface-50 dark:hover:bg-surface-800/60 transition-colors cursor-pointer [&>td]:align-top"
-              @click="$router.push($localePath(`/dashboard/candidates/${c.id}`))"
+              @click="selectedCandidateId = c.id"
             >
               <td class="px-4 py-3">
-                <NuxtLink
-                  :to="$localePath(`/dashboard/candidates/${c.id}`)"
-                  class="font-semibold text-surface-900 dark:text-surface-100 group-hover:text-brand-600 transition-colors whitespace-nowrap"
+                <button
+                  type="button"
+                  class="font-semibold text-surface-900 dark:text-surface-100 group-hover:text-brand-600 transition-colors whitespace-nowrap text-left"
+                  @click.stop="selectedCandidateId = c.id"
                 >
                   {{ formatCandidateName(c) }}
-                </NuxtLink>
+                </button>
               </td>
               <td v-if="visibleColumns.email" class="px-4 py-3 text-surface-500 dark:text-surface-400">
                 <a
@@ -609,6 +640,16 @@ function onUpdateView(id: string) {
       <p class="text-xs text-surface-400 pt-3">
         {{ total }} candidate{{ total === 1 ? '' : 's' }} total
       </p>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </div>
+
+  <!-- Candidate detail drawer -->
+  <CandidateDetailDrawer
+    v-if="selectedCandidateId"
+    :candidate-id="selectedCandidateId"
+    @close="selectedCandidateId = null"
+  />
 </template>

@@ -199,12 +199,12 @@ const overlayTitle = computed(() => {
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="open" class="fixed inset-0 z-50 bg-black/40" @click="emit('close')" />
+      <div v-if="open" class="fixed inset-0 z-[65] bg-black/40" @click="emit('close')" />
     </Transition>
     <Transition name="slide-right">
       <aside
         v-if="open"
-        class="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-2xl"
+        class="fixed right-0 top-0 z-[70] flex h-full w-full max-w-md flex-col border-l border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-2xl"
       >
         <header class="flex items-center justify-between border-b border-surface-200 dark:border-surface-800 px-5 py-4">
           <div class="min-w-0">
@@ -383,7 +383,7 @@ const overlayTitle = computed(() => {
 
     <!-- Delete confirmation -->
     <Transition name="fade">
-      <div v-if="confirmDeleteId" class="fixed inset-0 z-[60] flex items-center justify-center">
+      <div v-if="confirmDeleteId" class="fixed inset-0 z-[80] flex items-center justify-center">
         <div class="absolute inset-0 bg-black/50" @click="confirmDeleteId = null" />
         <div class="relative bg-white dark:bg-surface-900 rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
           <h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-2">Delete property?</h3>
