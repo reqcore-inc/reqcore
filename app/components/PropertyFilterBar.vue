@@ -127,6 +127,9 @@ function clearAll() {
 
 const editingIdx = ref<number | null>(null)
 const editEl = ref<HTMLElement | null>(null)
+function setEditElRef(el: Element | ComponentPublicInstance | null, filterIdx: number) {
+  if (editingIdx.value === filterIdx) editEl.value = el as HTMLElement | null
+}
 function closeEditOnOutside(e: PointerEvent) {
   if (editingIdx.value === null || !editEl.value) return
   if (!editEl.value.contains(e.target as Node)) editingIdx.value = null
@@ -193,7 +196,7 @@ const showableDefs = computed(() => definitions.value)
       <!-- Edit popover -->
       <div
         v-if="editingIdx === idx"
-        :ref="(el) => { if (editingIdx === idx) editEl.value = el as HTMLElement | null }"
+        :ref="(el) => setEditElRef(el, idx)"
         class="absolute left-0 top-full z-30 mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 p-3 shadow-lg"
       >
         <template v-if="definitionMap.get(f.propertyDefinitionId) as PropertyDefinition">
