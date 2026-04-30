@@ -99,6 +99,7 @@ function cloneDraft(v: unknown): unknown {
 }
 
 function commit(value?: unknown) {
+  if (!editing.value) return
   const next = arguments.length > 0 ? value : draft.value
   editing.value = false
   // Normalize empties for clear-on-save UX

@@ -40,7 +40,14 @@ const {
 })
 
 watch(() => props.open, (isOpen) => {
-  if (isOpen) refresh()
+  if (isOpen) {
+    refresh()
+    return
+  }
+  formMode.value = null
+  editingId.value = null
+  formError.value = null
+  confirmDeleteId.value = null
 })
 
 // ─── Form state for create / edit ───

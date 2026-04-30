@@ -193,7 +193,7 @@ const showableDefs = computed(() => definitions.value)
       <!-- Edit popover -->
       <div
         v-if="editingIdx === idx"
-        ref="editEl"
+        :ref="(el) => { if (editingIdx === idx) editEl.value = el as HTMLElement | null }"
         class="absolute left-0 top-full z-30 mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 p-3 shadow-lg"
       >
         <template v-if="definitionMap.get(f.propertyDefinitionId) as PropertyDefinition">

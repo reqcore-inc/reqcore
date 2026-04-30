@@ -248,6 +248,17 @@ watch(focusedApplications, () => {
   }
 }, { immediate: true })
 
+// Also clamp when property/score/interview filters change and shrink filteredApplications
+watch(filteredApplications, (apps) => {
+  if (apps.length === 0) {
+    currentIndex.value = 0
+    return
+  }
+  if (currentIndex.value >= apps.length) {
+    currentIndex.value = apps.length - 1
+  }
+})
+
 watch(focusStatus, () => {
   currentIndex.value = 0
   searchTerm.value = ''
@@ -2256,7 +2267,7 @@ function closeDocPreview() {
                     :entity-id="resolvedCurrentApplication.id"
                     :job-id="jobId"
                     :entries="resolvedCurrentApplication.properties ?? []"
-                    @refresh="executeDetailFetch()"
+                    @refresh="executeDetailFetch(); refreshApps()"
                   />
                 </div>
               </div>
