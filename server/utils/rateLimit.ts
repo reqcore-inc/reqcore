@@ -27,10 +27,15 @@ interface RateLimitEntry {
  * Uses a sliding window algorithm — each request records a timestamp,
  * and only timestamps within the current window are counted.
  *
- * WARNING: This is an in-memory implementation that resets on restart and
- * does not share state across instances. For production at scale, replace
- * with a Redis-backed implementation (e.g. `@upstash/ratelimit`) to
- * handle multi-instance deployments.
+ * State is per-process and per-limiter: each call to createRateLimiter()
+ * builds its own Map, so two limiters never share buckets even when their
+ * window/max are identical.
+ *
+ * Reqcore is designed as a single-instance self-hosted app (Docker Compose
+ * on one VPS). If you need to run multiple replicas behind a load balancer,
+ * terminate rate limiting at the edge instead — Cloudflare WAF, Caddy
+ * `rate_limit`, or nginx `limit_req`. See SELF-HOSTING.md → "Scaling
+ * horizontally" for the rationale.
  *
  * @example
  * ```ts
@@ -45,13 +50,6 @@ interface RateLimitEntry {
 export function createRateLimiter(config: RateLimitConfig) {
   const { windowMs, maxRequests, message = 'Too many requests, please try again later' } = config
   const store = new Map<string, RateLimitEntry>()
-
-  if (process.env.NODE_ENV === 'production') {
-    console.warn(
-      '[Reqcore] In-memory rate limiter active. State resets on restart and is not shared across instances. ' +
-      'For horizontal scaling, replace with a Redis-backed implementation (e.g. @upstash/ratelimit).',
-    )
-  }
 
   // Periodically prune stale entries to prevent unbounded memory growth
   const PRUNE_INTERVAL = Math.max(windowMs * 2, 60_000)
