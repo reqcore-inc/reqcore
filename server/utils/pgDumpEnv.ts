@@ -16,7 +16,10 @@ const PG_DUMP_ENV_ALLOWLIST = ['PATH', 'HOME', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ
  * be unit-tested without spawning pg_dump.
  */
 export function buildPgDumpEnv(parentEnv: NodeJS.ProcessEnv, password: string): NodeJS.ProcessEnv {
-  const childEnv: NodeJS.ProcessEnv = { PGPASSWORD: password }
+  const childEnv: NodeJS.ProcessEnv = {}
+  // Only set PGPASSWORD when non-empty: an empty value can confuse older libpq
+  // and overrides ~/.pgpass / trust-auth lookup.
+  if (password) childEnv.PGPASSWORD = password
   for (const key of PG_DUMP_ENV_ALLOWLIST) {
     const value = parentEnv[key]
     if (value !== undefined) childEnv[key] = value

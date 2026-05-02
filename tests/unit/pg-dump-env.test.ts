@@ -49,6 +49,11 @@ describe('buildPgDumpEnv', () => {
     expect(childEnv.PGPASSWORD).toBe('super-secret-pg-password')
   })
 
+  it('omits PGPASSWORD when password is empty (trust auth / ~/.pgpass)', () => {
+    const childEnv = buildPgDumpEnv(makeParentEnv(), '')
+    expect(childEnv).not.toHaveProperty('PGPASSWORD')
+  })
+
   it('forwards a minimal whitelist of system vars (PATH, HOME, locale, TZ)', () => {
     const childEnv = buildPgDumpEnv(makeParentEnv(), 'pw')
 
