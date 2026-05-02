@@ -80,6 +80,7 @@ reqcore/
 │   ├── middleware/                # Global server middleware
 │   ├── plugins/
 │   │   ├── migrations.ts         # Auto-apply migrations on startup
+│   │   ├── posthog.ts            # PostHog server-side capture + filtered error hook
 │   │   └── s3-bucket.ts          # Ensure S3 bucket exists + enforce private policy
 │   └── utils/                    # Auto-imported server utilities
 │       ├── auth.ts               # Better Auth instance
@@ -88,7 +89,8 @@ reqcore/
 │       ├── requireAuth.ts        # Auth guard (throws 401/403)
 │       ├── s3.ts                 # S3/MinIO client, upload, delete, bucket policy
 │       ├── slugify.ts            # URL slug generation for public job pages
-│       ├── rateLimit.ts          # IP-based sliding window rate limiter
+│       ├── rateLimit.ts          # IP-based sliding window rate limiter (in-memory, single-instance)
+│       ├── pgDumpEnv.ts          # Allowlist of env vars passed to pg_dump (no secret leak)
 │       └── schemas/              # Shared Zod validation schemas
 │           ├── document.ts       # MIME types, file limits, sanitizeFilename()
 │           ├── job.ts            # Job create/update schemas
@@ -163,7 +165,7 @@ Nitro auto-imports everything from `server/utils/`. The core utilities are alway
 | `auth` | Better Auth instance |
 | `env` | Zod-validated environment variables |
 | `generateJobSlug` | URL slug generation for public job pages |
-| `createRateLimiter` | IP-based sliding window rate limiter |
+| `createRateLimiter` | IP-based sliding window rate limiter (in-memory; for multi-instance setups, terminate at the reverse proxy / CDN) |
 | `uploadToS3`, `deleteFromS3` | S3/MinIO file operations |
 
 ### 3. Environment Validation
