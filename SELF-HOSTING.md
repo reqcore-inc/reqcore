@@ -531,11 +531,12 @@ Reqcore ships with security defaults that require no configuration:
 - **All services are localhost-bound** — PostgreSQL, MinIO, and Adminer are never exposed to the internet. Only the application port (3000) is accessible externally.
 - **Automatic CSRF protection** via Better Auth
 - **Encrypted OAuth tokens** with AES-256-GCM
-- **Rate limiting** on sensitive endpoints
+- **Rate limiting** on sensitive endpoints (in-memory, single-instance — see "Scaling horizontally" below if you run multiple replicas)
 - **Security headers** — `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` restricting camera/microphone/geolocation
 - **File upload validation** — MIME type verification, file size limits, filename sanitization
 - **Server-proxied downloads** — uploaded files are never served directly from storage; they pass through the application server, which enforces authentication and authorization
 - **Deny-by-default access control** — every API endpoint checks org membership and role permissions
+- **Backups never leak app secrets** — the in-app `pg_dump` runner spawns the child process with a minimal env (PGPASSWORD + a small whitelist of system vars) so application secrets like `BETTER_AUTH_SECRET`, `S3_SECRET_KEY`, and OAuth credentials are never inherited by the subprocess
 
 ### Additional Recommendations
 
@@ -563,6 +564,27 @@ sudo apt update && sudo apt upgrade docker-ce docker-ce-cli containerd.io
 sudo apt install unattended-upgrades
 sudo dpkg-reconfigure -plow unattended-upgrades
 ```
+
+### Scaling horizontally
+
+Reqcore is designed to run as a **single instance** on one VPS. The built-in
+rate limiter keeps state in memory, which is perfect for a single container
+but means two replicas would each enforce their own per-IP counters
+independently — a determined attacker could double their effective budget by
+spreading requests across replicas.
+
+If you do need to run multiple Reqcore instances behind a load balancer,
+**move rate limiting to the edge** rather than into the app:
+
+| Edge layer | What to configure |
+|------------|-------------------|
+| Cloudflare (free) | Security → WAF → Rate limiting rules per path |
+| Caddy | `rate_limit` directive in your Caddyfile |
+| Nginx | `limit_req_zone` + `limit_req` directives |
+
+This is also more efficient — abusive traffic is dropped before it ever
+reaches a Nuxt process — and it removes the need for any extra infrastructure
+inside Reqcore itself.
 
 ---
 

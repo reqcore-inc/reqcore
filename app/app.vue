@@ -9,6 +9,22 @@ useHead(() => ({
   meta: i18nHead.value.meta,
 }))
 
+// Blocking inline script to apply dark mode before first paint (prevents white
+// flash). The nonce attribute is required by the nonce-based CSP set in
+// server/middleware/csp.ts — without it the script would be blocked by the
+// browser's XSS protection.
+const _nonce = import.meta.server ? (useRequestEvent()?.context?.nonce ?? '') : ''
+useHead({
+  script: [
+    {
+      key: 'dark-mode-init',
+      innerHTML: '(function(){try{var s=localStorage.getItem("reqcore-color-mode");if(s==="dark"||(!s&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()',
+      tagPosition: 'head',
+      ...(_nonce ? { nonce: _nonce } : {}),
+    },
+  ],
+})
+
 // Sync Better Auth session → PostHog identity & org group
 await usePostHogIdentity()
 </script>

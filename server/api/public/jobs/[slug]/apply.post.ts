@@ -44,9 +44,10 @@ const applyRateLimit = createRateLimiter({
  */
 export default defineEventHandler(async (event) => {
   // Enforce rate limit before any processing.
-  // Skipped in development and in CI (E2E test runners hit the limit across the
-  // full test suite when the production build is used).
-  if (process.env.NODE_ENV === 'production' && !process.env.CI) {
+  // Skipped outside production so local dev and test environments are not
+  // throttled. NODE_ENV is set explicitly by the deployment environment;
+  // never rely on CI env vars to gate production security controls.
+  if (process.env.NODE_ENV === 'production') {
     await applyRateLimit(event)
   }
 
