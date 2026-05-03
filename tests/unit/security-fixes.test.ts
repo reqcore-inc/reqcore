@@ -356,7 +356,8 @@ describe('Fix 5: In-memory rate limiter emits startup warning under horizontal s
   it('no warning when RAILWAY_REPLICA_COUNT is 0 or unset', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
-      const count = Number(undefined ?? 0)
+      const rawCount: string | undefined = process.env.RAILWAY_REPLICA_COUNT
+      const count = Number(rawCount ?? 0)
       if (count > 1) {
         console.warn('should not appear')
       }

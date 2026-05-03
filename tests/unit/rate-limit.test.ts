@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import type { H3Event, EventHandlerRequest } from 'h3'
 
 // ── Stub Nitro auto-imports BEFORE importing the module under test ───────────
 // rateLimit.ts reads these globals lazily inside the returned closure, so
@@ -32,8 +33,8 @@ vi.stubGlobal('createError', (opts: { statusCode: number, statusMessage?: string
 
 const { createRateLimiter } = await import('../../server/utils/rateLimit')
 
-function makeEvent(ip = '1.2.3.4', headers: Record<string, string> = {}): FakeEvent {
-  return { __ip: ip, __headers: headers, __resHeaders: {} }
+function makeEvent(ip = '1.2.3.4', headers: Record<string, string> = {}): FakeEvent & H3Event<EventHandlerRequest> {
+  return { __ip: ip, __headers: headers, __resHeaders: {} } as unknown as FakeEvent & H3Event<EventHandlerRequest>
 }
 
 beforeEach(() => {
