@@ -31,8 +31,8 @@ const authWriteLimiter = createRateLimiter({
 })
 
 export default defineEventHandler(async (event) => {
-  // Skip all rate limiting in development for E2E test stability
-  if (process.env.NODE_ENV !== 'production') return
+  // Skip all rate limiting in development and CI for E2E test stability
+  if (process.env.NODE_ENV !== 'production' || process.env.CI || process.env.GITHUB_ACTIONS) return
 
   const path = getRequestURL(event).pathname
   if (!path.startsWith('/api/')) return

@@ -1,4 +1,5 @@
 import { eq, and } from 'drizzle-orm'
+import { z } from 'zod'
 import { fileTypeFromBuffer } from 'file-type'
 import { candidate, document } from '../../../../database/schema'
 import {
@@ -35,10 +36,7 @@ export default defineEventHandler(async (event) => {
   // 1. Validate candidate exists and belongs to this org
   // ─────────────────────────────────────────────
 
-  const candidateId = getRouterParam(event, 'id')
-  if (!candidateId) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing candidate ID' })
-  }
+  const { id: candidateId } = await getValidatedRouterParams(event, z.object({ id: z.string().uuid() }).parse)
 
   const existingCandidate = await db.query.candidate.findFirst({
     where: and(

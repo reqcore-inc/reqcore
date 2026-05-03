@@ -16,7 +16,7 @@ definePageMeta({ layout: false })
 </script>
 
 <template>
-  <div class="relative min-h-screen overflow-hidden bg-[#09090b] text-white">
+  <div class="relative min-h-screen overflow-hidden bg-white dark:bg-[#09090b]">
     <!-- Ambient glow -->
     <div
       class="pointer-events-none absolute top-[-40%] left-1/2 h-[800px] w-[900px] -translate-x-1/2 rounded-full opacity-[0.07]"
@@ -28,7 +28,7 @@ definePageMeta({ layout: false })
     <main class="relative mx-auto max-w-5xl px-6 pt-36 pb-24">
       <!-- ── Hero ── -->
       <div class="flex flex-col items-center text-center">
-        <h1 class="hero-animate hero-delay-1 text-5xl font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
+        <h1 class="hero-animate hero-delay-1 text-5xl font-bold leading-[1.1] tracking-tight text-surface-900 dark:text-white sm:text-6xl lg:text-7xl">
           {{ $t('home.hero.titleLine1') }}
           <br />
           <span class="bg-gradient-to-r from-brand-400 to-accent-400 bg-clip-text text-transparent">
@@ -36,7 +36,7 @@ definePageMeta({ layout: false })
           </span>
         </h1>
 
-        <p class="hero-animate hero-delay-2 mt-6 max-w-md text-base leading-relaxed text-surface-400 sm:text-lg">
+        <p class="hero-animate hero-delay-2 mt-6 max-w-md text-base leading-relaxed text-surface-600 dark:text-surface-400 sm:text-lg">
           {{ $t('home.hero.subtitle') }}
         </p>
 
@@ -44,7 +44,7 @@ definePageMeta({ layout: false })
           <NuxtLink
             v-if="session?.user"
             :to="localePath('/dashboard')"
-            class="group flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-[14px] font-semibold text-[#09090b] transition hover:bg-white/90"
+            class="group flex items-center gap-2 rounded-lg bg-surface-900 dark:bg-white px-6 py-3 text-[14px] font-semibold text-white dark:text-[#09090b] transition hover:bg-surface-800 dark:hover:bg-white/90"
           >
             {{ $t('home.hero.goToDashboard') }}
             <ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -52,14 +52,14 @@ definePageMeta({ layout: false })
           <template v-else>
             <NuxtLink
               :to="localePath('/auth/sign-in')"
-              class="group flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-[14px] font-semibold text-[#09090b] transition hover:bg-white/90"
+              class="group flex items-center gap-2 rounded-lg bg-surface-900 dark:bg-white px-6 py-3 text-[14px] font-semibold text-white dark:text-[#09090b] transition hover:bg-surface-800 dark:hover:bg-white/90"
             >
               {{ $t('home.hero.signIn') }}
               <ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </NuxtLink>
             <NuxtLink
               :to="localePath('/auth/sign-up')"
-              class="rounded-lg border border-white/[0.08] bg-white/[0.03] px-6 py-3 text-[14px] font-medium text-surface-300 transition hover:border-white/[0.14] hover:bg-white/[0.06]"
+              class="rounded-lg border border-surface-300 dark:border-white/[0.08] bg-surface-100 dark:bg-white/[0.03] px-6 py-3 text-[14px] font-medium text-surface-600 dark:text-surface-300 transition hover:border-surface-400 dark:hover:border-white/[0.14] hover:bg-surface-200 dark:hover:bg-white/[0.06]"
             >
               {{ $t('home.hero.createAccount') }}
             </NuxtLink>
@@ -75,8 +75,8 @@ definePageMeta({ layout: false })
           class="bento-card relative rounded-xl p-6"
         >
           <component :is="pillar.icon" class="mb-4 h-5 w-5 text-brand-400" />
-          <h2 class="text-[15px] font-semibold text-white">{{ pillar.label }}</h2>
-          <p class="mt-1.5 text-[13px] leading-relaxed text-surface-400">{{ pillar.desc }}</p>
+          <h2 class="text-[15px] font-semibold text-surface-900 dark:text-white">{{ pillar.label }}</h2>
+          <p class="mt-1.5 text-[13px] leading-relaxed text-surface-600 dark:text-surface-400">{{ pillar.desc }}</p>
         </div>
       </div>
 
@@ -87,20 +87,20 @@ definePageMeta({ layout: false })
             href="https://github.com/reqcore-inc/reqcore"
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center gap-1.5 text-[13px] text-surface-500 transition hover:text-surface-300"
+            class="flex items-center gap-1.5 text-[13px] text-surface-500 transition hover:text-surface-700 dark:hover:text-surface-300"
           >
             <Github class="h-4 w-4" />
             {{ $t('home.footer.source') }}
           </a>
           <NuxtLink
             :to="localePath('/jobs')"
-            class="flex items-center gap-1.5 text-[13px] text-surface-500 transition hover:text-surface-300"
+            class="flex items-center gap-1.5 text-[13px] text-surface-500 transition hover:text-surface-700 dark:hover:text-surface-300"
           >
             <Briefcase class="h-3.5 w-3.5" />
             {{ $t('home.nav.openPositions') }}
           </NuxtLink>
         </div>
-        <p class="text-[12px] text-surface-600">
+        <p class="text-[12px] text-surface-500 dark:text-surface-600">
           {{ $t('home.footer.tagline') }}
         </p>
       </footer>

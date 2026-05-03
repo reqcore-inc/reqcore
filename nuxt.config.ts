@@ -185,14 +185,8 @@ export default defineNuxtConfig({
           content: "width=device-width, initial-scale=1.0, maximum-scale=5.0",
         },
       ],
-      script: [
-        {
-          // Blocking inline script to apply dark mode before first paint (prevents white flash)
-          innerHTML:
-            '(function(){try{var s=localStorage.getItem("reqcore-color-mode");if(s==="dark"||(!s&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()',
-          tagPosition: "head",
-        },
-      ],
+      // Dark-mode init script is injected in app/app.vue via useHead() with
+      // the per-request nonce so it is allowed by the nonce-based CSP.
       // Plausible removed — PostHog handles all analytics
     },
   },
@@ -283,8 +277,9 @@ export default defineNuxtConfig({
           "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
           "Strict-Transport-Security":
             "max-age=63072000; includeSubDomains; preload",
-          "Content-Security-Policy":
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://eu.i.posthog.com https://eu.posthog.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+          // Content-Security-Policy is set dynamically with a per-request
+          // nonce in server/middleware/csp.ts — do NOT add a static CSP here
+          // as it would override the nonce and break the XSS protection.
           // Block indexing for all non-public routes by default;
           // overridden below for /jobs/** which should be indexable.
           "X-Robots-Tag": "noindex, nofollow",
