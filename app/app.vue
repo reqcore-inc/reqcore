@@ -12,7 +12,7 @@ useHead(() => ({
 // Blocking inline script to apply dark mode before first paint (prevents white
 // flash). The nonce attribute is required by the nonce-based CSP set in
 // server/middleware/csp.ts — without it the script would be blocked by the
-// browser's XSS protection.
+// Content Security Policy (CSP).
 const _nonce = import.meta.server ? (useRequestEvent()?.context?.nonce ?? '') : ''
 useHead({
   script: [
