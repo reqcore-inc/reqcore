@@ -24,6 +24,7 @@
     "test:unit": "vitest run",
     "typecheck": "nuxi typecheck",
     "test:e2e": "npx playwright test",
+    "ops:backup-restore-rehearsal": "bash scripts/backup-restore-rehearsal.sh",
     "i18n:crowdin:upload": "crowdin upload sources",
     "i18n:crowdin:download": "crowdin download --all",
     "i18n:crowdin:sync": "npm run i18n:crowdin:upload && npm run i18n:crowdin:download"

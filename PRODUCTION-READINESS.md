@@ -18,6 +18,7 @@ The codebase is promising and has several strong production signals: active upst
 - Added Node runtime expectations through `engines.node` and `.nvmrc`.
 - Updated PR and e2e workflows to use the pinned Node version.
 - Added `.gitleaks.toml` and a `Secret Scan` workflow that runs Gitleaks against full repository history.
+- Added an `ops:backup-restore-rehearsal` script and `Backup Restore Rehearsal` workflow so SQL dump/restore proof runs as a CI gate.
 - Made PR validation report lint as "not configured" instead of silently presenting a skipped lint gate as green.
 - Fixed constant-time secret comparison for long cron/OAuth state secrets by adding `timingSafeStringEqual`.
 - Added a minimal unauthenticated `/api/healthz` liveness endpoint.
@@ -49,11 +50,11 @@ The codebase is promising and has several strong production signals: active upst
 | Dependency security | Passing | `npm audit --audit-level=high` and full `npm audit --json` report 0 vulnerabilities after dependency updates. |
 | Secrets | Improved | Gitleaks passes locally and in CI. Any real leaked credential requires rotation, not just allowlisting. |
 | Legal/license | Open | AGPL-3.0 obligations are reviewed and accepted for the intended deployment and any proprietary integrations. |
-| Deployment/runbook | Partially covered | `PRODUCTION-RUNBOOK.md` defines deployment, environment, monitoring, rollback, and incident procedures. `scripts/backup-restore-rehearsal.sh` verifies SQL dump/restore mechanics locally. Before real candidate data, run the rehearsal against a sanitized production-like backup and confirm object storage restore. |
+| Deployment/runbook | Partially covered | `PRODUCTION-RUNBOOK.md` defines deployment, environment, monitoring, rollback, and incident procedures. `scripts/backup-restore-rehearsal.sh` verifies SQL dump/restore mechanics locally and through the `Backup Restore Rehearsal` CI workflow. Before real candidate data, run the rehearsal against a sanitized production-like backup and confirm object storage restore. |
 
 ## P0 Before Real Candidate Data
 
-1. Require PR validation, e2e, and secret scan checks in branch protection.
+1. Require PR validation, e2e, secret scan, and backup restore rehearsal checks in branch protection.
 2. Run Playwright e2e on the exact production candidate branch in CI before any release decision.
 3. Keep npm audit at 0 high/critical and triage any new moderate/low advisories before launch.
 4. Confirm production environment configuration:
@@ -91,6 +92,7 @@ npm run typecheck
 npm run build
 npm audit --audit-level=high
 gitleaks detect --source . --config .gitleaks.toml --redact --verbose
+npm run ops:backup-restore-rehearsal
 npm run test:e2e
 ```
 
@@ -119,7 +121,7 @@ Collected on 2026-05-21 from this readiness branch:
 | `npm run build` | Pass with warnings | Nuxt/Nitro production build completed; Tailwind sourcemap warnings remain. |
 | `npm audit --audit-level=high` | Pass | 0 vulnerabilities. |
 | `gitleaks detect --source . --config .gitleaks.toml --redact --verbose` | Pass | Full repository history scanned, no leaks found. |
-| `bash scripts/backup-restore-rehearsal.sh` | Pass | Disposable Postgres dump/restore rehearsal passed with `postgres:16-alpine`; verified sentinel row count 1. |
-| Workflow YAML parse | Pass | PR validation, e2e, and secret-scan workflow files parse as YAML. |
+| `npm run ops:backup-restore-rehearsal` | Pass | Disposable Postgres dump/restore rehearsal passed with `postgres:16-alpine`; verified sentinel row count 1. |
+| Workflow YAML parse | Pass | PR validation, e2e, secret-scan, and backup-restore workflow files parse as YAML. |
 | `npx playwright test e2e/security/tenant-isolation.spec.ts` | Pass | 3 tests passed against production build, fresh Postgres, and MinIO; verifies cross-org and unauthenticated denial for jobs, candidates, applications, interviews, scores, properties, tracking links/stats, comments, uploads, document download, preview, parse, and delete. Also verifies stale membership/session access is denied, owner DOCX parse/delete, DOCX preview denial, live member RBAC allow/deny paths, invite-link auth/max-use/revocation/expiration edges, source/activity isolation, multi-org active switching, SSO provider isolation, AI config/admin controls, email template/admin controls, chatbot per-user privacy, and Better Auth member-management denial paths. |
 | `npx playwright test` | Pass | 16 tests passed against production build on Node 22.22.0, fresh Postgres, and MinIO after the secondary-surface expansion. Local run used ports 15432/19000 because this workstation already had Postgres on 5432. |

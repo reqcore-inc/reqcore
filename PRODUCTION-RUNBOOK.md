@@ -14,8 +14,9 @@ Record these before deploying:
 - `npm ci`, `npm run test:unit`, `npm run typecheck`, `npm run build`.
 - `npm audit --audit-level=high`.
 - `gitleaks detect --source . --config .gitleaks.toml --redact --verbose`.
+- `npm run ops:backup-restore-rehearsal`.
 - `npm run test:e2e` against Postgres and S3-compatible storage.
-- CI run URL for PR validation, secret scan, and e2e on the exact candidate commit.
+- CI run URL for PR validation, secret scan, backup restore rehearsal, and e2e on the exact candidate commit.
 
 ## Environment
 
@@ -82,13 +83,14 @@ Store backups somewhere separate from the app host.
 Run the local rehearsal before approving a production candidate:
 
 ```bash
-bash scripts/backup-restore-rehearsal.sh
+npm run ops:backup-restore-rehearsal
 ```
 
 Attach the output to the launch decision. This proves the SQL dump/restore
-mechanics work on the workstation or CI runner. A real production launch also
-needs a restore rehearsal using a sanitized production-like backup and a
-separate restore target.
+mechanics work on the workstation or CI runner. The same check runs in the
+`Backup Restore Rehearsal` workflow for pull requests and manual release
+validation. A real production launch also needs a restore rehearsal using a
+sanitized production-like backup and a separate restore target.
 
 Restore to a clean Docker database:
 
