@@ -95,8 +95,8 @@ export const member = ac.newRole({
   document: ['create', 'read'],
   comment: ['create', 'read'],
   interview: ['create', 'read', 'update'],
-  emailTemplate: ['create', 'read', 'update'],
+  emailTemplate: ['read'],
   activityLog: ['read'],
-  scoring: ['create', 'read'],
+  scoring: ['read'],
   sourceTracking: ['read'],
 })

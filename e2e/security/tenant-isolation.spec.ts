@@ -7,6 +7,7 @@ import { VALID_FILE_CONFIGS } from '../fixtures/test-buffers'
 interface SignedInOrg {
   page: Page
   userId: string
+  memberId: string
   organizationId: string
   close: () => Promise<void>
 }
@@ -68,6 +69,7 @@ async function signUpWithOrg(browser: Browser, label: string): Promise<SignedInO
   return {
     page,
     userId: membership.userId,
+    memberId: membership.memberId,
     organizationId: membership.organizationId,
     close: () => context.close(),
   }
@@ -78,8 +80,8 @@ async function lookupMembership(email: string, organizationName: string) {
   const sql = postgres(process.env.DATABASE_URL!, { max: 1 })
 
   try {
-    const [membership] = await sql<{ userId: string, organizationId: string }[]>`
-      select u.id as "userId", o.id as "organizationId"
+    const [membership] = await sql<{ userId: string, memberId: string, organizationId: string }[]>`
+      select u.id as "userId", m.id as "memberId", o.id as "organizationId"
       from "user" u
       inner join "member" m on m."user_id" = u.id
       inner join "organization" o on o.id = m."organization_id"
@@ -256,28 +258,34 @@ async function deleteMembership(userId: string, organizationId: string) {
   }
 }
 
-async function grantOrganizationRole(userId: string, organizationId: string, role: 'admin' | 'member') {
+async function grantOrganizationRole(userId: string, organizationId: string, role: 'admin' | 'member'): Promise<string> {
   expect(process.env.DATABASE_URL, 'DATABASE_URL is required for member RBAC e2e coverage').toBeTruthy()
   const sql = postgres(process.env.DATABASE_URL!, { max: 1 })
 
   try {
-    const updatedSessions = await sql.begin(async (tx) => {
-      await tx`
+    const result = await sql.begin(async (tx) => {
+      const [membership] = await tx<{ id: string }[]>`
         insert into "member" ("id", "user_id", "organization_id", "role")
         values (${randomUUID()}, ${userId}, ${organizationId}, ${role})
         on conflict ("user_id", "organization_id")
         do update set "role" = ${role}
+        returning "id"
       `
 
-      return await tx`
+      const updatedSessions = await tx`
         update "session"
         set "active_organization_id" = ${organizationId}, "updated_at" = now()
         where "user_id" = ${userId}
         returning "id"
       `
+
+      return { membership, updatedSessions }
     })
 
-    expect(updatedSessions.length, `expected an active session for ${userId}`).toBeGreaterThan(0)
+    const membershipId = result.membership?.id
+    expect(result.updatedSessions.length, `expected an active session for ${userId}`).toBeGreaterThan(0)
+    expect(membershipId, `expected membership for ${userId}`).toBeTruthy()
+    return membershipId!
   }
   finally {
     await sql.end()
@@ -341,6 +349,39 @@ async function attributeApplicationSource(
         where "id" = ${trackingLinkId}
       `
     })
+  }
+  finally {
+    await sql.end()
+  }
+}
+
+async function insertSsoProvider(organizationId: string, userId: string, providerId: string) {
+  expect(process.env.DATABASE_URL, 'DATABASE_URL is required for SSO provider e2e coverage').toBeTruthy()
+  const sql = postgres(process.env.DATABASE_URL!, { max: 1 })
+  const id = randomUUID()
+
+  try {
+    await sql`
+      insert into "sso_provider" (
+        "id",
+        "issuer",
+        "domain",
+        "oidc_config",
+        "user_id",
+        "provider_id",
+        "organization_id"
+      )
+      values (
+        ${id},
+        ${`https://idp-${providerId}.example.com`},
+        ${`${providerId}.example.com`},
+        '{}',
+        ${userId},
+        ${providerId},
+        ${organizationId}
+      )
+    `
+    return id
   }
   finally {
     await sql.end()
@@ -659,6 +700,260 @@ test.describe('Security — tenant isolation and document access', () => {
       await orgMember?.close()
       await orgB.close()
       await orgA.close()
+    }
+  })
+
+  test('protects secondary admin surfaces and per-user chatbot resources', async ({ browser }) => {
+    const owner = await signUpWithOrg(browser, 'secondary-owner')
+    const orgB = await signUpWithOrg(browser, 'secondary-org-b')
+    const member = await signUpWithOrg(browser, 'secondary-member')
+    const anonymousContext = await browser.newContext()
+
+    try {
+      const memberIdInOwnerOrg = await grantOrganizationRole(member.userId, owner.organizationId, 'member')
+      const ownerApi = owner.page.context().request
+      const orgBApi = orgB.page.context().request
+      const memberApi = member.page.context().request
+      const anonymousApi = anonymousContext.request
+      const authHeaders = { origin: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:13000' }
+
+      const aiConfigResponse = await ownerApi.post('/api/ai-config', {
+        data: {
+          name: 'Owner AI Config',
+          provider: 'openai_compatible',
+          model: 'test-model',
+          apiKey: 'sk-owner-config-secret',
+          baseUrl: 'https://ai.example.com/v1',
+          maxTokens: 4096,
+          isDefaultChatbot: true,
+          isDefaultAnalysis: true,
+        },
+      })
+      expect(aiConfigResponse.status()).toBe(201)
+      const aiConfig = (await aiConfigResponse.json()).config
+
+      const ownerAiConfig = await ownerApi.get(`/api/ai-config/${aiConfig.id}`)
+      expect(ownerAiConfig.status()).toBe(200)
+      const ownerAiConfigBody = await ownerAiConfig.json()
+      expect(ownerAiConfigBody).toMatchObject({ id: aiConfig.id, hasApiKey: true })
+      expect(JSON.stringify(ownerAiConfigBody)).not.toContain('sk-owner-config-secret')
+      expect(JSON.stringify(ownerAiConfigBody)).not.toContain('apiKeyEncrypted')
+
+      await expectStatus(await memberApi.get('/api/ai-config'), [403])
+      await expectStatus(await memberApi.post('/api/ai-config', {
+        data: {
+          name: 'Member should not manage AI',
+          provider: 'openai_compatible',
+          model: 'test-model',
+          apiKey: 'sk-member-config-secret',
+          baseUrl: 'https://ai.example.com/v1',
+        },
+      }), [403])
+      await expectStatus(await memberApi.patch(`/api/ai-config/${aiConfig.id}`, {
+        data: { name: 'Member should not rename AI config' },
+      }), [403])
+      await expectStatus(await memberApi.delete(`/api/ai-config/${aiConfig.id}`), [403])
+      await expectStatus(await memberApi.post(`/api/ai-config/${aiConfig.id}/set-default`, {
+        data: { purposes: ['chatbot'] },
+      }), [403])
+      await expectStatus(await memberApi.post(`/api/ai-config/${aiConfig.id}/test-connection`), [403])
+
+      await expectStatus(await orgBApi.get(`/api/ai-config/${aiConfig.id}`), [404])
+      await expectStatus(await orgBApi.patch(`/api/ai-config/${aiConfig.id}`, {
+        data: { name: 'Cross-org AI rename' },
+      }), [404])
+      await expectStatus(await orgBApi.delete(`/api/ai-config/${aiConfig.id}`), [404])
+      const orgBAiConfigs = await orgBApi.get('/api/ai-config')
+      expect(orgBAiConfigs.status()).toBe(200)
+      expect(JSON.stringify(await orgBAiConfigs.json())).not.toContain(aiConfig.id)
+
+      await expectStatus(await anonymousApi.get('/api/ai-config'), [401, 403])
+
+      const templateResponse = await ownerApi.post('/api/email-templates', {
+        data: {
+          name: 'Owner Interview Template',
+          subject: 'Interview with {{organizationName}}',
+          body: 'Hello {{candidateFirstName}}, let us meet about {{jobTitle}}.',
+        },
+      })
+      expect(templateResponse.status()).toBe(201)
+      const template = await templateResponse.json()
+
+      await expectStatus(await memberApi.post('/api/email-templates', {
+        data: {
+          name: 'Member should not create templates',
+          subject: 'Nope',
+          body: 'Nope',
+        },
+      }), [403])
+      await expectStatus(await memberApi.patch(`/api/email-templates/${template.id}`, {
+        data: { subject: 'Member should not edit templates' },
+      }), [403])
+      await expectStatus(await memberApi.delete(`/api/email-templates/${template.id}`), [403])
+
+      await expectStatus(await orgBApi.patch(`/api/email-templates/${template.id}`, {
+        data: { subject: 'Cross-org template edit' },
+      }), [404])
+      await expectStatus(await orgBApi.delete(`/api/email-templates/${template.id}`), [404])
+      const orgBTemplates = await orgBApi.get('/api/email-templates')
+      expect(orgBTemplates.status()).toBe(200)
+      expect(JSON.stringify(await orgBTemplates.json())).not.toContain(template.id)
+
+      const providerId = `security-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const ssoProviderId = await insertSsoProvider(owner.organizationId, owner.userId, providerId)
+
+      const ownerProviders = await ownerApi.get('/api/sso/providers')
+      expect(ownerProviders.status()).toBe(200)
+      expect(JSON.stringify(await ownerProviders.json())).toContain(ssoProviderId)
+
+      await expectStatus(await memberApi.get('/api/sso/providers'), [403])
+      await expectStatus(await memberApi.post('/api/sso/providers', {
+        data: {
+          providerId: 'member-provider',
+          issuer: 'https://member-idp.example.com',
+          domain: 'member-idp.example.com',
+          clientId: 'client',
+          clientSecret: 'secret',
+        },
+      }), [403])
+      await expectStatus(await memberApi.delete(`/api/sso/providers/${ssoProviderId}`), [403])
+
+      const orgBProviders = await orgBApi.get('/api/sso/providers')
+      expect(orgBProviders.status()).toBe(200)
+      expect(JSON.stringify(await orgBProviders.json())).not.toContain(ssoProviderId)
+      await expectStatus(await orgBApi.delete(`/api/sso/providers/${ssoProviderId}`), [404])
+      await expectStatus(await anonymousApi.get('/api/sso/providers'), [401, 403])
+
+      const folderResponse = await ownerApi.post('/api/chatbot/folders', {
+        data: { name: 'Owner folder', icon: 'Folder' },
+      })
+      expect(folderResponse.status()).toBe(200)
+      const ownerFolder = (await folderResponse.json()).folder
+
+      const agentResponse = await ownerApi.post('/api/chatbot/agents', {
+        data: {
+          name: 'Owner agent',
+          description: 'Private owner agent',
+          systemPrompt: 'Only answer from owner context.',
+          temperature: 0.2,
+          isDefault: true,
+        },
+      })
+      expect(agentResponse.status()).toBe(200)
+      const ownerAgent = (await agentResponse.json()).agent
+
+      const conversationResponse = await ownerApi.post('/api/chatbot/conversations', {
+        data: {
+          title: 'Owner conversation',
+          folderId: ownerFolder.id,
+          agentId: ownerAgent.id,
+          scope: { kind: 'organization' },
+        },
+      })
+      expect(conversationResponse.status()).toBe(200)
+      const ownerConversation = (await conversationResponse.json()).conversation
+
+      const memberFolders = await memberApi.get('/api/chatbot/folders')
+      expect(memberFolders.status()).toBe(200)
+      expect(JSON.stringify(await memberFolders.json())).not.toContain(ownerFolder.id)
+      const memberAgents = await memberApi.get('/api/chatbot/agents')
+      expect(memberAgents.status()).toBe(200)
+      expect(JSON.stringify(await memberAgents.json())).not.toContain(ownerAgent.id)
+      const memberConversations = await memberApi.get('/api/chatbot/conversations')
+      expect(memberConversations.status()).toBe(200)
+      expect(JSON.stringify(await memberConversations.json())).not.toContain(ownerConversation.id)
+
+      await expectStatus(await memberApi.patch(`/api/chatbot/folders/${ownerFolder.id}`, {
+        data: { name: 'Member folder rename attempt' },
+      }), [404])
+      await expectStatus(await memberApi.patch(`/api/chatbot/agents/${ownerAgent.id}`, {
+        data: { name: 'Member agent rename attempt' },
+      }), [404])
+      await expectStatus(await memberApi.get(`/api/chatbot/conversations/${ownerConversation.id}`), [404])
+      await expectStatus(await memberApi.patch(`/api/chatbot/conversations/${ownerConversation.id}`, {
+        data: { title: 'Member conversation rename attempt' },
+      }), [404])
+      await expectStatus(await memberApi.post('/api/chatbot/conversations', {
+        data: {
+          title: 'Member cannot use owner folder',
+          folderId: ownerFolder.id,
+          scope: { kind: 'organization' },
+        },
+      }), [404])
+
+      const memberFolderResponse = await memberApi.post('/api/chatbot/folders', {
+        data: { name: 'Member folder' },
+      })
+      expect(memberFolderResponse.status()).toBe(200)
+      const memberFolder = (await memberFolderResponse.json()).folder
+
+      const memberAgentResponse = await memberApi.post('/api/chatbot/agents', {
+        data: {
+          name: 'Member agent',
+          systemPrompt: 'Answer for member-owned chats.',
+        },
+      })
+      expect(memberAgentResponse.status()).toBe(200)
+      const memberAgent = (await memberAgentResponse.json()).agent
+
+      const memberConversationResponse = await memberApi.post('/api/chatbot/conversations', {
+        data: {
+          title: 'Member conversation',
+          folderId: memberFolder.id,
+          agentId: memberAgent.id,
+          scope: { kind: 'organization' },
+        },
+      })
+      expect(memberConversationResponse.status()).toBe(200)
+      const memberConversation = (await memberConversationResponse.json()).conversation
+
+      await expectStatus(await memberApi.patch(`/api/chatbot/conversations/${memberConversation.id}`, {
+        data: { title: 'Member updated own conversation', pinned: true },
+      }), [200])
+
+      await expectStatus(await orgBApi.get(`/api/chatbot/conversations/${ownerConversation.id}`), [404])
+      await expectStatus(await orgBApi.patch(`/api/chatbot/folders/${ownerFolder.id}`, {
+        data: { name: 'Org B folder rename attempt' },
+      }), [404])
+      await expectStatus(await orgBApi.delete(`/api/chatbot/agents/${ownerAgent.id}`), [404])
+      await expectStatus(await anonymousApi.get('/api/chatbot/folders'), [401, 403])
+
+      const ownerMembers = await ownerApi.get(`/api/auth/organization/list-members?organizationId=${owner.organizationId}`)
+      expect(ownerMembers.status()).toBe(200)
+      expect(JSON.stringify(await ownerMembers.json())).toContain(memberIdInOwnerOrg)
+
+      await expectStatus(await memberApi.post('/api/auth/organization/update-member-role', {
+        headers: authHeaders,
+        data: {
+          memberId: memberIdInOwnerOrg,
+          organizationId: owner.organizationId,
+          role: 'admin',
+        },
+      }), [403])
+      await expectStatus(await memberApi.post('/api/auth/organization/remove-member', {
+        headers: authHeaders,
+        data: {
+          memberIdOrEmail: memberIdInOwnerOrg,
+          organizationId: owner.organizationId,
+        },
+      }), [401, 403])
+      await expectStatus(await orgBApi.get(`/api/auth/organization/list-members?organizationId=${owner.organizationId}`), [403])
+
+      await expectStatus(await memberApi.delete(`/api/chatbot/conversations/${memberConversation.id}`), [200])
+      await expectStatus(await memberApi.delete(`/api/chatbot/agents/${memberAgent.id}`), [200])
+      await expectStatus(await memberApi.delete(`/api/chatbot/folders/${memberFolder.id}`), [200])
+      await expectStatus(await ownerApi.delete(`/api/chatbot/conversations/${ownerConversation.id}`), [200])
+      await expectStatus(await ownerApi.delete(`/api/chatbot/agents/${ownerAgent.id}`), [200])
+      await expectStatus(await ownerApi.delete(`/api/chatbot/folders/${ownerFolder.id}`), [200])
+      await expectStatus(await ownerApi.delete(`/api/sso/providers/${ssoProviderId}`), [200])
+      await expectStatus(await ownerApi.delete(`/api/email-templates/${template.id}`), [204])
+      await expectStatus(await ownerApi.delete(`/api/ai-config/${aiConfig.id}`), [200])
+    }
+    finally {
+      await anonymousContext.close()
+      await member.close()
+      await orgB.close()
+      await owner.close()
     }
   })
 

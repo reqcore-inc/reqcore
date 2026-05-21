@@ -47,6 +47,7 @@ jobs:
       S3_BUCKET: reqcore
       S3_REGION: us-east-1
       S3_FORCE_PATH_STYLE: "true"
+      FEATURE_FLAG_CHATBOT_EXPERIENCE: "true"
 
     steps:
       - name: Start MinIO

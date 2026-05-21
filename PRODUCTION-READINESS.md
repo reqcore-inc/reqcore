@@ -10,7 +10,7 @@ License: AGPL-3.0
 
 Reqcore is not production-approved for real candidate data yet.
 
-The codebase is promising and has several strong production signals: active upstream maintenance, a coherent Nuxt/Postgres/S3 architecture, private document serving, centralized RBAC, security headers, dependency automation, release smoke tests, passing core local checks, and passing Docker-backed Playwright flows. The remaining gap is launch readiness depth. Before production with real candidate data, we still need required CI branch protections, a deployment runbook with backup/restore evidence, AGPL review, and a few narrower security-owner success paths.
+The codebase is promising and has several strong production signals: active upstream maintenance, a coherent Nuxt/Postgres/S3 architecture, private document serving, centralized RBAC, security headers, dependency automation, release smoke tests, passing core local checks, and passing Docker-backed Playwright flows. The remaining gap is launch readiness depth. Before production with real candidate data, we still need required CI branch protections, a deployment runbook with backup/restore evidence, AGPL review, and production environment/processor decisions.
 
 ## What Changed In This Readiness Pass
 
@@ -25,7 +25,9 @@ The codebase is promising and has several strong production signals: active upst
 - Fixed e2e CI startup so the app runtime owns migrations instead of double-applying schema after `drizzle-kit push`.
 - Added static security coverage tests for route auth gates, direct-resource org scoping, list scoping, and body-supplied `organizationId` ignores.
 - Added DB-backed Playwright tenant-isolation checks for interviews, scoring, properties, stale membership/session access, DOCX preview denial, owner document parse/delete, invite-link edge cases, source-tracking stats isolation, activity-log resource filters, and multi-org active-organization switching.
+- Added DB-backed Playwright coverage for secondary admin and per-user surfaces: SSO providers, AI config management, email template management, chatbot agent/folder/conversation privacy, and Better Auth member-management endpoints.
 - Added RBAC matrix coverage and tightened admin/member permissions so organization deletion is owner-only and comment deletion is admin/owner-only.
+- Tightened member access so AI config and email template management are admin/owner-controlled.
 - Fixed the live `requirePermission` gate to reject Better Auth `{ success: false }` permission results instead of only checking for transport/API errors.
 - Rejected empty `requirePermission(event, {})` calls instead of treating them as authorized.
 - Remediated all npm audit advisories by updating dependencies and pinning runtime expectations to Node 22.22+.
@@ -35,13 +37,14 @@ The codebase is promising and has several strong production signals: active upst
 | Gate | Status | Done Criteria |
 |---|---|---|
 | Core install/test/build | Passing locally | `npm ci`, `npm run test:unit`, `npm run typecheck`, `npm run build`, and `npm audit --audit-level=high` pass on the release candidate. |
-| Playwright e2e | Passing locally | 15 Playwright tests passed against a production build, fresh Postgres, and MinIO. CI e2e should be required before merge. |
-| Tenant isolation | Covered for core and major secondary IDOR paths | Static tests assert key direct-resource and list-route org scoping; Playwright proves org B cannot read or mutate org A jobs, candidates, applications, interviews, documents, tracking links/stats, scoring, custom properties, comments, or uploads. It also proves stale memberships lose protected access. Broaden to less common secondary resources before a larger launch. |
-| RBAC | Covered at policy and core route level | Matrix tests cover owner/admin/member expectations, including owner-only org deletion and admin/owner-only comment deletion. Playwright verifies a live member session can perform expected recruiter work and is denied for job create/update/delete, candidate delete, document delete, comment edit/delete, invite-link creation, and org settings update. |
+| Playwright e2e | Passing locally | 16 Playwright tests passed against a production build, fresh Postgres, and MinIO. CI e2e should be required before merge. |
+| Tenant isolation | Covered for core and major secondary IDOR paths | Static tests assert key direct-resource and list-route org scoping; Playwright proves org B cannot read or mutate org A jobs, candidates, applications, interviews, documents, tracking links/stats, scoring, custom properties, comments, uploads, AI config, email templates, SSO providers, chatbot resources, or member-management views. It also proves stale memberships lose protected access. |
+| RBAC | Covered at policy and route level | Matrix tests cover owner/admin/member expectations, including owner-only org deletion, admin/owner-only comment deletion, and admin/owner-controlled AI config/email template management. Playwright verifies a live member session can perform expected recruiter work and is denied for job create/update/delete, candidate delete, document delete, comment edit/delete, invite-link creation, org settings update, AI config mutation, email template mutation, SSO provider management, and Better Auth member-management mutation. |
 | Unauthenticated access | Covered statically and for core request paths | All non-public API routes must contain an auth/session gate; expected public routes are explicitly allowlisted. Playwright covers 401/403 behavior for the most important direct-resource and document paths. |
 | Document security | Covered for core paths | Playwright covers upload accept/reject behavior with S3-backed storage, successful owner download/PDF preview, DOCX inline preview denial, owner parse/delete, cross-org denial, unauthenticated denial, and cross-org/anonymous parse/delete denial. |
 | Invite links | Covered for high-risk token edges | Playwright verifies public info does not return the token, anonymous accept is denied, max-use exhaustion returns 410, revoked links return 404, and expired links return 404. |
 | Source/activity isolation | Covered for core analytics filters | Playwright verifies source-tracking stats and activity-log resource filters do not leak org A application/job/link/candidate data to org B, and verifies public tracking redirects preserve only the expected `ref` target. |
+| Chatbot privacy | Covered for per-user resources | Playwright verifies chatbot folders, agents, and conversations are scoped by both active organization and user, while same-org members can create and manage only their own chatbot resources when the feature flag is enabled. |
 | Dependency security | Passing | `npm audit --audit-level=high` and full `npm audit --json` report 0 vulnerabilities after dependency updates. |
 | Secrets | Improved | Gitleaks passes locally and in CI. Any real leaked credential requires rotation, not just allowlisting. |
 | Legal/license | Open | AGPL-3.0 obligations are reviewed and accepted for the intended deployment and any proprietary integrations. |
@@ -49,21 +52,20 @@ The codebase is promising and has several strong production signals: active upst
 
 ## P0 Before Real Candidate Data
 
-1. Broaden DB-backed integration tests for less common secondary resources and destructive admin/owner-only flows, including SSO provider management, AI config management, email template management, chatbot agent/folder/conversation access, and Better Auth built-in member-management endpoints.
-2. Require PR validation, e2e, and secret scan checks in branch protection.
-3. Run Playwright e2e on the exact production candidate branch in CI before any release decision.
-4. Keep npm audit at 0 high/critical and triage any new moderate/low advisories before launch.
-5. Confirm production environment configuration:
+1. Require PR validation, e2e, and secret scan checks in branch protection.
+2. Run Playwright e2e on the exact production candidate branch in CI before any release decision.
+3. Keep npm audit at 0 high/critical and triage any new moderate/low advisories before launch.
+4. Confirm production environment configuration:
    - `BETTER_AUTH_URL` is the public HTTPS URL.
    - `BETTER_AUTH_SECRET`, `S3_SECRET_KEY`, OAuth/SSO secrets, SMTP secrets, and `CRON_SECRET` are generated secrets and not copied from examples.
    - Postgres and MinIO/S3 are private, backed up, and restorable.
    - `S3_FORCE_PATH_STYLE` matches the storage provider.
    - `BETTER_AUTH_TRUSTED_ORIGINS` is explicit for multi-domain deployments.
-6. Decide data processor posture for optional integrations:
+5. Decide data processor posture for optional integrations:
    - Email provider for invitations and resets.
    - AI provider/API keys for scoring or criteria generation.
    - PostHog or any telemetry endpoint, if enabled.
-7. Complete AGPL-3.0 review before using this in a proprietary hosted workflow.
+6. Complete AGPL-3.0 review before using this in a proprietary hosted workflow.
 
 ## P1 For A Small Production Pilot
 
@@ -71,6 +73,7 @@ The codebase is promising and has several strong production signals: active upst
 - Wire `/api/healthz` into the production load balancer or uptime monitor.
 - Add backup restore rehearsal evidence: timestamp, backup file, restore target, result.
 - Add monitoring and alerting for app availability, error rate, disk usage, backup success, DB availability, and storage availability.
+- Add provider-live success-path tests for configured SSO and AI providers before enabling those integrations with production data.
 - Define incident response basics: who owns alerts, where credentials live, how to rotate secrets, how to disable risky integrations, and how to roll back a release.
 - Define data retention and deletion expectations for candidate resumes, applications, interview notes, and logs.
 
@@ -110,11 +113,11 @@ Collected on 2026-05-21 from this readiness branch:
 | Command | Result | Notes |
 |---|---|---|
 | `npm ci` | Pass | Installed dependencies successfully. |
-| `npm run test:unit` | Pass | 23 test files, 378 tests. |
+| `npm run test:unit` | Pass | 23 test files, 379 tests. |
 | `npm run typecheck` | Pass with warning | Vue/Volar `vue-router/volar/sfc-route-blocks` export warning remains. |
 | `npm run build` | Pass with warnings | Nuxt/Nitro production build completed; Tailwind sourcemap warnings remain. |
 | `npm audit --audit-level=high` | Pass | 0 vulnerabilities. |
 | `gitleaks detect --source . --config .gitleaks.toml --redact --verbose` | Pass | 433 commits scanned, no leaks found. |
 | Workflow YAML parse | Pass | PR validation, e2e, and secret-scan workflow files parse as YAML. |
-| `npx playwright test e2e/security/tenant-isolation.spec.ts` | Pass | 2 tests passed against production build, fresh Postgres, and MinIO; verifies cross-org and unauthenticated denial for jobs, candidates, applications, interviews, scores, properties, tracking links/stats, comments, uploads, document download, preview, parse, and delete. Also verifies stale membership/session access is denied, owner DOCX parse/delete, DOCX preview denial, live member RBAC allow/deny paths, invite-link auth/max-use/revocation/expiration edges, source/activity isolation, and multi-org active switching. |
-| `npx playwright test` | Pass | 15 tests passed against production build on Node 22.22.0, fresh Postgres, and MinIO after the source/activity/multi-org expansion. Local run used ports 15432/19000 because this workstation already had Postgres on 5432. |
+| `npx playwright test e2e/security/tenant-isolation.spec.ts` | Pass | 3 tests passed against production build, fresh Postgres, and MinIO; verifies cross-org and unauthenticated denial for jobs, candidates, applications, interviews, scores, properties, tracking links/stats, comments, uploads, document download, preview, parse, and delete. Also verifies stale membership/session access is denied, owner DOCX parse/delete, DOCX preview denial, live member RBAC allow/deny paths, invite-link auth/max-use/revocation/expiration edges, source/activity isolation, multi-org active switching, SSO provider isolation, AI config/admin controls, email template/admin controls, chatbot per-user privacy, and Better Auth member-management denial paths. |
+| `npx playwright test` | Pass | 16 tests passed against production build on Node 22.22.0, fresh Postgres, and MinIO after the secondary-surface expansion. Local run used ports 15432/19000 because this workstation already had Postgres on 5432. |

@@ -35,6 +35,18 @@ describe('production RBAC matrix', () => {
     expect(can(member, 'comment', 'delete')).toBe(false)
   })
 
+  it('keeps organization configuration surfaces admin-managed', () => {
+    expect(can(member, 'emailTemplate', 'read')).toBe(true)
+    expect(can(member, 'emailTemplate', 'create')).toBe(false)
+    expect(can(member, 'emailTemplate', 'update')).toBe(false)
+    expect(can(member, 'emailTemplate', 'delete')).toBe(false)
+
+    expect(can(member, 'scoring', 'read')).toBe(true)
+    expect(can(member, 'scoring', 'create')).toBe(false)
+    expect(can(member, 'scoring', 'update')).toBe(false)
+    expect(can(member, 'scoring', 'delete')).toBe(false)
+  })
+
   it('allows members to do ordinary recruiter work', () => {
     expect(can(member, 'job', 'read')).toBe(true)
     expect(can(member, 'candidate', 'create')).toBe(true)
