@@ -28,6 +28,7 @@ The codebase is promising and has several strong production signals: active upst
 - Added DB-backed Playwright coverage for secondary admin and per-user surfaces: SSO providers, AI config management, email template management, chatbot agent/folder/conversation privacy, and Better Auth member-management endpoints.
 - Added RBAC matrix coverage and tightened admin/member permissions so organization deletion is owner-only and comment deletion is admin/owner-only.
 - Tightened member access so AI config and email template management are admin/owner-controlled.
+- Added `PRODUCTION-RUNBOOK.md` and `scripts/backup-restore-rehearsal.sh` so deployment, monitoring, rollback, and backup/restore expectations are executable and reviewable.
 - Fixed the live `requirePermission` gate to reject Better Auth `{ success: false }` permission results instead of only checking for transport/API errors.
 - Rejected empty `requirePermission(event, {})` calls instead of treating them as authorized.
 - Remediated all npm audit advisories by updating dependencies and pinning runtime expectations to Node 22.22+.
@@ -48,7 +49,7 @@ The codebase is promising and has several strong production signals: active upst
 | Dependency security | Passing | `npm audit --audit-level=high` and full `npm audit --json` report 0 vulnerabilities after dependency updates. |
 | Secrets | Improved | Gitleaks passes locally and in CI. Any real leaked credential requires rotation, not just allowlisting. |
 | Legal/license | Open | AGPL-3.0 obligations are reviewed and accepted for the intended deployment and any proprietary integrations. |
-| Deployment/runbook | Open | Production compose/Railway deployment has HTTPS, private DB/storage, backup restore test, monitoring, alerting, upgrade/rollback instructions, and owner handoff. |
+| Deployment/runbook | Partially covered | `PRODUCTION-RUNBOOK.md` defines deployment, environment, monitoring, rollback, and incident procedures. `scripts/backup-restore-rehearsal.sh` verifies SQL dump/restore mechanics locally. Before real candidate data, run the rehearsal against a sanitized production-like backup and confirm object storage restore. |
 
 ## P0 Before Real Candidate Data
 
@@ -61,17 +62,17 @@ The codebase is promising and has several strong production signals: active upst
    - Postgres and MinIO/S3 are private, backed up, and restorable.
    - `S3_FORCE_PATH_STYLE` matches the storage provider.
    - `BETTER_AUTH_TRUSTED_ORIGINS` is explicit for multi-domain deployments.
-5. Decide data processor posture for optional integrations:
+5. Run and attach backup/restore evidence from a sanitized production-like database and object-storage backup.
+6. Decide data processor posture for optional integrations:
    - Email provider for invitations and resets.
    - AI provider/API keys for scoring or criteria generation.
    - PostHog or any telemetry endpoint, if enabled.
-6. Complete AGPL-3.0 review before using this in a proprietary hosted workflow.
+7. Complete AGPL-3.0 review before using this in a proprietary hosted workflow.
 
 ## P1 For A Small Production Pilot
 
 - Add a real lint/format gate or formally decide not to have one.
 - Wire `/api/healthz` into the production load balancer or uptime monitor.
-- Add backup restore rehearsal evidence: timestamp, backup file, restore target, result.
 - Add monitoring and alerting for app availability, error rate, disk usage, backup success, DB availability, and storage availability.
 - Add provider-live success-path tests for configured SSO and AI providers before enabling those integrations with production data.
 - Define incident response basics: who owns alerts, where credentials live, how to rotate secrets, how to disable risky integrations, and how to roll back a release.
@@ -117,7 +118,8 @@ Collected on 2026-05-21 from this readiness branch:
 | `npm run typecheck` | Pass with warning | Vue/Volar `vue-router/volar/sfc-route-blocks` export warning remains. |
 | `npm run build` | Pass with warnings | Nuxt/Nitro production build completed; Tailwind sourcemap warnings remain. |
 | `npm audit --audit-level=high` | Pass | 0 vulnerabilities. |
-| `gitleaks detect --source . --config .gitleaks.toml --redact --verbose` | Pass | 433 commits scanned, no leaks found. |
+| `gitleaks detect --source . --config .gitleaks.toml --redact --verbose` | Pass | Full repository history scanned, no leaks found. |
+| `bash scripts/backup-restore-rehearsal.sh` | Pass | Disposable Postgres dump/restore rehearsal passed with `postgres:16-alpine`; verified sentinel row count 1. |
 | Workflow YAML parse | Pass | PR validation, e2e, and secret-scan workflow files parse as YAML. |
 | `npx playwright test e2e/security/tenant-isolation.spec.ts` | Pass | 3 tests passed against production build, fresh Postgres, and MinIO; verifies cross-org and unauthenticated denial for jobs, candidates, applications, interviews, scores, properties, tracking links/stats, comments, uploads, document download, preview, parse, and delete. Also verifies stale membership/session access is denied, owner DOCX parse/delete, DOCX preview denial, live member RBAC allow/deny paths, invite-link auth/max-use/revocation/expiration edges, source/activity isolation, multi-org active switching, SSO provider isolation, AI config/admin controls, email template/admin controls, chatbot per-user privacy, and Better Auth member-management denial paths. |
 | `npx playwright test` | Pass | 16 tests passed against production build on Node 22.22.0, fresh Postgres, and MinIO after the secondary-surface expansion. Local run used ports 15432/19000 because this workstation already had Postgres on 5432. |
