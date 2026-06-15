@@ -31,7 +31,7 @@
     "@nuxtjs/i18n": "^10.3.0",
     "@nuxtjs/mdc": "^0.21.1",
     "@opentelemetry/api-logs": "^0.216.0",
-    "@opentelemetry/exporter-logs-otlp-http": "^0.216.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.219.0",
     "@opentelemetry/resources": "^2.7.1",
     "@opentelemetry/sdk-logs": "^0.216.0",
     "@posthog/nuxt": "^1.7.21",
