@@ -17,6 +17,8 @@ export const createInterviewSchema = z.object({
   notes: z.string().max(5000).optional(),
   interviewers: z.array(z.string().max(200)).max(20).optional(),
   timezone: z.string().max(100).optional(),
+  // Lark VC
+  larkVcSync: z.boolean().optional(),
   // Notification preferences
   calendarSync: z.boolean().optional(),
   calendarEventTitle: z.string().max(200).optional(),

@@ -403,6 +403,12 @@ export const interview = pgTable('interview', {
   googleCalendarEventId: text('google_calendar_event_id'),
   /** Direct link to the Google Calendar event (htmlLink from Google API) */
   googleCalendarEventLink: text('google_calendar_event_link'),
+  /** Lark VC reserve ID (null = not synced) */
+  larkVcReserveId: text('lark_vc_reserve_id'),
+  /** Direct join URL for the Lark VC meeting */
+  larkVcJoinUrl: text('lark_vc_join_url'),
+  /** 9-digit Lark meeting number */
+  larkVcMeetingNo: text('lark_vc_meeting_no'),
   /** IANA timezone for the scheduled time (e.g. 'America/New_York') */
   timezone: text('timezone').notNull().default('UTC'),
   createdAt: timestamp('created_at').notNull().defaultNow(),

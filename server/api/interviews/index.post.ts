@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { interview, application, candidate, job, organization } from '../../database/schema'
 import { createInterviewSchema } from '../../utils/schemas/interview'
 import { createCalendarEvent } from '../../utils/google-calendar'
+import { createLarkVcReserve } from '../../utils/lark-vc'
 
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { interview: ['create'] })
@@ -43,6 +44,38 @@ export default defineEventHandler(async (event) => {
   }).returning()
 
   if (!created) throw createError({ statusCode: 500, statusMessage: 'Failed to create interview' })
+
+  // Create Lark VC meeting when type is 'video' and Lark is configured
+  let larkVcReserveId: string | null = null
+  let larkVcJoinUrl: string | null = null
+  let larkVcMeetingNo: string | null = null
+
+  if (body.larkVcSync !== false && body.type === 'video') {
+    try {
+      const result = await createLarkVcReserve({
+        title: body.title,
+        startTime: new Date(body.scheduledAt),
+        durationMinutes: body.duration,
+        timezone: body.timezone ?? 'UTC',
+      })
+      if (result) {
+        larkVcReserveId = result.reserveId
+        larkVcJoinUrl = result.joinUrl
+        larkVcMeetingNo = result.meetingNo
+        await db.update(interview)
+          .set({ larkVcReserveId: result.reserveId, larkVcJoinUrl: result.joinUrl, larkVcMeetingNo: result.meetingNo })
+          .where(eq(interview.id, created.id))
+      }
+    }
+    catch (err) {
+      logError('interview.lark_vc_sync_failed', {
+        posthog_distinct_id: session.user.id,
+        org_id: orgId,
+        interview_id: created.id,
+        error_message: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
 
   // Sync to Google Calendar only when explicitly requested
   let calendarEventLink: string | null = null
@@ -119,6 +152,7 @@ export default defineEventHandler(async (event) => {
     interview_type: body.type,
     duration_minutes: body.duration,
     has_calendar_sync: !!calendarEventId,
+    has_lark_vc: !!larkVcReserveId,
   })
 
   logApiRequest(event, session, 'interview.scheduled', {
@@ -127,6 +161,7 @@ export default defineEventHandler(async (event) => {
     interview_type: body.type,
     duration_minutes: body.duration,
     has_calendar_sync: !!calendarEventId,
+    has_lark_vc: !!larkVcReserveId,
   })
 
   setResponseStatus(event, 201)
@@ -134,5 +169,8 @@ export default defineEventHandler(async (event) => {
     ...created,
     ...(calendarEventId && { googleCalendarEventId: calendarEventId }),
     ...(calendarEventLink && { googleCalendarEventLink: calendarEventLink }),
+    ...(larkVcReserveId && { larkVcReserveId }),
+    ...(larkVcJoinUrl && { larkVcJoinUrl }),
+    ...(larkVcMeetingNo && { larkVcMeetingNo }),
   }
 })

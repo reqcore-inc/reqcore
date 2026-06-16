@@ -148,6 +148,10 @@ export const envSchema = z
     AUTH_MICROSOFT_CLIENT_SECRET: emptyToUndefined.pipe(z.string().min(1)).optional(),
     /** Microsoft Entra ID Tenant ID. Defaults to 'common' (multi-tenant). */
     AUTH_MICROSOFT_TENANT_ID: emptyToUndefined.pipe(z.string().min(1)).optional().default('common'),
+    /** Lark (Feishu) App ID for VC meeting reservation. Obtain from Lark Developer Console. */
+    LARK_APP_ID: emptyToUndefined.pipe(z.string().min(1)).optional(),
+    /** Lark (Feishu) App Secret for VC meeting reservation. */
+    LARK_APP_SECRET: emptyToUndefined.pipe(z.string().min(1)).optional(),
     /** Shared secret for authenticating cron/scheduled job requests (e.g., webhook renewal). */
     CRON_SECRET: emptyToUndefined.pipe(z.string().min(16)).optional(),
     /** OIDC client ID for SSO authentication (e.g., Keycloak, Authentik, Authelia, Okta). */

@@ -453,6 +453,19 @@ const localePath = useLocalePath()
           >Open in Google Calendar</a>
           <span v-else>Synced to Google Calendar</span>
         </div>
+        <!-- Lark VC meeting link -->
+        <div
+          v-if="interview.larkVcJoinUrl"
+          class="mt-2 flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400"
+        >
+          <Video class="size-3.5" />
+          <a
+            :href="interview.larkVcJoinUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline underline-offset-2 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+          >Join Lark Meeting{{ interview.larkVcMeetingNo ? ` (${interview.larkVcMeetingNo})` : '' }}</a>
+        </div>
       </div>
 
       <!-- Quick actions -->
@@ -681,6 +694,21 @@ const localePath = useLocalePath()
                   <CheckCircle2 class="size-3.5" />
                   Synced to Google Calendar
                 </span>
+              </dd>
+            </div>
+            <div v-if="interview.larkVcJoinUrl">
+              <dt class="text-surface-400">Lark Meeting</dt>
+              <dd>
+                <a
+                  :href="interview.larkVcJoinUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 px-2.5 py-1 text-sm font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
+                >
+                  <Video class="size-3.5" />
+                  Join Lark Meeting{{ interview.larkVcMeetingNo ? ` · ${interview.larkVcMeetingNo}` : '' }}
+                  <ExternalLink class="size-3" />
+                </a>
               </dd>
             </div>
           </dl>

@@ -15,6 +15,9 @@ export interface Interview {
   candidateRespondedAt: string | null
   googleCalendarEventId: string | null
   googleCalendarEventLink: string | null
+  larkVcReserveId: string | null
+  larkVcJoinUrl: string | null
+  larkVcMeetingNo: string | null
   timezone: string
   applicationId: string
   candidateId: string
