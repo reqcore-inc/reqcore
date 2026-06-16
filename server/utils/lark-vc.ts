@@ -79,6 +79,9 @@ export async function createLarkVcReserve(options: {
       },
       vchat: {
         vc_type: 'vc',
+        meeting_settings: {
+          allow_attendees_start: true,
+        },
       },
     },
   })
