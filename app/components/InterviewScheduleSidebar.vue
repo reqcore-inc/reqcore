@@ -3,7 +3,7 @@ import {
   X, Calendar, Clock, MapPin, Users, ChevronLeft, ChevronRight,
   Plus, AlertCircle, Mail, ChevronDown, RefreshCw, Globe,
   Send, UserPlus, Bell, Pencil, CheckCircle2, ExternalLink,
-  ArrowRight, Eye,
+  ArrowRight, Eye, Video,
 } from 'lucide-vue-next'
 import { SYSTEM_TEMPLATES } from '~/utils/system-templates'
 
@@ -18,12 +18,12 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   close: []
-  scheduled: [createdInterview?: { id: string; googleCalendarEventLink?: string | null }]
+  scheduled: [createdInterview?: { id: string; googleCalendarEventLink?: string | null; larkVcJoinUrl?: string | null }]
 }>()
 
 // ─── Success state ────────────────────────────────────────────────
 const showSuccess = ref(false)
-const createdInterview = ref<{ id: string; googleCalendarEventLink?: string | null } | null>(null)
+const createdInterview = ref<{ id: string; googleCalendarEventLink?: string | null; larkVcJoinUrl?: string | null } | null>(null)
 
 // ─── Calendar integration status ──────────────────────────────────
 const { isConnected: calendarConnected } = useCalendarIntegration()
@@ -47,6 +47,7 @@ const isMoving = ref(false)
 // ─── Notification method ──────────────────────────────────────────
 const notifyViaEmail = ref(false)
 const notifyViaCalendar = ref(false)
+const createLarkVcMeeting = ref(true)
 
 // ─── Google Calendar event customization ──────────────────────────
 const calendarCustomization = reactive({
@@ -298,6 +299,8 @@ async function handleSubmit() {
         notes: form.notes.trim() || undefined,
         interviewers: filteredInterviewers.length > 0 ? filteredInterviewers : undefined,
         timezone: form.timezone,
+        // Lark VC
+        larkVcSync: createLarkVcMeeting.value,
         // Calendar sync preferences
         calendarSync: notifyViaCalendar.value,
         ...(notifyViaCalendar.value && {
@@ -322,7 +325,7 @@ async function handleSubmit() {
     }
 
     await refreshNuxtData('interviews')
-    createdInterview.value = created ? { id: created.id, googleCalendarEventLink: created.googleCalendarEventLink ?? null } : null
+    createdInterview.value = created ? { id: created.id, googleCalendarEventLink: created.googleCalendarEventLink ?? null, larkVcJoinUrl: (created as Record<string, unknown>).larkVcJoinUrl as string ?? null } : null
     showSuccess.value = true
   } catch (err: any) {
     errors.value.submit = err?.data?.statusMessage ?? 'Failed to schedule interview'
@@ -422,7 +425,7 @@ async function handleMoveToInterview() {
               </p>
 
               <!-- Notification summary -->
-              <div v-if="notifyViaEmail || notifyViaCalendar" class="flex flex-wrap items-center justify-center gap-2 mb-6">
+              <div v-if="notifyViaEmail || notifyViaCalendar || createdInterview?.larkVcJoinUrl" class="flex flex-wrap items-center justify-center gap-2 mb-6">
                 <span v-if="notifyViaEmail" class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-950/30 px-2.5 py-1 text-xs font-medium text-brand-700 dark:text-brand-400">
                   <Mail class="size-3" />
                   Email sent
@@ -431,6 +434,10 @@ async function handleMoveToInterview() {
                   <Calendar class="size-3" />
                   Calendar event created
                 </span>
+                <span v-if="createdInterview?.larkVcJoinUrl" class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 dark:bg-blue-950/30 px-2.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">
+                  <Video class="size-3" />
+                  Lark meeting created
+                </span>
               </div>
 
               <!-- Quick links -->
@@ -438,6 +445,21 @@ async function handleMoveToInterview() {
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500 mb-2">
                   Quick links
                 </p>
+
+                <!-- Lark VC link -->
+                <a
+                  v-if="createdInterview?.larkVcJoinUrl"
+                  :href="createdInterview.larkVcJoinUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-3 rounded-xl border border-surface-200 dark:border-surface-700/80 bg-white dark:bg-surface-800/40 px-4 py-3 text-sm font-medium text-surface-700 dark:text-surface-300 hover:border-blue-300 hover:bg-blue-50/50 dark:hover:border-blue-700 dark:hover:bg-blue-950/20 transition-all group"
+                >
+                  <div class="flex size-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                    <Video class="size-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span class="flex-1">Join Lark Meeting</span>
+                  <ExternalLink class="size-3.5 text-surface-400 group-hover:text-blue-500 transition-colors" />
+                </a>
 
                 <!-- Google Calendar link -->
                 <a
@@ -603,6 +625,26 @@ async function handleMoveToInterview() {
                       </Transition>
                     </div>
                   </div>
+                </div>
+
+                <!-- Option: Lark VC -->
+                <div class="rounded-xl border transition-all" :class="createLarkVcMeeting ? 'border-blue-300 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-950/10' : 'border-surface-200 dark:border-surface-700/80'">
+                  <label class="flex items-center gap-3 cursor-pointer px-3.5 py-3 group">
+                    <input
+                      v-model="createLarkVcMeeting"
+                      type="checkbox"
+                      class="size-4 rounded border-surface-300 dark:border-surface-600 text-blue-600 focus:ring-blue-500/20 focus:ring-offset-0 cursor-pointer"
+                    />
+                    <Video class="size-4 shrink-0 transition-colors" :class="createLarkVcMeeting ? 'text-blue-600 dark:text-blue-400' : 'text-surface-400 dark:text-surface-500'" />
+                    <div class="min-w-0 flex-1">
+                      <p class="text-[13px] font-medium transition-colors" :class="createLarkVcMeeting ? 'text-surface-900 dark:text-surface-100' : 'text-surface-600 dark:text-surface-400'">
+                        Lark video meeting
+                      </p>
+                      <p class="text-[11px] text-surface-400 dark:text-surface-500">
+                        Auto-create a Feishu VC meeting room
+                      </p>
+                    </div>
+                  </label>
                 </div>
 
                 <!-- Option: Google Calendar -->

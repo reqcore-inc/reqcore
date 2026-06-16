@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
   let larkVcJoinUrl: string | null = null
   let larkVcMeetingNo: string | null = null
 
-  if (body.larkVcSync !== false && body.type === 'video') {
+  if (body.larkVcSync !== false) {
     try {
       const result = await createLarkVcReserve({
         title: body.title,
