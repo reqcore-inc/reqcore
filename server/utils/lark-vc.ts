@@ -1,11 +1,11 @@
 /**
- * Lark (Feishu) VC integration utility.
+ * Lark (Feishu) VC integration via Calendar API.
  *
- * Creates pre-booked meeting rooms (reserves) via the Lark VC Open API
- * for interview scheduling. Requires a Lark self-built app with the
- * `vc:reserve` permission granted.
+ * Creates a calendar event with vchat.vc_type="vc" which auto-generates
+ * a Lark video meeting URL. Uses bot (tenant) token — requires the app to
+ * have calendar:calendar:write and calendar:calendar.event:create permissions.
  *
- * Docs: https://open.feishu.cn/document/server-docs/vc-v1/reserve/apply
+ * Docs: https://open.feishu.cn/document/server-docs/calendar-v4/calendar-event/create
  */
 import { env } from './env'
 
@@ -26,11 +26,11 @@ async function getLarkTenantAccessToken(): Promise<string> {
 }
 
 export interface LarkVcReserveResult {
-  /** Lark reserve ID */
+  /** Lark calendar event ID */
   reserveId: string
-  /** Direct join URL for the meeting */
+  /** Direct VC join URL */
   joinUrl: string
-  /** 9-digit meeting number */
+  /** Meeting number (empty string when not returned by calendar API) */
   meetingNo: string
 }
 
@@ -44,43 +44,54 @@ export async function createLarkVcReserve(options: {
 
   const token = await getLarkTenantAccessToken()
 
-  const startEpoch = Math.floor(options.startTime.getTime() / 1000)
-  const endEpoch = startEpoch + options.durationMinutes * 60
+  const endTime = new Date(options.startTime.getTime() + options.durationMinutes * 60 * 1000)
+
+  const toRfc3339 = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, '+00:00')
 
   const res = await $fetch<{
     code: number
     msg: string
     data?: {
-      reserve: {
-        id: string
-        meeting_no: string
-        join_url: string
-        end_time: string
+      event: {
+        event_id: string
+        vchat?: {
+          vc_type: string
+          icon_type?: string
+          description?: string
+          meeting_url?: string
+          live_link?: string
+          meeting_settings?: Record<string, unknown>
+        }
       }
     }
-  }>('https://open.feishu.cn/open-apis/vc/v1/reserves/apply', {
+  }>('https://open.feishu.cn/open-apis/calendar/v4/calendars/primary/events', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: {
-      end_time: String(endEpoch),
-      meeting_settings: {
-        topic: options.title,
-        auto_record: false,
-        join_meeting_permission: 'everyone',
-        waiting_room: false,
-        meeting_password: '',
-        meeting_initial_type: 1,
+      summary: options.title,
+      start_time: {
+        timestamp: String(Math.floor(options.startTime.getTime() / 1000)),
+        timezone: options.timezone,
+      },
+      end_time: {
+        timestamp: String(Math.floor(endTime.getTime() / 1000)),
+        timezone: options.timezone,
+      },
+      vchat: {
+        vc_type: 'vc',
       },
     },
   })
 
   if (res.code !== 0 || !res.data) {
-    throw new Error(`Lark VC reserve failed (${res.code}): ${res.msg}`)
+    throw new Error(`Lark calendar event creation failed (${res.code}): ${res.msg}`)
   }
 
+  const joinUrl = res.data.event.vchat?.meeting_url ?? ''
+
   return {
-    reserveId: res.data.reserve.id,
-    joinUrl: res.data.reserve.join_url,
-    meetingNo: res.data.reserve.meeting_no,
+    reserveId: res.data.event.event_id,
+    joinUrl,
+    meetingNo: '',
   }
 }
