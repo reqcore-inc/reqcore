@@ -268,6 +268,9 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    experimental: {
+      tasks: true,
+    },
     routeRules: {
       "/**": {
         headers: {
@@ -307,5 +310,9 @@ export default defineNuxtConfig({
         },
       },
     },
+    // Scheduled task for GDPR document cleanup
+    scheduledTasks: {
+      '0 0 * * *': 'cleanup-old-documents'
+    }
   },
 });
