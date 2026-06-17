@@ -14,6 +14,9 @@ export const ALLOWED_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ] as const
 
+/** Default document retention period in milliseconds (2 years for GDPR compliance) */
+export const DEFAULT_DOCUMENT_RETENTION_MS = 2 * 365 * 24 * 60 * 60 * 1000
+
 /** Maximum file size in bytes (10 MB) */
 export const MAX_FILE_SIZE = 10 * 1024 * 1024
 
