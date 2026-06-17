@@ -46,5 +46,34 @@
       "source": "Código fuente",
       "tagline": "Reqcore — seguimiento de candidatos de código abierto"
     }
+  },
+  "admin": {
+    "documents": {
+      "title": "Gestión de documentos",
+      "description": "Edite las fechas de expiración para cumplir con GDPR",
+      "table": {
+        "file": "Archivo",
+        "createdAt": "Creado el",
+        "expiresAt": "Expira el",
+        "actions": "Acciones"
+      },
+      "refresh": "Actualizar",
+      "loading": "Cargando...",
+      "empty": "No se encontraron documentos",
+      "legend": {
+        "expired": "Expirado",
+        "expiresSoon": "Expira en menos de 30 días",
+        "ok": "OK"
+      },
+      "edit": "Editar",
+      "editExpiration": "Editar fecha de expiración",
+      "modal": {
+        "title": "Editar fecha de expiración",
+        "description": "Establezca una nueva fecha de expiración para este documento (cumplimiento de GDPR). Por defecto: 2 años después de la creación.",
+        "newExpirationLabel": "Nueva fecha de expiración",
+        "dateRequired": "Fecha requerida",
+        "updateFailed": "Error al actualizar"
+      }
+    }
   }
 }

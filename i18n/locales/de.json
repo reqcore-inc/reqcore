@@ -46,5 +46,34 @@
       "source": "Quellcode",
       "tagline": "Reqcore — Open-Source-Bewerbermanagement"
     }
+  },
+  "admin": {
+    "documents": {
+      "title": "Dokumentenverwaltung",
+      "description": "Bearbeiten Sie die Ablaufdaten für DSGVO-Konformität",
+      "table": {
+        "file": "Datei",
+        "createdAt": "Erstellt am",
+        "expiresAt": "Läuft ab am",
+        "actions": "Aktionen"
+      },
+      "refresh": "Aktualisieren",
+      "loading": "Wird geladen...",
+      "empty": "Keine Dokumente gefunden",
+      "legend": {
+        "expired": "Abgelaufen",
+        "expiresSoon": "Läuft in weniger als 30 Tagen ab",
+        "ok": "OK"
+      },
+      "edit": "Bearbeiten",
+      "editExpiration": "Ablaufdatum bearbeiten",
+      "modal": {
+        "title": "Ablaufdatum bearbeiten",
+        "description": "Legen Sie ein neues Ablaufdatum für dieses Dokument fest (DSGVO-Konformität). Standardmäßig: 2 Jahre nach der Erstellung.",
+        "newExpirationLabel": "Neues Ablaufdatum",
+        "dateRequired": "Datum erforderlich",
+        "updateFailed": "Aktualisierung fehlgeschlagen"
+      }
+    }
   }
 }

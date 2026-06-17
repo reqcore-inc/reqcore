@@ -46,5 +46,34 @@
       "source": "Mã nguồn",
       "tagline": "Reqcore — theo dõi ứng viên mã nguồn mở"
     }
+  },
+  "admin": {
+    "documents": {
+      "title": "Quản lý tài liệu",
+      "description": "Chỉnh sửa ngày hết hạn để tuân thủ GDPR",
+      "table": {
+        "file": "Tệp",
+        "createdAt": "Được tạo lúc",
+        "expiresAt": "Hết hạn lúc",
+        "actions": "Hành động"
+      },
+      "refresh": "Làm mới",
+      "loading": "Đang tải...",
+      "empty": "Không tìm thấy tài liệu",
+      "legend": {
+        "expired": "Đã hết hạn",
+        "expiresSoon": "Hết hạn trong vòng 30 ngày",
+        "ok": "OK"
+      },
+      "edit": "Chỉnh sửa",
+      "editExpiration": "Chỉnh sửa ngày hết hạn",
+      "modal": {
+        "title": "Chỉnh sửa ngày hết hạn",
+        "description": "Đặt ngày hết hạn mới cho tài liệu này (tuân thủ GDPR). Mặc định: 2 năm sau khi tạo.",
+        "newExpirationLabel": "Ngày hết hạn mới",
+        "dateRequired": "Yêu cầu ngày",
+        "updateFailed": "Cập nhật thất bại"
+      }
+    }
   }
 }

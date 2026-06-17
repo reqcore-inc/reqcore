@@ -46,5 +46,34 @@
       "source": "Kildekode",
       "tagline": "Reqcore — åpen kildekode kandidatsporing"
     }
+  },
+  "admin": {
+    "documents": {
+      "title": "Dokumenthåndtering",
+      "description": "Rediger utløpsdatoer for GDPR-samsvar",
+      "table": {
+        "file": "Fil",
+        "createdAt": "Opprettet",
+        "expiresAt": "Utløper",
+        "actions": "Handlinger"
+      },
+      "refresh": "Oppdater",
+      "loading": "Laster...",
+      "empty": "Ingen dokumenter funnet",
+      "legend": {
+        "expired": "Utløpt",
+        "expiresSoon": "Utløper innen 30 dager",
+        "ok": "OK"
+      },
+      "edit": "Rediger",
+      "editExpiration": "Rediger utløpsdato",
+      "modal": {
+        "title": "Rediger utløpsdato",
+        "description": "Angi en ny utløpsdato for dette dokumentet (GDPR-samsvar). Standard: 2 år etter opprettelse.",
+        "newExpirationLabel": "Ny utløpsdato",
+        "dateRequired": "Dato kreves",
+        "updateFailed": "Oppdatering mislyktes"
+      }
+    }
   }
 }

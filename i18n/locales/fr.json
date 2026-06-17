@@ -46,5 +46,34 @@
       "source": "Code source",
       "tagline": "Reqcore — suivi de candidatures open source"
     }
+  },
+  "admin": {
+    "documents": {
+      "title": "Gestion des documents",
+      "description": "Modifiez les dates d'expiration pour la conformité RGPD",
+      "table": {
+        "file": "Fichier",
+        "createdAt": "Créé le",
+        "expiresAt": "Expire le",
+        "actions": "Actions"
+      },
+      "refresh": "Actualiser",
+      "loading": "Chargement...",
+      "empty": "Aucun document trouvé",
+      "legend": {
+        "expired": "Expiré",
+        "expiresSoon": "Expire dans moins de 30 jours",
+        "ok": "OK"
+      },
+      "edit": "Modifier",
+      "editExpiration": "Modifier la date d'expiration",
+      "modal": {
+        "title": "Modifier la date d'expiration",
+        "description": "Définissez une nouvelle date d'expiration pour ce document (RGPD). Par défaut : 2 ans après la création.",
+        "newExpirationLabel": "Nouvelle date d'expiration",
+        "dateRequired": "Date requise",
+        "updateFailed": "Échec de la mise à jour"
+      }
+    }
   }
 }

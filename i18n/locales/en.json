@@ -46,5 +46,34 @@
       "source": "Source",
       "tagline": "Reqcore — open-source applicant tracking"
     }
+  },
+  "admin": {
+    "documents": {
+      "title": "Document Management",
+      "description": "Edit expiration dates for GDPR compliance",
+      "table": {
+        "file": "File",
+        "createdAt": "Created at",
+        "expiresAt": "Expires at",
+        "actions": "Actions"
+      },
+      "refresh": "Refresh",
+      "loading": "Loading...",
+      "empty": "No documents found",
+      "legend": {
+        "expired": "Expired",
+        "expiresSoon": "Expires in less than 30 days",
+        "ok": "OK"
+      },
+      "edit": "Edit",
+      "editExpiration": "Edit expiration date",
+      "modal": {
+        "title": "Edit Expiration Date",
+        "description": "Set a new expiration date for this document (GDPR compliance). Default: 2 years after creation.",
+        "newExpirationLabel": "New expiration date",
+        "dateRequired": "Date required",
+        "updateFailed": "Failed to update"
+      }
+    }
   }
 }
