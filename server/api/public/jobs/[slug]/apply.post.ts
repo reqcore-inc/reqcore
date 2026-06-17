@@ -7,6 +7,7 @@ import { autoScoreApplication } from '../../../../utils/ai/autoScore'
 import { parseDocument } from '../../../../utils/resume-parser'
 import {
   ALLOWED_MIME_TYPES,
+  DEFAULT_DOCUMENT_RETENTION_MS,
   MAX_FILE_SIZE,
   MAX_DOCUMENTS_PER_CANDIDATE,
   MIME_TO_EXTENSION,
@@ -521,6 +522,8 @@ export default defineEventHandler(async (event) => {
         mimeType,
         sizeBytes: file.data.length,
         parsedContent: parsedContent as any,
+        createdAt: new Date(),
+        expirationDate: new Date(Date.now() + DEFAULT_DOCUMENT_RETENTION_MS),
       }).returning({ id: document.id })
 
       uploadedDocIds.push(created!.id)
@@ -580,6 +583,8 @@ export default defineEventHandler(async (event) => {
         mimeType,
         sizeBytes: file.data.length,
         parsedContent: parsedContent as any,
+        createdAt: new Date(),
+        expirationDate: new Date(Date.now() + DEFAULT_DOCUMENT_RETENTION_MS),
       })
     } catch (uploadError) {
       try {

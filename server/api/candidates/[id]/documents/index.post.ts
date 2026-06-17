@@ -4,6 +4,7 @@ import { fileTypeFromBuffer } from 'file-type'
 import { candidate, document } from '../../../../database/schema'
 import {
   ALLOWED_MIME_TYPES,
+  DEFAULT_DOCUMENT_RETENTION_MS,
   MAX_FILE_SIZE,
   MAX_DOCUMENTS_PER_CANDIDATE,
   MIME_TO_EXTENSION,
@@ -161,6 +162,8 @@ export default defineEventHandler(async (event) => {
       mimeType,
       sizeBytes: fileBuffer.length,
       parsedContent: parsedContent as any,
+      createdAt: new Date(),
+      expirationDate: new Date(Date.now() + DEFAULT_DOCUMENT_RETENTION_MS),
     }).returning({
       id: document.id,
       type: document.type,
