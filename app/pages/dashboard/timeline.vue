@@ -367,8 +367,16 @@ function getEventDescription(item: TimelineItem): string {
     application: 'Application',
     interview: 'Interview',
     member: 'Team member',
+    document: 'Document',
   }
   const type = typeLabels[item.resourceType] ?? item.resourceType
+
+
+  // Special format for documents upadte expiration date
+  if (item.action === 'updated' && type === 'Document' && item.metadata) {
+    const filename = item.metadata.title || item.resourceName || 'Document'
+    return `Expiration date of : "${filename}" updated -  `
+  }
 
   switch (item.action) {
     case 'created': return `${type} created`
@@ -634,7 +642,7 @@ function getEventDescription(item: TimelineItem): string {
                     <div class="flex-1 min-w-0 flex items-center gap-1.5">
                       <span class="text-[13px] font-medium text-surface-900 dark:text-surface-100 shrink-0">{{ getEventDescription(item) }}</span>
                       <span v-if="item.resourceName" class="text-[13px] text-surface-600 dark:text-surface-300 truncate group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">&mdash; {{ item.resourceName }}</span>
-                      <template v-if="item.action === 'status_changed' && item.metadata">
+                      <template v-if="(item.action === 'status_changed' && item.metadata) || (item.action === 'updated' && item.metadata)">
                         <span v-if="item.metadata.fromStatus || item.metadata.from" class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none" :class="getStatusBadgeClasses(String(item.metadata.fromStatus ?? item.metadata.from))">{{ item.metadata.fromStatus ?? item.metadata.from }}</span>
                         <ArrowRight class="size-2.5 text-surface-400 dark:text-surface-500 shrink-0" />
                         <span v-if="item.metadata.toStatus || item.metadata.to" class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none" :class="getStatusBadgeClasses(String(item.metadata.toStatus ?? item.metadata.to))">{{ item.metadata.toStatus ?? item.metadata.to }}</span>
