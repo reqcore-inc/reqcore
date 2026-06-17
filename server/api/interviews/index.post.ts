@@ -57,6 +57,7 @@ export default defineEventHandler(async (event) => {
         startTime: new Date(body.scheduledAt),
         durationMinutes: body.duration,
         timezone: body.timezone ?? 'UTC',
+        interviewerEmails: body.interviewers ?? [],
       })
       if (result) {
         larkVcReserveId = result.reserveId
