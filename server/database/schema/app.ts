@@ -126,6 +126,7 @@ export const application = pgTable('application', {
  * Documents stored in MinIO (resumes, cover letters, etc.).
  * `storageKey` is the S3 object key in the bucket.
  * `parsedContent` holds the structured JSON output from PDF parsing.
+ * `expirationDate` is the date when the document should be automatically deleted for GDPR compliance.
  */
 export const document = pgTable('document', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -138,9 +139,11 @@ export const document = pgTable('document', {
   sizeBytes: integer('size_bytes'),
   parsedContent: jsonb('parsed_content'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  expirationDate: timestamp('expiration_date').notNull(),
 }, (t) => ([
   index('document_organization_id_idx').on(t.organizationId),
   index('document_candidate_id_idx').on(t.candidateId),
+  index('document_expiration_date_idx').on(t.expirationDate),
 ]))
 
 // ─────────────────────────────────────────────
