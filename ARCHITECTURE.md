@@ -32,7 +32,9 @@ reqcore/
 │   ├── assets/
 │   │   └── css/main.css           # Tailwind CSS entry point + @theme tokens
 │   ├── components/               # Auto-imported Vue components
-│   │   └── AppSidebar.vue        # Main sidebar with dynamic job context nav
+│   │   ├── AppSidebar.vue        # Main sidebar with dynamic job context nav
+│   │   └── admin/
+│   │       └── DocumentExpirationModal.vue  # Edit document expiration dates
 │   ├── composables/              # Auto-imported composables (useXxx)
 │   ├── layouts/                  # Layout components
 │   │   ├── dashboard.vue         # Sidebar + full-width main (pages set own max-w + mx-auto)
@@ -52,6 +54,9 @@ reqcore/
 │   │   │           ├── pipeline.vue       # Kanban board (full width)
 │   │   │           ├── candidates.vue     # Data table with detail sidebar
 │   │   │           └── application-form.vue # Questions + shareable link
+│   │   └── admin/
+│   │       └── documents/
+│   │           └── index.vue      # Document expiration management
 │   ├── plugins/                  # Client-side Nuxt plugins
 │   └── utils/                    # Auto-imported utilities
 │       └── auth-client.ts        # Better Auth Vue client
@@ -62,8 +67,10 @@ reqcore/
 │   │   │   ├── [id].get.ts       # GET /api/jobs/:id
 │   │   │   └── [id]/questions/   # Custom question management
 │   │   ├── documents/                # Document access endpoints
+│   │   │   ├── index.get.ts        # GET /api/documents (list org documents)
 │   │   │   ├── [id].delete.ts        # DELETE /api/documents/:id
 │   │   │   └── [id]/
+│   │   │       ├── expiration.patch.ts    # PATCH /api/documents/:id/expiration (update expiry date)
 │   │   │       ├── download.get.ts    # GET /api/documents/:id/download (server-proxied)
 │   │   │       └── preview.get.ts     # GET /api/documents/:id/preview (PDF streaming)
 │   │   └── public/jobs/          # Unauthenticated public job board
@@ -82,9 +89,12 @@ reqcore/
 │   │   ├── migrations.ts         # Auto-apply migrations on startup
 │   │   ├── posthog.ts            # PostHog server-side capture + filtered error hook
 │   │   └── s3-bucket.ts          # Ensure S3 bucket exists + enforce private policy
+│   ├── tasks/                    # Nitro scheduled task definitions
+│   │   └── cleanup-old-documents.ts  # Nitro task definition (defineTask)
 │   └── utils/                    # Auto-imported server utilities
 │       ├── auth.ts               # Better Auth instance
 │       ├── db.ts                 # Drizzle client + connection pool
+│       ├── cleanup-old-documents.ts    # GDPR cleanup utility function
 │       ├── env.ts                # Zod-validated environment variables
 │       ├── requireAuth.ts        # Auth guard (throws 401/403)
 │       ├── s3.ts                 # S3/MinIO client, upload, delete, bucket policy
@@ -182,11 +192,12 @@ During server-side rendering, browser cookies are not automatically forwarded to
 
 ### 6. File Storage & Document Security
 
-Documents (resumes, cover letters) are stored in an S3-compatible object store (Railway Storage Buckets in production, MinIO for local development). Each document record in Postgres stores a `storageKey` (the S3 object key) while the actual file binary lives in the bucket. This separates metadata from blob storage.
+Documents (resumes, cover letters) are stored in an S3-compatible object store (Railway Storage Buckets in production, MinIO for local development). Each document record in Postgres stores a `storageKey` (the S3 object key) and an `expirationDate` (for GDPR compliance, default: 2 years from creation) while the actual file binary lives in the bucket. This separates metadata from blob storage.
 
-Document access is **always server-proxied** — both download and preview endpoints stream file bytes through the authenticated Nitro server. Presigned S3 URLs are never exposed to clients, preventing URL sharing or leakage of sensitive candidate data.
+Document access is **always server-proxied** — both download and preview endpoints stream file bytes through the authenticated Nitro server. Presigned S3 URLs are never exposed to clients, preventing URL sharing or leakage of sensitive candidate data. Administrators can view and edit expiration dates via the admin UI (`/admin/documents`).
 
 Key security measures:
+
 - **Private bucket policy**: Railway Buckets are private by default. For MinIO (local dev), any public bucket policy is deleted on every startup (`server/plugins/s3-bucket.ts`)
 - **Filename sanitization**: All user-provided filenames are sanitized via `sanitizeFilename()` before storage, preventing path traversal, XSS, and filesystem exploits
 - **MIME validation**: Upload endpoints validate file types using magic bytes (`file-type` package), not just the `Content-Type` header
@@ -235,6 +246,7 @@ Reqcore uses `@nuxtjs/seo` for comprehensive search engine optimization:
 | **Route rules** | ISR for `/jobs/**` (3600s), prerender for `/`, `/roadmap`, `/blog/**` |
 
 Structured data by page type:
+
 - **Landing page**: `Organization` + `WebSite` + `WebPage`
 - **Job detail**: `JobPosting` (title, salary, location, remote status, employment type, hiring org)
 - **Blog articles**: `Article` (headline, author, datePublished, publisher)
@@ -244,6 +256,7 @@ Private pages (dashboard, auth, onboarding) include `robots: 'noindex, nofollow'
 ### 11. Blog Content Engine
 
 Blog articles are Markdown files in `content/blog/` powered by `@nuxt/content` v3:
+
 - Collection schema defined in `content.config.ts` with typed frontmatter (title, description, date, author, image, tags)
 - Queried via `queryCollection('blog')` composable (auto-imported)
 - Rendered with `<ContentRenderer :value="post" />` and `@tailwindcss/typography` prose styling
@@ -262,6 +275,7 @@ Blog articles are Markdown files in `content/blog/` powered by `@nuxt/content` v
 | Document upload | MIME validation via magic bytes, filename sanitization, per-candidate limits |
 | Security headers | Global Nitro route rules: `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `X-XSS-Protection`, `Permissions-Policy` |
 | Environment secrets | Validated at startup, never exposed to client |
+
 ## Deployment Architecture
 
 Reqcore runs on **Railway** with **Cloudflare** as CDN/DNS:
@@ -300,12 +314,13 @@ Variables are configured in the Railway dashboard or via `railway variables`. Se
 | `BETTER_AUTH_URL` | Production: `https://reqcore.com` · PR/preview: `https://${{RAILWAY_PUBLIC_DOMAIN}}` |
 
 For zero manual PR setup, define `BETTER_AUTH_URL` as `https://${{RAILWAY_PUBLIC_DOMAIN}}` in your Railway preview/PR environment (or shared variables scoped to previews).
+
 ## Local Development Services
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Nuxt App | http://localhost:3000 | Application |
-| Adminer | http://localhost:8080 | Database GUI |
-| MinIO Console | http://localhost:9001 | Storage GUI |
-| MinIO S3 API | http://localhost:9000 | S3 endpoint |
+| Nuxt App | <http://localhost:3000> | Application |
+| Adminer | <http://localhost:8080> | Database GUI |
+| MinIO Console | <http://localhost:9001> | Storage GUI |
+| MinIO S3 API | <http://localhost:9000> | S3 endpoint |
 | PostgreSQL | localhost:5432 | Database |

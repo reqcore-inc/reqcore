@@ -15,15 +15,19 @@ Modern ATS platforms suffer from three structural problems:
 ## Unique Value Proposition (UVP)
 
 ### 1. Ownership over Access
+
 You *own* the infrastructure (Postgres + MinIO). Your talent pool is a permanent asset — not a monthly subscription. Self-host on your own servers or use a managed deployment; either way, the data is yours.
 
 ### 2. Auditable Intelligence
+
 The source code is public — anyone can read exactly how the system works. Planned AI features will expose ranking logic in a visible **Matching Logic** summary so recruiters can verify and override results. No secret algorithms.
 
 ### 3. No Per-Seat Pricing
+
 Reqcore is designed to let companies scale their hiring teams without increasing their software bill.
 
 ### 4. Runs on Your Network
+
 By supporting local-first storage (MinIO) and local AI models (Ollama), Reqcore is the only ATS where sensitive candidate PII never has to leave the company's private network.
 
 ## Target Users
@@ -45,6 +49,7 @@ By supporting local-first storage (MinIO) and local AI models (Ollama), Reqcore 
 ## Core Features (Current & Planned)
 
 ### MVP — Foundation
+
 - [x] Multi-tenant organizations (Better Auth + org plugin)
 - [x] Job management (CRUD with status workflow: draft → open → closed → archived)
 - [x] Candidate management (per-org candidate pool with deduplication by email)
@@ -54,16 +59,34 @@ By supporting local-first storage (MinIO) and local AI models (Ollama), Reqcore 
 - [x] Organic SEO (sitemap, robots, JSON-LD structured data, blog content engine)
 
 ### Phase 2 — Intelligence
+
 - [ ] Resume parsing (PDF → structured JSON)
 - [ ] AI candidate ranking with visible **Matching Logic** summary
 - [ ] Skill extraction and matching
 - [ ] Local AI support via Ollama (privacy-first)
 
 ### Phase 3 — Collaboration
+
 - [ ] Team comments and notes on candidates
 - [ ] Interview scheduling
 - [ ] Email integration (send/receive from within Reqcore)
 - [ ] Candidate portal (self-service application status)
+
+## Compliance & Data Management
+
+### Data Retention (GDPR)
+
+**Documents (Resumes, Cover Letters)**: Automatically deleted after a configurable retention period from creation date (default: 2 years for GDPR compliance).
+
+- **Implementation**: Nitro scheduled task using `defineTask` API, enabled via `nitro.experimental.tasks`
+- **Schedule**: Configurable cron expression in `nitro.scheduledTasks` (default: daily at 00:00 UTC)
+- **Scope**: System-wide across all organizations
+- **Architecture**:
+  - Utility function in `server/utils/cleanup-old-documents.ts` (reusable, testable)
+  - Task definition in `server/tasks/cleanup-old-documents.ts` (Nitro integration)
+- **Mechanism**: Queries documents with expired `expirationDate`, deletes from both MinIO storage and PostgreSQL database
+- **Audit**: All deletions logged with `cleanup_old_documents.*` events for compliance tracking
+- **Configurable**: Yes - retention period set via `expirationDate` field per document, feature can be disabled with `GDPR_CLEANUP_ENABLED=false`
 
 ## Design Principles
 

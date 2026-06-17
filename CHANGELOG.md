@@ -10,8 +10,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Add
 
 ### Added
 
+* **GDPR Compliance:** add per-document expiration date for automatic cleanup. Each document now has an `expirationDate` field (default: 2 years from creation). Documents are automatically deleted when their expiration date passes via Nitro scheduled task. Administrators can extend expiration for specific documents with legal hold requirements.
+* **GDPR Compliance:** add `PATCH /api/documents/:id/expiration` endpoint for administrators to extend document retention period.
 * **blog:** add Cluster 8 career page articles — pillar (career-page-that-converts) and two supporting articles (career-page-seo, google-for-jobs-structured-data)
 * **blog:** add incoming links to career page content from how-applicant-tracking-systems-work, open-source-applicant-tracking-system, and self-hosted-vs-cloud-ats
+
+### Changed
+
+* Document creation endpoints now set `expirationDate` automatically (2 years from creation for GDPR compliance).
+* Cleanup task now uses `expirationDate` instead of `createdAt` for retention logic, enabling per-document retention periods.
 
 ---
 
