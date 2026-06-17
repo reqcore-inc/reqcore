@@ -85,6 +85,12 @@ export const envSchema = z
           : val === "true" || val === undefined,
       z.boolean().default(true),
     ),
+
+    /** Enable automatic deletion of expired documents (GDPR compliance). Set to "true" to activate. Default: false */
+    GDPR_CLEANUP_ENABLED: z.preprocess(
+      (val) => val === 'true',
+      z.boolean().default(false),
+    ),
     /** IP address of the trusted reverse proxy (e.g., Railway, Cloudflare). When set, X-Forwarded-For is trusted for rate limiting. */
     TRUSTED_PROXY_IP: z.string().min(1).optional(),
     /** Slug of the demo organization. When set, write operations are blocked for this org. */
@@ -234,10 +240,10 @@ export const env = new Proxy({} as z.infer<typeof envSchema>, {
           .join("\n");
         console.error(
           `\n[Reqcore] ❌ Missing or invalid environment variables:\n${missing}\n\n` +
-            `Ensure these variables are set in your Railway service (Settings → Variables).\n` +
-            `Required: DATABASE_URL, BETTER_AUTH_SECRET, S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET\n` +
-            `Required when not on Railway: BETTER_AUTH_URL (or generate a Railway domain)\n` +
-            `Optional: BETTER_AUTH_TRUSTED_ORIGINS, S3_REGION (default: us-east-1), S3_FORCE_PATH_STYLE (default: true), TRUSTED_PROXY_IP, DEMO_ORG_SLUG, RESEND_API_KEY, RESEND_FROM_EMAIL, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, OIDC_DISCOVERY_URL, OIDC_PROVIDER_NAME, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_MICROSOFT_CLIENT_ID, AUTH_MICROSOFT_CLIENT_SECRET, AUTH_MICROSOFT_TENANT_ID\n`,
+          `Ensure these variables are set in your Railway service (Settings → Variables).\n` +
+          `Required: DATABASE_URL, BETTER_AUTH_SECRET, S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET\n` +
+          `Required when not on Railway: BETTER_AUTH_URL (or generate a Railway domain)\n` +
+          `Optional: BETTER_AUTH_TRUSTED_ORIGINS, S3_REGION (default: us-east-1), S3_FORCE_PATH_STYLE (default: true), TRUSTED_PROXY_IP, DEMO_ORG_SLUG, RESEND_API_KEY, RESEND_FROM_EMAIL, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, OIDC_DISCOVERY_URL, OIDC_PROVIDER_NAME, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_MICROSOFT_CLIENT_ID, AUTH_MICROSOFT_CLIENT_SECRET, AUTH_MICROSOFT_TENANT_ID\n`,
         );
         throw result.error;
       }
