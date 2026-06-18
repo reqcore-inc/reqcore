@@ -15,21 +15,20 @@ const form = ref({
 const error = ref<string | null>(null)
 const isSubmitting = ref(false)
 
-// Convert date ISO to datetime-local format for input
+// Convert date ISO to YYYY-MM-DD format for date input
 function getFormattedDate(dateString: string): string {
   if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toISOString().slice(0, 16)
+  return dateString.slice(0, 10)
 }
 
-// Initialize form
+// Initialize form with date
 onMounted(() => {
-  form.value.expirationDate = getFormattedDate(props.currentExpiration)
+  form.value.expirationDate = props.currentExpiration.slice(0, 10)
 })
 
 // Update form if prop changes
 watch(() => props.currentExpiration, (newVal) => {
-  form.value.expirationDate = getFormattedDate(newVal)
+  form.value.expirationDate = newVal.slice(0, 10)
 })
 
 async function updateExpiration() {
@@ -83,9 +82,9 @@ async function updateExpiration() {
           </label>
           <input
             v-model="form.expirationDate"
-            type="datetime-local"
+            type="date"
             class="w-full p-2 border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            :min="new Date().toISOString().slice(0, 16)"
+            :min="getFormattedDate(new Date().toISOString())"
           />
         </div>
 
