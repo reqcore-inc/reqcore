@@ -5,7 +5,7 @@ import {
   Edit3, RefreshCw,
 } from 'lucide-vue-next'
 // Composables
-const { dateFormat } = useOrgSettings()
+const { formatDateTime } = useOrgSettings()
 const { t } = useI18n()
 const { allowed: canUpdateExpirationDate } = usePermission({ document: ['update'] })
 
@@ -51,25 +51,6 @@ function handleUpdated() {
   loadDocuments()
 }
 
-// Format date according to organization settings with time
-function formatDate(dateString: string) {
-  if (!dateString) return '-' 
-  const date = new Date(dateString)
-  const timeString = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-  
-  const [year, month, day] = [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0')
-  ]
-  
-  switch (dateFormat.value) {
-    case 'dmy': return `${day}/${month}/${year} ${timeString}`
-    case 'ymd': return `${year}-${month}-${day} ${timeString}`
-    case 'mdy':
-    default: return `${month}/${day}/${year} ${timeString}`
-  }
-}
 
 // Load documents on component mount
 onMounted(() => {
@@ -129,7 +110,7 @@ onMounted(() => {
             class="border-t hover:bg-gray-50 dark:hover:bg-gray-700/50"
           >
             <td class="p-4 max-w-[300px] truncate text-gray-900 dark:text-white">{{ doc.originalFilename }}</td>
-            <td class="p-4 text-gray-600 dark:text-gray-300">{{ formatDate(doc.createdAt) }}</td>
+            <td class="p-4 text-gray-600 dark:text-gray-300">{{ formatDateTime(doc.createdAt) }}</td>
             <td class="p-4">
               <span
                 :class="{
@@ -140,7 +121,7 @@ onMounted(() => {
                   'text-gray-600 dark:text-gray-300': new Date(doc.expirationDate) >= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
                 }"
               >
-                {{ formatDate(doc.expirationDate) }}
+                {{ formatDateTime(doc.expirationDate) }}
               </span>
             </td>
             <td class="p-4">
