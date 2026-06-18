@@ -11,4 +11,4 @@ ALTER TABLE "document" ALTER COLUMN "expiration_date" SET NOT NULL;
 CREATE INDEX IF NOT EXISTS "document_expiration_date_idx" ON "document" USING btree ("expiration_date");
 
 -- 5. Comment
-COMMENT ON COLUMN "document"."expiration_date" IS 'Date d''expiration du document pour conformité RGPD (2 ans après création par défaut)';
+COMMENT ON COLUMN "document"."expiration_date" IS 'Expiration date of the GDPR compliance document (2 years after creation by default)';
