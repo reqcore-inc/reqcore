@@ -139,7 +139,7 @@ export const document = pgTable('document', {
   sizeBytes: integer('size_bytes'),
   parsedContent: jsonb('parsed_content'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-  expirationDate: timestamp('expiration_date').notNull(),
+  expirationDate: timestamp('expiration_date').notNull().$defaultFn(() => sql`(NOW() + INTERVAL '2 years')`),
 }, (t) => ([
   index('document_organization_id_idx').on(t.organizationId),
   index('document_candidate_id_idx').on(t.candidateId),
