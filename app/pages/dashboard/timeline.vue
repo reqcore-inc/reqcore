@@ -372,10 +372,10 @@ function getEventDescription(item: TimelineItem): string {
   const type = typeLabels[item.resourceType] ?? item.resourceType
 
 
-  // Special format for documents upadte expiration date
+  // Special format for document expiration updates
   if (item.action === 'updated' && type === 'Document' && item.metadata) {
     const filename = item.metadata.title || item.resourceName || 'Document'
-    return `Expiration date of : "${filename}" updated -  `
+    return `Document expiration updated: "${filename}"`
   }
 
   switch (item.action) {
