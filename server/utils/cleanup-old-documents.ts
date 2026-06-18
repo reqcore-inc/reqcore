@@ -16,7 +16,7 @@ import { logInfo, logError } from './logger'
  */
 export async function cleanupOldDocuments(): Promise<{ deletedCount: number; errors: Array<{ storageKey: string; error: string }> }> {
   // Skip cleanup if feature is disabled via environment variable
-  if (env.GDPR_CLEANUP_ENABLED!) {
+  if (!env.GDPR_CLEANUP_ENABLED) {
     logInfo('cleanup_old_documents.skipped', {
       reason: 'GDPR_CLEANUP_ENABLED is not set to "true"',
     })
