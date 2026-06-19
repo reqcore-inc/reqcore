@@ -16,10 +16,7 @@ export default defineEventHandler(async (event) => {
     where: eq(document.organizationId, orgId),
     columns: {
       id: true,
-      storageKey: true,
       originalFilename: true,
-      organizationId: true,
-      candidateId: true,
       createdAt: true,
       expirationDate: true,
     },
