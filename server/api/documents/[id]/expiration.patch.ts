@@ -28,6 +28,9 @@ export default defineEventHandler(async (event) => {
   }).parse)
   const expirationDate = new Date(expirationDateStr)
 
+  if (expirationDate <= new Date()) {
+    throw createError({ statusCode: 400, statusMessage: 'Expiration date must be in the future' })
+  }
   // Verify document exists and belongs to org
   const doc = await db.query.document.findFirst({
     where: and(
