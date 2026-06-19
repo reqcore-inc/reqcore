@@ -1,5 +1,5 @@
 {
-  "id": "5414a49e-84cd-4b47-9357-b848845feaa6",
+  "id": "6bea4a92-0340-4630-8299-3418580ca813",
   "prevId": "4ffd7fcb-d7e0-4e49-8211-fa5b7305aff9",
   "version": "7",
   "dialect": "postgresql",
@@ -2943,7 +2943,8 @@
           "name": "expiration_date",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "(NOW() + INTERVAL '2 years')"
         }
       },
       "indexes": {
