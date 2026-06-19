@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
     const day = String(d.getDate()).padStart(2, '0')
     const hours = String(d.getHours()).padStart(2, '0')
     const minutes = String(d.getMinutes()).padStart(2, '0')
-    
+
     // Format date part according to organization setting
     let datePart: string
     switch (dateFormat) {
@@ -63,23 +63,33 @@ export default defineEventHandler(async (event) => {
       default:
         datePart = `${month}/${day}/${year}`
     }
-    
+
     // Add time part
     return `${datePart} ${hours}:${minutes}`
   }
 
   // Update expiration date
-  await db.update(document)
+  const updateResult = await db.update(document)
     .set({ expirationDate })
     .where(and(
       eq(document.id, documentId),
       eq(document.organizationId, orgId),
     ))
 
-  const oldExpirationDate = formatDate(doc.expirationDate);
-  const newExpirationDate = formatDate(expirationDate);
 
-  recordActivity({
+  // Throw an error if the update wasn't successful
+  if (updateResult.rowsAffected === 0) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to update document expiration date'
+    })
+  }
+
+  // Only record activity if the update was successful
+  const oldExpirationDate = formatDate(doc.expirationDate)
+  const newExpirationDate = formatDate(expirationDate)
+
+  await recordActivity({
     organizationId: orgId,
     actorId: session.user.id,
     action: 'updated',
@@ -88,7 +98,6 @@ export default defineEventHandler(async (event) => {
     metadata: expirationDate && expirationDate !== doc.expirationDate
       ? { from: oldExpirationDate, to: newExpirationDate, title: doc.originalFilename }
       : { title: doc.originalFilename },
-
   })
 
   return {
