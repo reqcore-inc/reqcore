@@ -133,7 +133,8 @@ export function createLanguageModel(config: ProviderConfig) {
   const secret = env.BETTER_AUTH_SECRET
   const apiKey = decrypt(config.apiKeyEncrypted, secret)
 
-  if (!apiKey) {
+  // For openai_compatible, allow empty API key (local endpoints like Ollama don't need auth)
+  if (!apiKey && config.provider !== 'openai_compatible') {
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to decrypt AI API key. The key may be corrupted.',
@@ -144,7 +145,7 @@ export function createLanguageModel(config: ProviderConfig) {
     case 'openai':
     case 'openai_compatible': {
       const openai = createOpenAI({
-        apiKey,
+        apiKey: apiKey || 'dummy-key',
         ...(config.baseUrl ? { baseURL: config.baseUrl } : {}),
       })
       return openai(config.model)

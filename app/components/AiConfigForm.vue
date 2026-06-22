@@ -130,7 +130,8 @@ function pickProvider(key: string) {
 const canSave = computed(() => {
   if (!form.value.name.trim()) return false
   if (!form.value.model.trim()) return false
-  if (!isEdit.value && !form.value.apiKey) return false
+  // API key required for cloud providers, but optional for custom endpoints (Ollama, etc.)
+  if (!isEdit.value && !form.value.apiKey && !isCustomProvider.value) return false
   if (isCustomProvider.value && !form.value.baseUrl) return false
   return true
 })
@@ -148,7 +149,7 @@ async function handleSave() {
       outputPricePer1m: form.value.outputPricePer1m,
     }
     if (isCustomProvider.value) body.baseUrl = form.value.baseUrl
-    if (form.value.apiKey) body.apiKey = form.value.apiKey
+    if (form.value.apiKey !== undefined) body.apiKey = form.value.apiKey
 
     if (isEdit.value && props.config) {
       await $fetch(`/api/ai-config/${props.config.id}`, {
