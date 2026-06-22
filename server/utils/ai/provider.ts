@@ -1,18 +1,19 @@
 /**
  * AI Provider Abstraction Layer
  *
- * Supports OpenAI, Anthropic, and custom OpenAI-compatible endpoints.
+ * Supports OpenAI, Anthropic, Google, Mistral, and custom OpenAI-compatible endpoints.
  * Credentials are decrypted per-request from the organization's AI config.
  * Never logs or stores raw API keys — only encrypted values in the database.
  */
 import { createOpenAI } from '@ai-sdk/openai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createMistral } from '@ai-sdk/mistral'
 import { generateObject } from 'ai'
 import type { z } from 'zod'
 import { decrypt } from '../encryption'
 
-export type SupportedProvider = 'openai' | 'anthropic' | 'google' | 'openai_compatible'
+export type SupportedProvider = 'openai' | 'anthropic' | 'google' | 'mistral' | 'openai_compatible'
 
 export interface ProviderConfig {
   provider: SupportedProvider
@@ -99,6 +100,20 @@ export const PROVIDER_REGISTRY: Record<string, {
       { id: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite', description: 'Cheapest Gemini option for high-volume light tasks.', inputPricePer1m: 0.075, outputPricePer1m: 0.3, badge: 'cheap' },
     ],
   },
+  mistral: {
+    name: 'Mistral AI',
+    tagline: 'Open-source and enterprise LLMs. European-based, privacy-focused.',
+    modelsUrl: 'https://docs.mistral.ai/api/#tag/models',
+    apiKeyUrl: 'https://console.mistral.ai/api-keys',
+    signupUrl: 'https://console.mistral.ai/',
+    supportsBaseUrl: false,
+    defaultModel: 'mistral-large-latest',
+    models: [
+      { id: 'mistral-large-latest', label: 'Mistral Large', description: 'Flagship reasoning model. Best for complex evaluations.', inputPricePer1m: 0.5, outputPricePer1m: 1.5, badge: 'powerful' },
+      { id: 'mistral-medium-latest', label: 'Mistral Medium', description: 'Balanced performance and cost.', inputPricePer1m: 1.5, outputPricePer1m: 7.5, badge: 'recommended' },
+      { id: 'mistral-small-latest', label: 'Mistral Small', description: 'Fast and cost-effective. Recommended for most scoring tasks.', inputPricePer1m: 0.15, outputPricePer1m: 0.6, badge: 'cheap' }
+    ],
+  },
   openai_compatible: {
     name: 'OpenAI-Compatible (Custom)',
     tagline: 'Connect any OpenAI-compatible endpoint: Ollama, LM Studio, OpenRouter, Groq, Together AI, vLLM, …',
@@ -147,6 +162,12 @@ export function createLanguageModel(config: ProviderConfig) {
         ...(config.baseUrl ? { baseURL: config.baseUrl } : {}),
       })
       return google(config.model)
+    }
+    case 'mistral': {
+      const mistral = createMistral({
+        apiKey,
+      })
+      return mistral(config.model)
     }
     default:
       throw createError({
