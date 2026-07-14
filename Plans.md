@@ -54,7 +54,7 @@ team_validation_mode: subagent (Product/Skeptic, Architecture/QA, Security persp
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | 3.1 | [lane:gate] [tdd:required] Playwright e2e: open candidate sidebar → Screening tab → generate → questions render → regenerate appends history (resolve AI-mock strategy first — see unknown list) | `npm run test:e2e` passes locally/CI; AI call mocked or fixture-backed, no live spend in CI | Phase 2 | cc:完了 [d5b62b8] |
-| 3.2 | [lane:gate] [tdd:skip:review-task] `harness-review` on the branch + full gate: `npm run test`, `npm run typecheck`, evidence pack → PR body → `git push` + `gh pr create` to main | Review artifact produced; all gates green; PR opened | 3.1 | cc:WIP |
+| 3.2 | [lane:gate] [tdd:skip:review-task] `harness-review` on the branch + full gate: `npm run test`, `npm run typecheck`, evidence pack → PR body → `git push` + `gh pr create` to main | Review artifact produced; all gates green; PR opened | 3.1 | cc:完了 [PR#229] |
 
 ---
 
