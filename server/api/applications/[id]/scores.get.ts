@@ -61,6 +61,9 @@ export default defineEventHandler(async (event) => {
     .where(and(
       eq(analysisRun.applicationId, applicationId),
       eq(analysisRun.organizationId, orgId),
+      // Scoring-only reader: a transcript_analysis run must never shadow the
+      // latest scoring run here (see docs/research/ta0.1-analysis-run-readers.md).
+      eq(analysisRun.kind, 'application_scoring'),
     ))
     .orderBy(desc(analysisRun.createdAt))
     .limit(1)

@@ -53,13 +53,13 @@ export default defineEventHandler(async (event) => {
     modelBreakdown,
   ] = await Promise.all([
     // 1. Total runs
-    db.$count(analysisRun, eq(analysisRun.organizationId, orgId)),
+    db.$count(analysisRun, and(eq(analysisRun.organizationId, orgId), eq(analysisRun.kind, 'application_scoring'))),
 
     // 2. Completed runs
-    db.$count(analysisRun, and(eq(analysisRun.organizationId, orgId), eq(analysisRun.status, 'completed'))),
+    db.$count(analysisRun, and(eq(analysisRun.organizationId, orgId), eq(analysisRun.status, 'completed'), eq(analysisRun.kind, 'application_scoring'))),
 
     // 3. Failed runs
-    db.$count(analysisRun, and(eq(analysisRun.organizationId, orgId), eq(analysisRun.status, 'failed'))),
+    db.$count(analysisRun, and(eq(analysisRun.organizationId, orgId), eq(analysisRun.status, 'failed'), eq(analysisRun.kind, 'application_scoring'))),
 
     // 4. Total token usage
     db
@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
         ).as('platform_cost_usd_micros'),
       })
       .from(analysisRun)
-      .where(eq(analysisRun.organizationId, orgId)),
+      .where(and(eq(analysisRun.organizationId, orgId), eq(analysisRun.kind, 'application_scoring'))),
 
     // 5. Daily runs (last 30 days)
     db
@@ -88,6 +88,7 @@ export default defineEventHandler(async (event) => {
       .where(and(
         eq(analysisRun.organizationId, orgId),
         sql`${analysisRun.createdAt} >= ${thirtyDaysAgoISO}`,
+        eq(analysisRun.kind, 'application_scoring'),
       ))
       .groupBy(sql`DATE(${analysisRun.createdAt})`)
       .orderBy(sql`DATE(${analysisRun.createdAt})`),
@@ -111,7 +112,7 @@ export default defineEventHandler(async (event) => {
       .innerJoin(application, eq(application.id, analysisRun.applicationId))
       .innerJoin(candidate, eq(candidate.id, application.candidateId))
       .innerJoin(job, eq(job.id, application.jobId))
-      .where(eq(analysisRun.organizationId, orgId))
+      .where(and(eq(analysisRun.organizationId, orgId), eq(analysisRun.kind, 'application_scoring')))
       .orderBy(desc(analysisRun.createdAt))
       .limit(20),
 
@@ -125,7 +126,7 @@ export default defineEventHandler(async (event) => {
         totalCompletionTokens: sum(analysisRun.completionTokens).as('total_completion_tokens'),
       })
       .from(analysisRun)
-      .where(eq(analysisRun.organizationId, orgId))
+      .where(and(eq(analysisRun.organizationId, orgId), eq(analysisRun.kind, 'application_scoring')))
       .groupBy(analysisRun.provider, analysisRun.model),
   ])
 
