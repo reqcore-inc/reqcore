@@ -1,3 +1,5 @@
+import { renderTemplate } from '~~/shared/template-renderer'
+
 export { SYSTEM_TEMPLATES } from '~~/shared/system-templates'
 export type { SystemTemplate } from '~~/shared/system-templates'
 
@@ -18,7 +20,5 @@ export const AVAILABLE_VARIABLES = [
 ] as const
 
 export function renderTemplatePreview(template: string, variables: Record<string, string>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => {
-    return key in variables ? variables[key]! : match
-  })
+  return renderTemplate(template, variables)
 }

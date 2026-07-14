@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
+import { renderTemplate as renderTemplateShared } from '~~/shared/template-renderer'
 
 // ─── Resend client ────────────────────────────────────────────────────────────
 
@@ -490,11 +491,12 @@ export interface InterviewEmailData {
 }
 
 /**
- * Replace {{variable}} placeholders in a template string with actual values.
- * Only replaces known variables to prevent injection of unexpected content.
+ * Convert interview email data into the plain string variable map the shared
+ * generic renderer expects, applying the same fallback defaults the interview
+ * invitation templates have always used.
  */
-export function renderTemplate(template: string, data: InterviewEmailData): string {
-  const variables: Record<string, string> = {
+function interviewEmailDataToVariables(data: InterviewEmailData): Record<string, string> {
+  return {
     candidateName: data.candidateName,
     candidateFirstName: data.candidateFirstName,
     candidateLastName: data.candidateLastName,
@@ -509,10 +511,18 @@ export function renderTemplate(template: string, data: InterviewEmailData): stri
     interviewers: data.interviewers?.join(', ') ?? 'To be confirmed',
     organizationName: data.organizationName,
   }
+}
 
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => {
-    return key in variables ? variables[key]! : match
-  })
+/**
+ * Replace {{variable}} placeholders in a template string with actual values.
+ * Only replaces known variables to prevent injection of unexpected content.
+ *
+ * Thin, interview-typed wrapper around the shared generic renderer
+ * (`~~/shared/template-renderer`) so interview call sites keep their existing
+ * `InterviewEmailData` ergonomics and default fallbacks.
+ */
+export function renderTemplate(template: string, data: InterviewEmailData): string {
+  return renderTemplateShared(template, interviewEmailDataToVariables(data))
 }
 
 /**
