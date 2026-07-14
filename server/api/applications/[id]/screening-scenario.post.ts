@@ -49,6 +49,56 @@ function buildReasoning(c: CriterionScoreEntry): string | undefined {
 }
 
 /**
+ * Best-effort token usage pulled off a `NoObjectGeneratedError` — the AI SDK
+ * populates `.usage` from the provider response even when schema validation
+ * failed, so a rejected (over-budget) attempt still cost real tokens. Missing/
+ * undefined fields count as 0 rather than dropping the whole attempt's usage.
+ */
+function usageFromError(err: unknown): { promptTokens: number; completionTokens: number } {
+  if (!NoObjectGeneratedError.isInstance(err)) return { promptTokens: 0, completionTokens: 0 }
+  const usage = (err as NoObjectGeneratedError).usage
+  return {
+    promptTokens: usage?.inputTokens ?? 0,
+    completionTokens: usage?.outputTokens ?? 0,
+  }
+}
+
+/**
+ * Curate the client-facing shape of a `screening_scenario` row — mirrors the
+ * GET endpoint's whitelist exactly (POST response === GET `latest` shape):
+ * id/status/provider/model/config/questions/promptTokens/completionTokens/
+ * errorMessage/createdAt. `organizationId`, `billingMode`, `costUsdMicros`,
+ * `generatedById`, and `inputSnapshot` are internal/billing fields and never
+ * reach the client. Raw provider/LLM error text is collapsed to a fixed
+ * indicator, same as the GET endpoint.
+ */
+function toClientScenario(row: {
+  id: string
+  status: string
+  provider: string | null
+  model: string | null
+  config: unknown
+  questions: unknown
+  promptTokens: number | null
+  completionTokens: number | null
+  errorMessage: string | null
+  createdAt: Date
+}) {
+  return {
+    id: row.id,
+    status: row.status,
+    provider: row.provider,
+    model: row.model,
+    config: row.config,
+    questions: row.questions,
+    promptTokens: row.promptTokens,
+    completionTokens: row.completionTokens,
+    errorMessage: row.errorMessage ? 'generation_failed' : null,
+    createdAt: row.createdAt,
+  }
+}
+
+/**
  * POST /api/applications/:id/screening-scenario
  * Generate an AI screening-call interview script for a candidate/job pairing
  * and store it. Mirrors analyze.post.ts's provider-resolution / budget /
@@ -115,7 +165,10 @@ export default defineEventHandler(async (event) => {
 
   const startedAt = Date.now()
 
-  async function recordFailure(errorMessage: string) {
+  async function recordFailure(errorMessage: string, promptTokens: number, completionTokens: number) {
+    const hasUsage = promptTokens > 0 || completionTokens > 0
+    const costUsdMicros = hasUsage ? computeCostUsdMicros(resolved.model, promptTokens, completionTokens) : null
+
     await db.insert(screeningScenario).values({
       organizationId: orgId,
       applicationId,
@@ -125,22 +178,44 @@ export default defineEventHandler(async (event) => {
       billingMode: resolved.billingMode,
       config: scenarioConfig,
       errorMessage,
+      // Best-effort — an attempt that failed schema validation still cost
+      // tokens (see usageFromError). 0 when no attempt reported usage.
+      promptTokens: hasUsage ? promptTokens : null,
+      completionTokens: hasUsage ? completionTokens : null,
+      costUsdMicros,
       generatedById: session.user.id,
     })
 
     captureAiGeneration({
       orgId, userId: session.user.id, applicationId, feature: 'screening_scenario',
       provider: resolved.provider, model: resolved.model, billingMode: resolved.billingMode,
-      promptTokens: 0, completionTokens: 0, costUsdMicros: null,
+      promptTokens, completionTokens, costUsdMicros,
       latencyMs: Date.now() - startedAt, status: 'failed',
     })
   }
 
+  // Re-run the money-safety gate before a retry — the first (failed) attempt
+  // already spent tokens, so a platform-paid org could have crossed the
+  // budget threshold between the initial check and the retry.
+  async function assertBudgetForRetry() {
+    if (resolved.billingMode !== 'platform') return
+    try {
+      await assertPlatformBudget(orgId)
+    } catch (err) {
+      if (err instanceof BudgetExceededError) throw budgetErrorToHttp(err)
+      throw createError({ statusCode: 503, statusMessage: 'AI budget check failed. Please try again later.' })
+    }
+  }
+
   let generation: Awaited<ReturnType<typeof generateScreeningScenario>> | undefined
+  let accumulatedPromptTokens = 0
+  let accumulatedCompletionTokens = 0
 
   for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt++) {
     try {
       generation = await generateScreeningScenario(resolved.providerConfig, scenarioConfig, scenarioInput)
+      accumulatedPromptTokens += generation.usage.promptTokens
+      accumulatedCompletionTokens += generation.usage.completionTokens
       break
     } catch (err: any) {
       // The AI SDK throws NoObjectGeneratedError when the model's output fails
@@ -148,7 +223,12 @@ export default defineEventHandler(async (event) => {
       // distinguishable from a provider/network error. Retry once for that
       // case only; any other error (or a second count mismatch) fails outright.
       const isCountMismatch = NoObjectGeneratedError.isInstance(err)
+      const errUsage = usageFromError(err)
+      accumulatedPromptTokens += errUsage.promptTokens
+      accumulatedCompletionTokens += errUsage.completionTokens
+
       if (isCountMismatch && attempt < MAX_GENERATION_ATTEMPTS) {
+        await assertBudgetForRetry()
         continue
       }
 
@@ -156,7 +236,7 @@ export default defineEventHandler(async (event) => {
         ? `Model did not return the requested ${scenarioConfig.questionCount} questions after retry (schema validation: ${err?.message ?? 'unknown'})`
         : (err?.message ?? 'Unknown error')
 
-      await recordFailure(errorMessage)
+      await recordFailure(errorMessage, accumulatedPromptTokens, accumulatedCompletionTokens)
 
       throw createError({
         statusCode: 502,
@@ -167,8 +247,12 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const usage = generation!.usage
-  const costUsdMicros = computeCostUsdMicros(resolved.model, usage.promptTokens, usage.completionTokens)
+  // Total usage across every attempt (including a failed first try before a
+  // successful retry) is what actually reached the provider — that's the
+  // number recorded and billed, not just the winning attempt's usage.
+  const promptTokens = accumulatedPromptTokens
+  const completionTokens = accumulatedCompletionTokens
+  const costUsdMicros = computeCostUsdMicros(resolved.model, promptTokens, completionTokens)
 
   // Compact, PII-light audit snapshot — no full CV text.
   const inputSnapshot = {
@@ -189,8 +273,8 @@ export default defineEventHandler(async (event) => {
     config: scenarioConfig,
     inputSnapshot,
     questions: generation!.scenario.questions,
-    promptTokens: usage.promptTokens,
-    completionTokens: usage.completionTokens,
+    promptTokens,
+    completionTokens,
     costUsdMicros,
     generatedById: session.user.id,
   }).returning()
@@ -198,10 +282,10 @@ export default defineEventHandler(async (event) => {
   captureAiGeneration({
     orgId, userId: session.user.id, applicationId, feature: 'screening_scenario',
     provider: resolved.provider, model: resolved.model, billingMode: resolved.billingMode,
-    promptTokens: usage.promptTokens, completionTokens: usage.completionTokens,
+    promptTokens, completionTokens,
     costUsdMicros, latencyMs: Date.now() - startedAt, status: 'completed',
     traceId: inserted!.id,
   })
 
-  return inserted
+  return toClientScenario(inserted!)
 })

@@ -1,6 +1,30 @@
+/// <reference path="../../.nuxt/types/nitro-imports.d.ts" />
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { defineEventHandler, getValidatedRouterParams, createError } from 'h3'
 import { NoObjectGeneratedError } from 'ai'
+
+/**
+ * Build a real `NoObjectGeneratedError` with fully-populated constructor
+ * props (the `ai` SDK's TS types mark `response`/`usage`/`finishReason` as
+ * required, even though the runtime constructor doesn't enforce it) so the
+ * mock construction here is a real TS error waiting to happen, not just a
+ * vitest convenience. `inputTokens`/`outputTokens` let tests assert that a
+ * failed attempt's token usage is still accounted for.
+ */
+function makeCountMismatchError(message: string, inputTokens = 0, outputTokens = 0): NoObjectGeneratedError {
+  return new NoObjectGeneratedError({
+    message,
+    response: { id: 'resp-stub', timestamp: new Date('2026-01-01T00:00:00Z'), modelId: 'stub-model' },
+    usage: {
+      inputTokens,
+      inputTokenDetails: { noCacheTokens: inputTokens, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      outputTokens,
+      outputTokenDetails: { textTokens: outputTokens, reasoningTokens: 0 },
+      totalTokens: inputTokens + outputTokens,
+    },
+    finishReason: 'stop',
+  })
+}
 
 /**
  * POST /api/applications/:id/screening-scenario — unit coverage.
@@ -71,9 +95,17 @@ beforeAll(async () => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  // `vi.unstubAllGlobals()` clears every global stub, including the h3
+  // helpers this file owns AND tests/setup.ts's logger stubs (logInfo/
+  // logWarn/logError/logDebug), which run once before this whole file and
+  // would otherwise stay wiped for the rest of the file's tests.
   vi.stubGlobal('defineEventHandler', defineEventHandler)
   vi.stubGlobal('getValidatedRouterParams', getValidatedRouterParams)
   vi.stubGlobal('createError', createError)
+  vi.stubGlobal('logInfo', vi.fn())
+  vi.stubGlobal('logWarn', vi.fn())
+  vi.stubGlobal('logError', vi.fn())
+  vi.stubGlobal('logDebug', vi.fn())
   loadApplicationContext.mockReset()
   resolveAnalysisProvider.mockReset()
   assertPlatformBudget.mockReset()
@@ -266,9 +298,9 @@ describe('POST /api/applications/:id/screening-scenario', () => {
     vi.stubGlobal('db', { insert })
     loadApplicationContext.mockResolvedValue(BASE_CONTEXT)
     resolveAnalysisProvider.mockResolvedValue(BASE_RESOLVED)
-    generateScreeningScenario.mockRejectedValue(
-      new NoObjectGeneratedError({ message: 'Expected exactly 8 questions' }),
-    )
+    generateScreeningScenario
+      .mockRejectedValueOnce(makeCountMismatchError('Expected exactly 8 questions', 40, 20))
+      .mockRejectedValueOnce(makeCountMismatchError('Expected exactly 8 questions', 30, 15))
 
     await expect(screeningScenarioPostHandler(makeEvent('app-1'))).rejects.toMatchObject({
       statusCode: 502,
@@ -278,6 +310,74 @@ describe('POST /api/applications/:id/screening-scenario', () => {
     expect(insertCalls).toHaveLength(1)
     expect(insertCalls[0].status).toBe('failed')
     expect(insertCalls[0].errorMessage.toLowerCase()).toContain('question')
+    // Both failed attempts cost real tokens — accumulated across both, not
+    // dropped just because neither attempt produced a usable object.
+    expect(insertCalls[0].promptTokens).toBe(70)
+    expect(insertCalls[0].completionTokens).toBe(35)
+    expect(insertCalls[0].costUsdMicros).toBe(1234)
+  })
+
+  it('does not accumulate/record token usage for a plain network failure (no NoObjectGeneratedError usage available)', async () => {
+    stubSession()
+    const { insert, insertCalls } = makeInsertMock()
+    vi.stubGlobal('db', { insert })
+    loadApplicationContext.mockResolvedValue(BASE_CONTEXT)
+    resolveAnalysisProvider.mockResolvedValue(BASE_RESOLVED)
+    generateScreeningScenario.mockRejectedValue(new Error('upstream connection reset'))
+
+    await expect(screeningScenarioPostHandler(makeEvent('app-1'))).rejects.toMatchObject({ statusCode: 502 })
+
+    expect(insertCalls[0].promptTokens).toBeNull()
+    expect(insertCalls[0].completionTokens).toBeNull()
+    expect(insertCalls[0].costUsdMicros).toBeNull()
+  })
+
+  it('re-checks the platform budget before retrying a count mismatch, and succeeds on the second attempt', async () => {
+    stubSession()
+    const { insert, insertCalls } = makeInsertMock({ id: 'scn-retry-ok' })
+    vi.stubGlobal('db', { insert })
+    loadApplicationContext.mockResolvedValue(BASE_CONTEXT)
+    resolveAnalysisProvider.mockResolvedValue({ ...BASE_RESOLVED, billingMode: 'platform' })
+    assertPlatformBudget.mockResolvedValue(undefined)
+    generateScreeningScenario
+      .mockRejectedValueOnce(makeCountMismatchError('Expected exactly 8 questions', 40, 20))
+      .mockResolvedValueOnce({
+        scenario: { questions: [{ category: 'Motivation', question: 'Why this role?', rationale: 'Checks fit.' }] },
+        usage: { promptTokens: 60, completionTokens: 30 },
+      })
+
+    const result = await screeningScenarioPostHandler(makeEvent('app-1'))
+
+    expect(result).toBeTruthy()
+    expect(generateScreeningScenario).toHaveBeenCalledTimes(2)
+    // Initial pre-generation check + one re-check before the retry.
+    expect(assertPlatformBudget).toHaveBeenCalledTimes(2)
+    // Successful row records usage from BOTH attempts (the failed first try
+    // spent real tokens too), not just the winning retry's usage.
+    expect(insertCalls[0].promptTokens).toBe(100)
+    expect(insertCalls[0].completionTokens).toBe(50)
+  })
+
+  it('maps a budget-exceeded error raised during the pre-retry re-check (no second generation call)', async () => {
+    stubSession()
+    const { insert } = makeInsertMock()
+    vi.stubGlobal('db', { insert })
+    loadApplicationContext.mockResolvedValue(BASE_CONTEXT)
+    resolveAnalysisProvider.mockResolvedValue({ ...BASE_RESOLVED, billingMode: 'platform' })
+    assertPlatformBudget
+      .mockResolvedValueOnce(undefined) // initial pre-generation check passes
+      .mockRejectedValueOnce(new MockBudgetExceededError('org_monthly', 'Monthly AI budget reached')) // re-check before retry fails
+    generateScreeningScenario.mockRejectedValue(makeCountMismatchError('Expected exactly 8 questions', 40, 20))
+
+    await expect(screeningScenarioPostHandler(makeEvent('app-1'))).rejects.toMatchObject({
+      statusCode: 429,
+      data: { code: 'AI_BUDGET_EXCEEDED', scope: 'org_monthly' },
+    })
+
+    // Only the first attempt ran — the retry never happened because the
+    // re-check failed before generateScreeningScenario was called again.
+    expect(generateScreeningScenario).toHaveBeenCalledTimes(1)
+    expect(assertPlatformBudget).toHaveBeenCalledTimes(2)
   })
 
   it('inserts a completed row with mapped reasoning + cost fields on success', async () => {
@@ -316,5 +416,46 @@ describe('POST /api/applications/:id/screening-scenario', () => {
     expect(insertCalls[0].generatedById).toBe('user-1')
     expect(result.id).toBe('scn-99')
     expect(captureAiGeneration).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }))
+  })
+
+  it('returns a curated response matching the GET endpoint whitelist exactly — no billing/internal fields', async () => {
+    stubSession()
+    const { insert } = makeInsertMock({ id: 'scn-shape' })
+    vi.stubGlobal('db', { insert })
+    loadApplicationContext.mockResolvedValue(BASE_CONTEXT)
+    resolveAnalysisProvider.mockResolvedValue(BASE_RESOLVED)
+    generateScreeningScenario.mockResolvedValue({
+      scenario: {
+        questions: [{ category: 'Technical Depth', question: 'Q1', rationale: 'Because reasons.' }],
+      },
+      usage: { promptTokens: 200, completionTokens: 120 },
+    })
+
+    const result = await screeningScenarioPostHandler(makeEvent('app-1'))
+
+    // Whitelisted fields present — matching the GET endpoint's shape exactly.
+    expect(Object.keys(result).sort()).toEqual([
+      'completionTokens',
+      'config',
+      'createdAt',
+      'errorMessage',
+      'id',
+      'model',
+      'provider',
+      'promptTokens',
+      'questions',
+      'status',
+    ].sort())
+
+    // Internal/billing fields are never forwarded to the client.
+    expect(result).not.toHaveProperty('organizationId')
+    expect(result).not.toHaveProperty('applicationId')
+    expect(result).not.toHaveProperty('billingMode')
+    expect(result).not.toHaveProperty('costUsdMicros')
+    expect(result).not.toHaveProperty('generatedById')
+    expect(result).not.toHaveProperty('inputSnapshot')
+
+    // A completed row has no error — collapses to null, same as GET.
+    expect(result.errorMessage).toBeNull()
   })
 })
