@@ -253,6 +253,13 @@
       "when": 1782890973909,
       "tag": "0035_perpetual_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1783989026084,
+      "tag": "0036_regular_marauders",
+      "breakpoints": true
     }
   ]
 }

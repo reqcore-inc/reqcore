@@ -815,6 +815,50 @@ export const analysisRun = pgTable('analysis_run', {
   index('analysis_run_created_at_idx').on(t.createdAt),
 ]))
 
+export const screeningScenarioStatusEnum = pgEnum('screening_scenario_status', ['completed', 'failed'])
+
+/**
+ * Append-only generation history for AI-generated screening question scenarios.
+ * Each generation attempt (including regenerations) creates a new row — nothing
+ * is ever updated in place, mirroring `analysisRun`'s audit-trail conventions.
+ */
+export const screeningScenario = pgTable('screening_scenario', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
+  applicationId: text('application_id').notNull().references(() => application.id, { onDelete: 'cascade' }),
+  status: screeningScenarioStatusEnum('status').notNull().default('completed'),
+  /** Provider + model used for this run */
+  provider: text('provider'),
+  model: text('model'),
+  /**
+   * Who pays for this run: `platform` = our OpenRouter key (counts against the
+   * org's monthly budget + the global daily kill-switch); `byok` = the org's own
+   * API key (never budget-capped — it's their bill, we only track it).
+   */
+  billingMode: analysisBillingModeEnum('billing_mode').notNull().default('byok'),
+  /** Generation configuration snapshot (question count + tone requested) */
+  config: jsonb('config').$type<{ questionCount: number; tone: 'technical' | 'balanced' | 'casual' }>(),
+  /** Snapshot of the input data used to generate the questions, for audit purposes */
+  inputSnapshot: jsonb('input_snapshot').$type<Record<string, unknown>>(),
+  /** Generated screening questions */
+  questions: jsonb('questions').$type<Array<{ category: string; question: string; rationale: string }>>(),
+  /** Token usage for cost tracking */
+  promptTokens: integer('prompt_tokens'),
+  completionTokens: integer('completion_tokens'),
+  /**
+   * Frozen cost of this run in micro-dollars (1e-6 USD), computed at write time
+   * from the central price table (utils/ai/pricing.ts). Null when the model is
+   * unpriced. Summed by the budget gate; never recomputed from mutable config.
+   */
+  costUsdMicros: integer('cost_usd_micros'),
+  errorMessage: text('error_message'),
+  generatedById: text('generated_by_id').references(() => user.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ([
+  index('screening_scenario_organization_id_idx').on(t.organizationId),
+  index('screening_scenario_application_id_idx').on(t.applicationId),
+]))
+
 // ─────────────────────────────────────────────
 // Relations
 // ─────────────────────────────────────────────
@@ -846,6 +890,7 @@ export const applicationRelations = relations(application, ({ one, many }) => ({
   interviews: many(interview),
   criterionScores: many(criterionScore),
   analysisRuns: many(analysisRun),
+  screeningScenarios: many(screeningScenario),
   source: one(applicationSource),
 }))
 
@@ -932,6 +977,12 @@ export const analysisRunRelations = relations(analysisRun, ({ one }) => ({
   organization: one(organization, { fields: [analysisRun.organizationId], references: [organization.id] }),
   application: one(application, { fields: [analysisRun.applicationId], references: [application.id] }),
   scoredBy: one(user, { fields: [analysisRun.scoredById], references: [user.id] }),
+}))
+
+export const screeningScenarioRelations = relations(screeningScenario, ({ one }) => ({
+  organization: one(organization, { fields: [screeningScenario.organizationId], references: [organization.id] }),
+  application: one(application, { fields: [screeningScenario.applicationId], references: [application.id] }),
+  generatedBy: one(user, { fields: [screeningScenario.generatedById], references: [user.id] }),
 }))
 
 // ─── Source Tracking Relations ─────────────────────────────────────
