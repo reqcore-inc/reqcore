@@ -7,9 +7,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // recordActivity) is a Nitro auto-import — stub it as a global, same
 // pattern as tests/unit/rate-limit.test.ts.
 
+const logErrorMock = vi.fn()
 vi.stubGlobal('logInfo', vi.fn())
 vi.stubGlobal('logWarn', vi.fn())
-vi.stubGlobal('logError', vi.fn())
+vi.stubGlobal('logError', logErrorMock)
 vi.stubGlobal('logDebug', vi.fn())
 
 vi.stubGlobal('env', { TRUSTED_PROXY_IP: undefined })
@@ -49,6 +50,9 @@ interface Row {
 let row: Row | null = null
 let findFirstResult: any = null
 const updateSets: Record<string, unknown>[] = []
+// When true, the *top-level* `db.update(...)` (used only for the post-send-failure
+// rollback — the in-transaction claim update always uses `tx.update`) throws.
+let topLevelUpdateShouldFail = false
 
 function makeSelectChain() {
   return {
@@ -60,10 +64,13 @@ function makeSelectChain() {
   }
 }
 
-function makeUpdateChain() {
+function makeUpdateChain(options: { failOnWhere?: boolean } = {}) {
   return {
     set: (values: Record<string, unknown>) => ({
       where: async () => {
+        if (options.failOnWhere) {
+          throw new Error('connection reset')
+        }
         updateSets.push(values)
         if (row) {
           if ('screeningInvitationSentAt' in values) row.screeningInvitationSentAt = values.screeningInvitationSentAt as Date | null
@@ -95,23 +102,31 @@ const dbMock = {
     txQueue = run.catch(() => undefined)
     return run
   }),
-  update: vi.fn(() => makeUpdateChain()),
+  update: vi.fn(() => makeUpdateChain({ failOnWhere: topLevelUpdateShouldFail })),
 }
 vi.stubGlobal('db', dbMock)
 
 // ── Mock the plain util modules the route imports directly ─────────────────
-const getScreeningEmailTemplateForUserMock = vi.fn(async () => ({
+// Typed with the real modules' exported function signatures (via `import
+// type`, which pulls no runtime code) so the mock wrappers are checked
+// against the actual call signature instead of an untyped `unknown[]` spread.
+import type { getScreeningEmailTemplateForUser } from '../../server/utils/screeningEmailTemplate'
+import type { sendScreeningInvitationEmail } from '../../server/utils/email'
+
+const getScreeningEmailTemplateForUserMock = vi.fn<typeof getScreeningEmailTemplateForUser>(async () => ({
   subject: 'Next steps: {{jobTitle}} at {{organizationName}}',
   body: 'Hi {{candidateFirstName}}, from {{senderName}}.',
   isDefault: true,
 }))
 vi.mock('../../server/utils/screeningEmailTemplate', () => ({
-  getScreeningEmailTemplateForUser: (...args: unknown[]) => getScreeningEmailTemplateForUserMock(...args),
+  getScreeningEmailTemplateForUser: (...args: Parameters<typeof getScreeningEmailTemplateForUser>) =>
+    getScreeningEmailTemplateForUserMock(...args),
 }))
 
-const sendScreeningInvitationEmailMock = vi.fn(async () => {})
+const sendScreeningInvitationEmailMock = vi.fn<typeof sendScreeningInvitationEmail>(async () => {})
 vi.mock('../../server/utils/email', () => ({
-  sendScreeningInvitationEmail: (...args: unknown[]) => sendScreeningInvitationEmailMock(...args),
+  sendScreeningInvitationEmail: (...args: Parameters<typeof sendScreeningInvitationEmail>) =>
+    sendScreeningInvitationEmailMock(...args),
 }))
 
 const { default: handler } = await import('../../server/api/applications/[id]/send-screening-invitation.post')
@@ -149,10 +164,12 @@ beforeEach(() => {
   row = null
   findFirstResult = null
   updateSets.length = 0
+  topLevelUpdateShouldFail = false
   recordActivityMock.mockClear()
   sendScreeningInvitationEmailMock.mockClear()
   sendScreeningInvitationEmailMock.mockResolvedValue(undefined)
   getScreeningEmailTemplateForUserMock.mockClear()
+  logErrorMock.mockClear()
 })
 
 describe('POST /api/applications/:id/send-screening-invitation', () => {
@@ -256,5 +273,21 @@ describe('POST /api/applications/:id/send-screening-invitation', () => {
 
     expect(row!.status).toBe('new')
     expect(row!.screeningInvitationSentAt).toBeNull()
+  })
+
+  it('still surfaces the original 502 (not a rollback error) when the rollback UPDATE itself also fails', async () => {
+    findFirstResult = makeApp({ status: 'new' })
+    sendScreeningInvitationEmailMock.mockRejectedValueOnce(new Error('smtp down'))
+    topLevelUpdateShouldFail = true
+
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 502 })
+
+    // The rollback failure itself must be logged under its own error category
+    // so it's distinguishable from the original send failure in monitoring —
+    // the client still only ever sees the original 502.
+    expect(logErrorMock).toHaveBeenCalledWith(
+      'email.screening_invitation_rollback_failed',
+      expect.objectContaining({ error_message: expect.stringContaining('connection reset') }),
+    )
   })
 })

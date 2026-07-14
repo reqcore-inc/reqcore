@@ -1,0 +1,125 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildInterviewInvitationHtml — HTML shell regression > renders the exact canonical HTML shell for a fixed input (with response buttons) 1`] = `
+"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interview scheduled: Technical Screen</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
+          <!-- Header -->
+          <tr>
+            <td style="padding:32px 32px 24px;text-align:center;border-bottom:1px solid #f4f4f5;">
+              <h1 style="margin:0;font-size:20px;font-weight:600;color:#09090b;">Acme Corp</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <div style="font-size:14px;line-height:1.7;color:#3f3f46;">
+                Hi Jane,<br /><br />You are scheduled for a Technical Screen.
+              </div>
+            </td>
+          </tr>
+          <!-- Response Buttons -->
+          <tr>
+            <td style="padding:0 32px 32px;">
+              <div style="border-top:1px solid #e4e4e7;padding-top:24px;">
+                <p style="margin:0 0 16px;font-size:14px;font-weight:600;color:#09090b;text-align:center;">
+                  Can you make it?
+                </p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center">
+                      <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding:0 4px;">
+                            <a href="https://reqcore.com/respond/accept" target="_blank" rel="noopener noreferrer"
+                               style="display:inline-block;padding:10px 20px;background-color:#16a34a;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;border-radius:6px;line-height:1;">
+                              &#10003; Accept
+                            </a>
+                          </td>
+                          <td style="padding:0 4px;">
+                            <a href="https://reqcore.com/respond/tentative" target="_blank" rel="noopener noreferrer"
+                               style="display:inline-block;padding:10px 20px;background-color:#ca8a04;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;border-radius:6px;line-height:1;">
+                              &#63; Maybe
+                            </a>
+                          </td>
+                          <td style="padding:0 4px;">
+                            <a href="https://reqcore.com/respond/decline" target="_blank" rel="noopener noreferrer"
+                               style="display:inline-block;padding:10px 20px;background-color:#dc2626;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;border-radius:6px;line-height:1;">
+                              &#10005; Decline
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 32px;text-align:center;border-top:1px solid #f4f4f5;background-color:#fafafa;">
+              <p style="margin:0;font-size:12px;color:#a1a1aa;">
+                Sent by Acme Corp via Reqcore
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"
+`;
+
+exports[`buildInterviewInvitationHtml — HTML shell regression > renders without response buttons when responseUrls is omitted 1`] = `
+"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subject</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
+          <!-- Header -->
+          <tr>
+            <td style="padding:32px 32px 24px;text-align:center;border-bottom:1px solid #f4f4f5;">
+              <h1 style="margin:0;font-size:20px;font-weight:600;color:#09090b;">Acme Corp</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <div style="font-size:14px;line-height:1.7;color:#3f3f46;">
+                Body
+              </div>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 32px;text-align:center;border-top:1px solid #f4f4f5;background-color:#fafafa;">
+              <p style="margin:0;font-size:12px;color:#a1a1aa;">
+                Sent by Acme Corp via Reqcore
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"
+`;

@@ -130,14 +130,27 @@ export default defineEventHandler(async (event) => {
   catch {
     // Roll back the claim so a transient send failure doesn't burn the
     // candidate's cooldown window or leave the status silently advanced
-    // for an invitation that was never actually delivered.
-    await db.update(application)
-      .set({
-        screeningInvitationSentAt: claim.previousSentAt,
-        ...(claim.willAdvanceStatus ? { status: claim.previousStatus } : {}),
-        updatedAt: new Date(),
+    // for an invitation that was never actually delivered. The rollback
+    // itself is best-effort: if it also fails (e.g. a second DB outage),
+    // log it under its own error category so it's distinguishable from the
+    // original send failure in monitoring, but still surface the original
+    // 502 to the client rather than an unrelated rollback error.
+    try {
+      await db.update(application)
+        .set({
+          screeningInvitationSentAt: claim.previousSentAt,
+          ...(claim.willAdvanceStatus ? { status: claim.previousStatus } : {}),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(application.id, id), eq(application.organizationId, orgId)))
+    }
+    catch (rollbackErr) {
+      logError('email.screening_invitation_rollback_failed', {
+        application_id: id,
+        organization_id: orgId,
+        error_message: rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr),
       })
-      .where(and(eq(application.id, id), eq(application.organizationId, orgId)))
+    }
 
     throw createError({ statusCode: 502, statusMessage: 'Failed to send screening invitation email' })
   }

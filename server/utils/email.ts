@@ -618,7 +618,15 @@ function buildBrandedEmailShell(params: {
 </html>`
 }
 
-function buildInterviewInvitationHtml(subject: string, bodyText: string, data: InterviewEmailData): string {
+/**
+ * Exported (in addition to being used internally by `sendInterviewInvitationEmail`)
+ * so a regression test can pin the exact HTML this produces — see
+ * tests/unit/interview-invitation-html-shell-regression.test.ts. This guards
+ * the interview invitation's rendered output against silent breakage if the
+ * shared `buildBrandedEmailShell` is edited for a newer email type (e.g.
+ * screening invitations) without re-checking interview output.
+ */
+export function buildInterviewInvitationHtml(subject: string, bodyText: string, data: InterviewEmailData): string {
   const bodyHtml = escapeHtml(bodyText).replace(/\n/g, '<br />')
 
   // Build response buttons HTML when URLs are available
