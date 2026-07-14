@@ -1,0 +1,21 @@
+Recruiter: Hi, thanks for joining, I understand you're comfortable doing this in English, but let me know if you want to switch languages for anything.
+
+Candidate: Yes, English is fine, though I might slip into Polish sometimes when I'm thinking out loud, sorry in advance.
+
+Recruiter: No problem at all. Tell me about your background as a QA engineer.
+
+Candidate: Sure, so I've been in QA for six years, the last three at Vantera Software gdzie pracowalem nad automatyzacja testow, sorry, where I worked on test automation for their payments platform. We had maybe two thousand end to end tests when I joined and almost none of them were reliable.
+
+Recruiter: What did you do about that?
+
+Candidate: I led a project to stabilize the suite. Zaczelismy od analizy flaky testow, we started by analyzing which tests were flaky and why, most of it was timing issues and shared test data between parallel runs. We isolated test data per run and added explicit waits instead of sleep calls, brought flakiness from about 30 percent down to under 3 percent.
+
+Recruiter: That's a great outcome. How do you approach testing a brand new feature with no existing coverage?
+
+Candidate: Zazwyczaj zaczynam od rozmowy z product ownerem, usually I start with a conversation with the product owner to understand the critical user paths, then I write a risk-based test plan, prioritizing what would hurt the business most if it broke, not just what's easiest to automate.
+
+Recruiter: Good approach. Last question, are you open to a hybrid role, three days a week in our Warsaw office?
+
+Candidate: Tak, zdecydowanie, yes, definitely, I actually prefer being in office a few days a week.
+
+Recruiter: Great, that's everything from me, dziekuje, we'll follow up soon.

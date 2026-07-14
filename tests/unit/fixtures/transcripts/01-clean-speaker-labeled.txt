@@ -1,0 +1,29 @@
+Recruiter: Thanks for making time today, this should take about 30 minutes. Can you start by walking me through your current role at Northbridge Analytics?
+
+Candidate: Sure. I've been a backend engineer there for about two years, mostly working on their billing pipeline. I own the reconciliation service that matches Stripe events to internal invoices, and I recently led the migration of that service from a monolith into its own deployable unit.
+
+Recruiter: Great. What made you decide to split it out into its own service?
+
+Candidate: A few things. First, the monolith's deploys were taking almost forty minutes, and the billing team was blocked behind every unrelated change. Second, we needed independent scaling because reconciliation runs are bursty around month-end close. So I proposed the split, wrote the migration plan, and we executed it over about six weeks without downtime.
+
+Recruiter: Nice. Now, this role is for a founding engineer position, which means a lot more ambiguity than what you're describing. How do you feel about working without a clear spec?
+
+Candidate: Honestly I like it more than I expected to. At Northbridge I ended up writing most of the spec for the reconciliation split myself because nobody else had context on the Stripe edge cases. So even in a "well-specified" company, a lot of my actual day-to-day was defining the problem before solving it.
+
+Recruiter: Can you give me an example of a time a project you owned failed, or didn't go the way you expected?
+
+Candidate: Yes. Early last year I shipped a caching layer in front of our pricing service to cut latency. It worked in staging, but in production we had a cache invalidation bug that served stale prices for about ninety minutes before anyone caught it. We had to refund a handful of customers. I wrote the postmortem, added an invalidation test harness, and that class of bug hasn't recurred since.
+
+Recruiter: How did that affect how you approach caching now?
+
+Candidate: I'm a lot more paranoid about invalidation paths than the "happy path" of a cache. I now always ask, before writing a cache, what the worst-case staleness window is and whether the business can tolerate it.
+
+Recruiter: Last question — the role would require some on-call rotation from day one, roughly one week in four. Are you comfortable with that?
+
+Candidate: Yes, I've done on-call for the last year and a half already, so that's not new for me.
+
+Recruiter: Perfect, that's everything I had. Do you have any questions for me?
+
+Candidate: Just one — what does the current test coverage situation look like for the core service?
+
+Recruiter: Honestly, it's thin right now, maybe 30 percent. That's part of why we're hiring. We'll follow up with next steps by email this week.

@@ -1,0 +1,29 @@
+Recruiter: — okay I think we're recording now, sorry about that, can you [inaudible] your current notice period?
+
+Candidate: Yeah so I'm at — sorry go ahead
+
+Recruiter: No no, go ahead
+
+Candidate: I was just going to say I'm currently at Baymont [inaudible] and my notice period is four weeks, but I've already given a heads up to my manager so it could probably move faster.
+
+Recruiter: Got it, got it. And can you tell me about — [crosstalk] — sorry, tell me about your experience with, uh, dis- distributed systems?
+
+Candidate: Sure so distributed systems, I worked on a — [inaudible, ~4s] — service that handled order routing across three regions, um, the main challenge was, was, consistency during regional failover
+
+Recruiter: mm-hmm
+
+Candidate: — so we ended up going with a a eventual consistency model with a reconciliation job that ran every, I want to say every fifteen minutes? and that mostly worked but there was one incident where [crosstalk — recruiter: "can you speak up a bit"] sorry, is this better
+
+Recruiter: yeah much better sorry go on
+
+Candidate: no worries so there was one incident where the reconciliation job itself had a bug and it double counted some orders during a region failover, we caught it within about two hours because of an alert on order count anomalies
+
+Recruiter: okay that's — that's a good catch. Um, quick one, how do you handle disagreements with, uh, with a tech lead about architecture decisions
+
+Candidate: [inaudible] — I try to, honestly I try to bring data instead of opinions, like if I disagree I'll usually go build a small prototype or benchmark rather than just argue in the abstract
+
+Recruiter: that's — [phone ringing in background] — sorry one sec — okay I'm back, sorry about that. Last question, are you okay with a hybrid schedule, three days in office?
+
+Candidate: yeah that's fine, that's actually what I do now
+
+Recruiter: perfect that's everything, we'll, uh, we'll follow up by email, thanks for your patience with the, the audio issues today

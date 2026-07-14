@@ -1,0 +1,45 @@
+WEBVTT
+
+1
+00:00:03.120 --> 00:00:08.940
+<v Marta Wisniewska>Hi, thanks for hopping on. Just to confirm, this is for the Platform Engineer role at Cedarline Logistics, right?
+
+2
+00:00:09.400 --> 00:00:11.010
+<v Devon Achebe>Yep, that's right.
+
+3
+00:00:12.500 --> 00:00:24.880
+<v Marta Wisniewska>Great. So tell me a bit about your experience with Kubernetes, specifically around multi-tenant cluster setups since that's a big part of what we do here.
+
+4
+00:00:25.660 --> 00:00:52.310
+<v Devon Achebe>Sure, so at my last company, Ferrowatt Systems, we ran a shared cluster for about forty internal teams. I was responsible for the namespace isolation policy, resource quotas, and we used OPA Gatekeeper for policy enforcement. The trickiest part honestly was noisy-neighbor CPU throttling, we ended up writing a custom admission webhook to catch requests without limits set.
+
+5
+00:00:53.000 --> 00:00:58.220
+<v Marta Wisniewska>Interesting. And how big was the team maintaining that platform?
+
+6
+00:00:59.010 --> 00:01:04.500
+<v Devon Achebe>Just three of us, which was honestly not enough for forty tenant teams.
+
+7
+00:01:05.800 --> 00:01:22.140
+<v Marta Wisniewska>Got it. Let's switch gears. Cedarline is a much smaller company than Ferrowatt. Some people find that a downgrade in terms of resources and polish. How do you feel about that tradeoff?
+
+8
+00:01:23.400 --> 00:01:44.760
+<v Devon Achebe>Actually I'm looking for that. At Ferrowatt everything was already built, I was maintaining more than building. I miss greenfield work, and I like that at a smaller company my decisions have more visible impact.
+
+9
+00:01:45.900 --> 00:01:47.310
+<v Marta Wisniewska>Makes sense. Any questions for me before we wrap?
+
+10
+00:01:48.000 --> 00:01:58.500
+<v Devon Achebe>Yeah, what's the current deployment cadence, and is there an existing on-call rotation or would I be setting one up?
+
+11
+00:01:59.200 --> 00:02:15.000
+<v Marta Wisniewska>We deploy several times a day, and there's a very informal on-call right now, mostly whoever's awake. Setting up a real rotation would likely be one of your first projects. We'll be in touch within a week.

@@ -1,0 +1,42 @@
+Microsoft Teams meeting transcript
+Meeting: Screening call — Support Engineer — Halvorsen Retail Group
+Date: 2026-06-02
+
+[10:03] Anna Kowalska
+Hi, can you hear me okay? Great, let's get started. I've got about 25 minutes blocked. Can you tell me about your background in customer-facing technical support?
+
+[10:03] Tomasz Nowicki
+Yes I can hear you fine. So I've been doing technical support for about four years, the last two at a company called Brightloop CRM where I handled tier-2 escalations for their API integrations.
+
+[10:04] Anna Kowalska
+What does a typical tier-2 escalation look like there?
+
+[10:05] Tomasz Nowicki
+Usually it's a customer whose webhook deliveries are failing intermittently, and tier-1 couldn't diagnose it. I'd pull logs, check retry counts, sometimes it's a customer-side firewall issue, sometimes it's our infrastructure. I built a runbook for the five most common webhook failure signatures which cut our average resolution time by something like 40 percent.
+
+[10:07] Anna Kowalska
+That's a good number. How do you handle a customer who's frustrated or escalating loudly?
+
+[10:07] Tomasz Nowicki
+I try to acknowledge the frustration first before jumping into diagnostics, customers usually just want to feel heard. Then I set a clear expectation, like "I'll have an update for you in 30 minutes" rather than leaving them guessing.
+
+[10:09] Anna Kowalska
+Good. This role at Halvorsen would also involve some light scripting, mostly Python, to build internal tooling. How comfortable are you with that?
+
+[10:10] Tomasz Nowicki
+Comfortable. I'm not a professional engineer but I wrote several internal scripts at Brightloop, mostly for log parsing and generating weekly ticket-trend reports for the team lead.
+
+[10:11] Anna Kowalska
+Perfect. Last thing — we're a retail company so there's seasonal volume spikes, particularly November and December. Are you okay with mandatory overtime during that window?
+
+[10:12] Tomasz Nowicki
+Yes, I did the same at Brightloop during their renewal season, so I know what that's like.
+
+[10:13] Anna Kowalska
+Great, that covers everything on my end. Any questions for me?
+
+[10:13] Tomasz Nowicki
+Just curious, what ticketing system does the team use day to day?
+
+[10:14] Anna Kowalska
+Zendesk, with a custom internal dashboard on top. We'll follow up by early next week with next steps.

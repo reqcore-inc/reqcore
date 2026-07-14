@@ -1,0 +1,27 @@
+Recruiter: Let's start with a multi-part one. Can you walk me through your experience with our tech stack — specifically React on the frontend and Go on the backend — and also tell me which one you'd say you're stronger in?
+
+Candidate: Sure, so I've used React for about three years, mostly building admin dashboards, and Go for about a year and a half on smaller internal services. If I had to pick, I'd say I'm stronger in React just because of the sheer amount of time I've spent in it, but I actually enjoy Go more day to day.
+
+Recruiter: Interesting, why do you enjoy Go more if you're not as strong in it?
+
+Candidate: I like the simplicity, honestly, there's fewer ways to do the same thing compared to the JavaScript ecosystem, and the tooling around testing and concurrency feels more first-class rather than bolted on.
+
+Recruiter: Fair. Before we go further — actually, can I ask, is this role backend-leaning or is there meaningful frontend work too? I ask because that affects how I'd prioritize what to highlight.
+
+Recruiter: Good question — it's about 70/30 backend to frontend, so mostly Go with some React maintenance.
+
+Candidate: Okay that's helpful, thanks.
+
+Recruiter: Next one, also multi-part: tell me about a time you had to make a decision with incomplete information, what the decision was, and whether you'd make the same call again knowing what you know now.
+
+Candidate: Yeah so, at my last job we had to decide whether to migrate our database provider before a big product launch or wait until after. We didn't have full clarity on migration risk because the new provider's docs were thin. I decided to wait until after launch and do a slower, staged migration. Looking back, I'd make the same call — the launch had enough unknowns on its own, stacking a risky migration on top would have been reckless.
+
+Recruiter: Makes sense. Do you have any questions for me at this point, or should I keep going?
+
+Candidate: One quick one — what's the interview process look like after this, how many more rounds?
+
+Recruiter: Typically one technical round and then a final with the hiring manager. Okay, last question from me: are you interviewing elsewhere right now, and if so, what's your timeline?
+
+Candidate: I am, I have two other processes going, both are probably two to three weeks out from an offer, so I'd say my timeline is around three weeks.
+
+Recruiter: Good to know, thanks for the transparency. That's everything, we'll follow up soon.
