@@ -30,6 +30,10 @@ export default defineEventHandler(async (event) => {
           // AI analysis output is personal data under Art. 15 (incl. any
           // automated-decision logic) and must be included in the export.
           analysisRuns: true,
+          // AI-generated screening question scenarios (and their inputSnapshot /
+          // config) are personal data under Art. 15 for the same reason as
+          // analysisRuns above, and must be included in the export.
+          screeningScenarios: true,
           source: true,
         },
       },

@@ -1,0 +1,1 @@
+{"timestamp":"2026-07-14T00:44:34Z","task_id":"1.7","test_file":"tests/unit/screening-scenario-retention.test.ts","exit_code":1,"framework":"vitest","stderr_tail":"AssertionError: expected callArgs.with.applications.with to have property screeningScenarios with value true - Received: undefined","cwd_hash":"0d5784389326"}
