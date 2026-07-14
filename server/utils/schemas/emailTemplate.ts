@@ -21,8 +21,8 @@ export const TEMPLATE_VARIABLES = [
   'organizationName',
 ] as const
 
-const MAX_SUBJECT_LENGTH = 200
-const MAX_BODY_LENGTH = 10_000
+export const MAX_SUBJECT_LENGTH = 200
+export const MAX_BODY_LENGTH = 10_000
 const MAX_NAME_LENGTH = 100
 
 /** Schema for creating a new email template */
