@@ -57,7 +57,7 @@ unknown_data:
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | TA4.1 | "Screening Analysis" section on `app/pages/dashboard/applications/[id].vue`: upload/paste tabs, transcript list, run button with 429/budget error copy (reuse existing budget-exceeded messaging pattern). English copy per spec i18n decision. `[tdd:skip:ui-covered-by-e2e]` | Renders in dev; upload + paste + run reachable; budget error surfaced, not swallowed | TA2.3, TA3.2 | cc:完了 [9cf10f0] |
-| TA4.2 | Results view: advisory banner ("AI recommendation — the decision is yours" framing, recommendation + confidence), section scores, per-answer accordion with quoted evidence, visible truncation notice when flagged. **No control that auto-changes application status.** `[tdd:skip:ui-covered-by-e2e]` | All output fields rendered; advisory copy present; truncation notice shown when `truncated` | TA4.1 | cc:TODO |
+| TA4.2 | Results view: advisory banner ("AI recommendation — the decision is yours" framing, recommendation + confidence), section scores, per-answer accordion with quoted evidence, visible truncation notice when flagged. **No control that auto-changes application status.** `[tdd:skip:ui-covered-by-e2e]` | All output fields rendered; advisory copy present; truncation notice shown when `truncated` | TA4.1 | cc:完了 [] |
 
 ## TA Phase 5: Verification + closeout `[lane:gate]` (stage gates 4–5)
 
