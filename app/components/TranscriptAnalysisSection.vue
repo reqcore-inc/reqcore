@@ -193,18 +193,6 @@ async function runAnalysis(transcriptId: string) {
 // Display helpers
 // ─────────────────────────────────────────────
 
-const recommendationLabels: Record<string, string> = {
-  advance: 'Advance',
-  hold: 'Hold',
-  do_not_advance: 'Do not advance',
-  insufficient_evidence: 'Insufficient evidence',
-}
-
-const extractionModeLabels: Record<string, string> = {
-  per_answer: 'Per-answer breakdown',
-  section_level: 'Topic-level assessment',
-}
-
 function latestAnalysis(t: Transcript): TranscriptAnalysis | null {
   if (!t.analyses.length) return null
   return [...t.analyses].sort(
@@ -362,30 +350,21 @@ function latestAnalysis(t: Transcript): TranscriptAnalysis | null {
             <span>{{ runErrors[t.id] }}</span>
           </div>
 
-          <!-- Analysis results placeholder — TA4.2 owns the rich results view.
-               Renders the raw recommendation + status minimally for now. -->
-          <div
-            v-if="latestAnalysis(t)"
-            class="mt-2.5 pt-2.5 border-t border-surface-100 dark:border-surface-800 text-xs"
-          >
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <!-- Analysis results — status line while pending/running, rich
+               results view (advisory banner, section scores, per-answer
+               accordion, truncation notice, rationale) once complete. -->
+          <div v-if="latestAnalysis(t)">
+            <div
+              v-if="latestAnalysis(t)!.status !== 'completed'"
+              class="mt-2.5 pt-2.5 border-t border-surface-100 dark:border-surface-800 text-xs"
+            >
               <span class="text-surface-400">Status: <span class="text-surface-600 dark:text-surface-300 font-medium">{{ latestAnalysis(t)!.status }}</span></span>
-              <span v-if="latestAnalysis(t)!.recommendation" class="text-surface-400">
-                Recommendation:
-                <span class="text-surface-600 dark:text-surface-300 font-medium">
-                  {{ recommendationLabels[latestAnalysis(t)!.recommendation!] ?? latestAnalysis(t)!.recommendation }}
-                </span>
-              </span>
-              <span v-if="latestAnalysis(t)!.extractionMode" class="text-surface-400">
-                Mode:
-                <span class="text-surface-600 dark:text-surface-300 font-medium">
-                  {{ extractionModeLabels[latestAnalysis(t)!.extractionMode!] ?? latestAnalysis(t)!.extractionMode }}
-                </span>
-              </span>
             </div>
-            <p class="mt-1 text-[11px] text-surface-400 italic">
-              This is AI-generated advice — the recruiter makes the final decision.
-            </p>
+            <TranscriptAnalysisResults
+              v-else
+              :analysis="latestAnalysis(t)!"
+              :truncated="t.truncated"
+            />
           </div>
         </div>
       </div>
