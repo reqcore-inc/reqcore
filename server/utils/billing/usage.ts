@@ -4,15 +4,18 @@
  *
  * Both meters mirror gates enforced elsewhere:
  *  - activeRoles  → assertActiveRoleLimit (server/utils/billing/plan.ts)
- *  - aiAnalysis   → assertPlatformBudget free-tier count gate (server/utils/ai/budget.ts)
+ *  - aiAnalysis   → assertPlatformBudget free-tier count gate (server/utils/ai/budget.ts),
+ *                   via the shared `countPlatformRuns` helper — summed across
+ *                   BOTH analysisRun and screeningScenario so this meter never
+ *                   desyncs from the enforcement gate.
  *
  * `limit: null` means "no fixed cap on this tier" (e.g. paid AI is a $ budget,
  * agency roles are unlimited) and is JSON-safe, unlike Infinity.
  */
 import { and, eq, sql } from 'drizzle-orm'
-import { analysisRun, job } from '../../database/schema'
+import { job } from '../../database/schema'
 import { resolveOrgPlanId } from './plan'
-import { freeRunLimit } from '../ai/budget'
+import { countPlatformRuns, freeRunLimit } from '../ai/budget'
 import { activeRoleLimitForTier, type BillingTier } from '../../../shared/billing'
 
 export interface UsageMeter {
@@ -33,19 +36,6 @@ async function countOpenJobs(orgId: string): Promise<number> {
     .select({ total: sql<string>`count(*)` })
     .from(job)
     .where(and(eq(job.organizationId, orgId), eq(job.status, 'open')))
-  return Number(row?.total ?? 0)
-}
-
-/** Count completed platform-paid AI runs for an org (lifetime). */
-async function countPlatformRuns(orgId: string): Promise<number> {
-  const [row] = await db
-    .select({ total: sql<string>`count(*)` })
-    .from(analysisRun)
-    .where(and(
-      eq(analysisRun.billingMode, 'platform'),
-      eq(analysisRun.organizationId, orgId),
-      eq(analysisRun.status, 'completed'),
-    ))
   return Number(row?.total ?? 0)
 }
 

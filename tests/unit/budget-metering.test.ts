@@ -18,10 +18,13 @@ vi.mock('../../server/utils/billing/plan', () => ({
 }))
 
 import { resolveOrgPlanId } from '../../server/utils/billing/plan'
-import { analysisRun, screeningScenario } from '../../server/database/schema'
+import { analysisRun, screeningScenario, job } from '../../server/database/schema'
 import { assertPlatformBudget, BudgetExceededError } from '../../server/utils/ai/budget'
+import { getOrgUsage } from '../../server/utils/billing/usage'
 
 const mockResolveOrgPlanId = vi.mocked(resolveOrgPlanId)
+
+type TableName = 'analysisRun' | 'screeningScenario' | 'job' | 'unknown'
 
 /**
  * Walk a drizzle `and(eq(...), ...)` AST and pull out the table each `eq`/
@@ -29,9 +32,10 @@ const mockResolveOrgPlanId = vi.mocked(resolveOrgPlanId)
  * about. Lets us assert a query's `.from(table)` actually paired with a
  * `.where(...)` predicate scoped to that same table.
  */
-function tableOfSelect(fromArg: unknown): 'analysisRun' | 'screeningScenario' | 'unknown' {
+function tableOfSelect(fromArg: unknown): TableName {
   if (fromArg === analysisRun) return 'analysisRun'
   if (fromArg === screeningScenario) return 'screeningScenario'
+  if (fromArg === job) return 'job'
   return 'unknown'
 }
 
@@ -44,13 +48,22 @@ function tableOfSelect(fromArg: unknown): 'analysisRun' | 'screeningScenario' | 
 function stubDb(rowsByTable: {
   analysisRun?: { total: string }
   screeningScenario?: { total: string }
+  job?: { total: string }
 }) {
-  const whereCallsByTable: Record<string, unknown[]> = {
+  const whereCallsByTable: Record<TableName, unknown[]> = {
     analysisRun: [],
     screeningScenario: [],
+    job: [],
     unknown: [],
   }
   const fromCalls: string[] = []
+
+  const rowFor = (table: TableName) => {
+    if (table === 'analysisRun') return rowsByTable.analysisRun
+    if (table === 'screeningScenario') return rowsByTable.screeningScenario
+    if (table === 'job') return rowsByTable.job
+    return undefined
+  }
 
   const select = vi.fn((_cols: any) => ({
     from: (fromArg: unknown) => {
@@ -59,7 +72,7 @@ function stubDb(rowsByTable: {
       return {
         where: (pred: unknown) => {
           whereCallsByTable[table]!.push(pred)
-          const row = table === 'analysisRun' ? rowsByTable.analysisRun : rowsByTable.screeningScenario
+          const row = rowFor(table)
           return Promise.resolve(row ? [row] : [])
         },
       }
@@ -98,11 +111,10 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  // budget.ts never logs, so unlike screening-scenario-get.test.ts's
+  // stubGlobals, there's no logInfo/logWarn/logError/logDebug global to
+  // re-stub here.
   vi.unstubAllGlobals()
-  vi.stubGlobal('logInfo', vi.fn())
-  vi.stubGlobal('logWarn', vi.fn())
-  vi.stubGlobal('logError', vi.fn())
-  vi.stubGlobal('logDebug', vi.fn())
   delete process.env.AI_FREE_PLAN_RUN_LIMIT
   delete process.env.AI_DAILY_SPEND_CAP_USD
 })
@@ -145,12 +157,24 @@ describe('countPlatformRuns metering (free-tier lifetime gate)', () => {
     // simulates that filtered aggregate already applied. 4 analysis + 0
     // scenario (because the 2 scenario rows in the fixture are byok/failed
     // and therefore excluded by the predicate) stays under the cap of 5.
-    stubDb({
+    const { whereCallsByTable } = stubDb({
       analysisRun: { total: '4' },
       screeningScenario: { total: '0' },
     })
 
     await expect(assertPlatformBudget('org-3')).resolves.toBeUndefined()
+
+    // Assert the filter itself — not just the stubbed totals — actually
+    // scopes to platform+completed for both tables. Without this, dropping
+    // the billingMode/status predicates from the real query would still
+    // pass this test as long as the stub returned pre-filtered numbers.
+    for (const table of ['analysisRun', 'screeningScenario'] as const) {
+      const preds = whereCallsByTable[table]!
+      expect(preds.length).toBeGreaterThan(0)
+      const values = extractBoundParamValues(preds[0])
+      expect(values).toContain('platform')
+      expect(values).toContain('completed')
+    }
   })
 })
 
@@ -220,5 +244,46 @@ describe('sumPlatformSpendMicros metering (monthly + global caps)', () => {
       const values = extractBoundParamValues(preds[0])
       expect(values.some(v => v instanceof Date)).toBe(true)
     }
+  })
+})
+
+describe('getOrgUsage aiAnalysis meter (billing UI) stays in sync with the enforcement gate', () => {
+  it('sums analysisRun + screeningScenario completed platform rows into aiAnalysis.used (matching the free-tier gate count)', async () => {
+    mockResolveOrgPlanId.mockResolvedValue('free')
+    const { fromCalls, whereCallsByTable } = stubDb({
+      analysisRun: { total: '3' },
+      screeningScenario: { total: '2' },
+      job: { total: '1' },
+    })
+
+    const usage = await getOrgUsage('org-usage-1')
+
+    // The UI meter must reflect the SAME combined count the enforcement gate
+    // uses (3 + 2 = 5) — this is the exact desync bug the reviewer flagged:
+    // usage.ts previously had its own countPlatformRuns that only summed
+    // analysisRun (would have reported 3, not 5).
+    expect(usage.aiAnalysis.used).toBe(5)
+    expect(usage.tier).toBe('free')
+
+    expect(fromCalls).toContain('analysisRun')
+    expect(fromCalls).toContain('screeningScenario')
+    for (const table of ['analysisRun', 'screeningScenario'] as const) {
+      const preds = whereCallsByTable[table]!
+      expect(preds.length).toBeGreaterThan(0)
+      expect(extractBoundParamValues(preds[0])).toContain('org-usage-1')
+    }
+  })
+
+  it('reuses the shared countPlatformRuns from budget.ts rather than a local duplicate', async () => {
+    // Import both modules' exports and assert usage.ts's getOrgUsage is
+    // wired to the exact same function budget.ts's enforcement gate uses —
+    // guards against usage.ts re-introducing its own private copy.
+    const budgetModule = await import('../../server/utils/ai/budget')
+    const usageModuleSource = await import('node:fs/promises').then(fs =>
+      fs.readFile(new URL('../../server/utils/billing/usage.ts', import.meta.url), 'utf-8'),
+    )
+    expect(typeof budgetModule.countPlatformRuns).toBe('function')
+    expect(usageModuleSource).toContain("import { countPlatformRuns, freeRunLimit } from '../ai/budget'")
+    expect(usageModuleSource).not.toMatch(/async function countPlatformRuns/)
   })
 })

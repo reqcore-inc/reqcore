@@ -73,8 +73,13 @@ export class BudgetExceededError extends Error {
  * Count completed platform-paid runs for an org (lifetime), summed across
  * BOTH platform-billed AI generation surfaces: analysisRun (shortlist
  * scoring) and screeningScenario (screening question generation).
+ *
+ * Exported so server/utils/billing/usage.ts's `aiAnalysis` usage meter (the
+ * number shown in the billing UI) reuses this exact count instead of
+ * maintaining its own copy that could silently drift from the enforcement
+ * gate below.
  */
-async function countPlatformRuns(orgId: string): Promise<number> {
+export async function countPlatformRuns(orgId: string): Promise<number> {
   const [[analysisRow], [scenarioRow]] = await Promise.all([
     db
       .select({ total: sql<string>`count(*)` })
