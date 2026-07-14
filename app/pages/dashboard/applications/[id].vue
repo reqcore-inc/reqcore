@@ -305,6 +305,11 @@ function formatResponseValue(value: unknown): string {
         </div>
       </div>
 
+      <!-- Screening Analysis -->
+      <div class="mt-4 mb-4">
+        <TranscriptAnalysisSection :application-id="applicationId" />
+      </div>
+
       <!-- Notes -->
       <div class="mt-4 rounded-lg border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 mb-4">
         <div class="flex items-center justify-between mb-3">
