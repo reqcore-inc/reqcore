@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ClipboardList, Sparkles, AlertTriangle, Loader2, RefreshCw } from 'lucide-vue-next'
+import { ClipboardList, Sparkles, AlertTriangle, Loader2, RefreshCw, Info, KeyRound, TrendingUp } from 'lucide-vue-next'
 
 interface ScreeningQuestion {
   category: string
@@ -44,6 +44,17 @@ const questionCount = ref<number>(8)
 const tone = ref<'technical' | 'balanced' | 'casual'>('balanced')
 
 const isGenerating = ref(false)
+
+/**
+ * Distinct failure modes surfaced by the Generate/Regenerate flow. Each maps
+ * to its own visual state in the template — see `mapGenerationError` below
+ * for the HTTP status/data classification. Raw provider/LLM error text is
+ * never rendered: the server already collapses 5xx statusMessage to a fixed
+ * string (screening-scenario.post.ts), and 4xx branches below only ever use
+ * server-authored (not raw-LLM) copy or fixed friendly copy.
+ */
+type GenerationErrorKind = 'provider_unconfigured' | 'budget_exceeded' | 'generation_failed'
+const generateErrorKind = ref<GenerationErrorKind | null>(null)
 const generateError = ref<string | null>(null)
 
 const { data: scenarioData, status, refresh } = useFetch<ScreeningScenarioData>(
@@ -67,9 +78,120 @@ const history = computed(() => resolvedScenarioData.value?.history ?? [])
 const hasScenario = computed(() => Boolean(latest.value?.questions?.length))
 const isInitialLoad = computed(() => status.value === 'pending' && !cachedScenarioData.value)
 
+// ─────────────────────────────────────────────
+// Context signals: parsed CV / existing AI score
+// ─────────────────────────────────────────────
+// Neither the GET nor POST screening-scenario response exposes resume-parse
+// status or score presence to the client by design (inputSnapshot is
+// server/audit-only — see toClientScenario in screening-scenario.post.ts),
+// and this task's file scope is limited to this component + the POST route +
+// its test — CandidateDetailSidebar.vue (the parent) is out of scope, so a
+// prop can't be threaded down from its existing application/candidate
+// fetches. Rather than guess reactively from a response that structurally
+// cannot carry this information, this component derives both signals from
+// two EXISTING endpoints it's already permitted to call (no new server API
+// surface added): `/api/applications/:id/scores` (compositeScore — the same
+// data ScoreBreakdown.vue renders) and `/api/candidates/:id` (documents[].parsed
+// — the same flag the Documents tab relies on). This does add two extra
+// client requests beyond what the parent already fetches; a follow-up task
+// wiring these through as props from CandidateDetailSidebar would remove the
+// duplication once the parent is back in scope.
+interface ApplicationScoreSummary {
+  compositeScore: number | null
+}
+const { data: scoreSummary } = useFetch<ApplicationScoreSummary>(
+  () => `/api/applications/${props.applicationId}/scores`,
+  {
+    key: computed(() => `screening-panel-scores-${props.applicationId}`),
+    headers: useRequestHeaders(['cookie']),
+    watch: [() => props.applicationId],
+  },
+)
+const scoreSignalLoaded = computed(() => scoreSummary.value != null)
+const hasScore = computed(() => scoreSummary.value?.compositeScore != null)
+
+interface ApplicationCandidateRef {
+  candidate: { id: string } | null
+}
+const { data: applicationRef } = useFetch<ApplicationCandidateRef>(
+  () => `/api/applications/${props.applicationId}`,
+  {
+    key: computed(() => `screening-panel-application-ref-${props.applicationId}`),
+    headers: useRequestHeaders(['cookie']),
+    watch: [() => props.applicationId],
+  },
+)
+const candidateIdForResumeCheck = computed(() => applicationRef.value?.candidate?.id ?? null)
+
+interface CandidateDocumentSummary {
+  type: string
+  parsed: boolean
+}
+interface CandidateDetailSummary {
+  documents: CandidateDocumentSummary[]
+}
+const { data: candidateDetail, refresh: refreshCandidateDetail } = useFetch<CandidateDetailSummary>(
+  () => candidateIdForResumeCheck.value ? `/api/candidates/${candidateIdForResumeCheck.value}` : null!,
+  {
+    key: computed(() => `screening-panel-candidate-${candidateIdForResumeCheck.value}`),
+    headers: useRequestHeaders(['cookie']),
+    watch: [candidateIdForResumeCheck],
+    immediate: false,
+  },
+)
+watch(candidateIdForResumeCheck, (id) => {
+  if (id) refreshCandidateDetail()
+}, { immediate: true })
+
+const resumeSignalLoaded = computed(() => candidateDetail.value != null)
+const hasParsedResume = computed(() =>
+  (candidateDetail.value?.documents ?? []).some(doc => doc.type === 'resume' && doc.parsed),
+)
+
+/**
+ * Classify a $fetch error from POST screening-scenario by HTTP status/data
+ * shape into one of the distinct UI states this panel renders. Keeping this
+ * as a small pure function (rather than inline in the catch block) makes the
+ * status/data → state mapping easy to audit in one place.
+ */
+function mapGenerationError(err: any): { kind: GenerationErrorKind, message: string } {
+  const statusCode: number | undefined = err?.statusCode ?? err?.data?.statusCode ?? err?.response?.status
+  const budgetCode = err?.data?.data?.code
+
+  // resolveAnalysisProvider() → loadAiConfig() 422: no BYOK/platform provider configured.
+  if (statusCode === 422) {
+    return {
+      kind: 'provider_unconfigured',
+      message: 'No AI provider configured for this workspace.',
+    }
+  }
+
+  // budgetErrorToHttp() always throws 429 with data.code === 'AI_BUDGET_EXCEEDED';
+  // 402 is handled defensively as the same class of error. A plain 429 from the
+  // route's own rate limiter (no budget code) is NOT a budget/upgrade situation —
+  // it falls through to the generic friendly-retry state below.
+  if (budgetCode === 'AI_BUDGET_EXCEEDED' || statusCode === 402) {
+    return {
+      kind: 'budget_exceeded',
+      message: typeof err?.data?.statusMessage === 'string' && err.data.statusMessage.length > 0
+        ? err.data.statusMessage
+        : 'AI usage limit reached for this workspace.',
+    }
+  }
+
+  // 502 (LLM/provider failure, already collapsed server-side) and everything else
+  // (including plain rate-limit 429s) get a fixed, friendly retry state. No raw
+  // err.message is ever shown here.
+  return {
+    kind: 'generation_failed',
+    message: 'Screening scenario generation failed. Please try again.',
+  }
+}
+
 async function generateScenario() {
   isGenerating.value = true
   generateError.value = null
+  generateErrorKind.value = null
   try {
     await $fetch(`/api/applications/${props.applicationId}/screening-scenario`, {
       method: 'POST',
@@ -79,10 +201,17 @@ async function generateScenario() {
     await refresh()
     emit('generated')
   } catch (err: any) {
-    generateError.value = err?.data?.statusMessage ?? 'Screening scenario generation failed. Make sure AI is configured in settings.'
+    const mapped = mapGenerationError(err)
+    generateErrorKind.value = mapped.kind
+    generateError.value = mapped.message
   } finally {
     isGenerating.value = false
   }
+}
+
+function dismissError() {
+  generateError.value = null
+  generateErrorKind.value = null
 }
 </script>
 
@@ -143,6 +272,22 @@ async function generateScenario() {
       </div>
     </div>
 
+    <!-- Informational notices: generation stays ALLOWED in both cases. -->
+    <div
+      v-if="resumeSignalLoaded && !hasParsedResume"
+      class="rounded-lg border border-surface-200/80 dark:border-surface-800/60 bg-surface-50 dark:bg-surface-800/40 p-3 text-xs text-surface-500 dark:text-surface-400 flex items-start gap-2"
+    >
+      <Info class="size-3.5 shrink-0 mt-0.5 text-surface-400" />
+      <span>No parsed resume — questions will be based on the job description.</span>
+    </div>
+    <div
+      v-if="scoreSignalLoaded && !hasScore"
+      class="rounded-lg border border-surface-200/80 dark:border-surface-800/60 bg-surface-50 dark:bg-surface-800/40 p-3 text-xs text-surface-500 dark:text-surface-400 flex items-start gap-2"
+    >
+      <Info class="size-3.5 shrink-0 mt-0.5 text-surface-400" />
+      <span>No AI score yet — questions will still be generated without it.</span>
+    </div>
+
     <!-- Loading (only on very first load with no cached data) -->
     <div v-if="isInitialLoad" class="text-center py-8 text-surface-400">
       Loading screening scenario…
@@ -188,16 +333,65 @@ async function generateScenario() {
       </div>
     </template>
 
-    <!-- Error -->
+    <!-- Error: provider unconfigured (422) — BYOK CTA -->
     <div
-      v-if="generateError"
+      v-if="generateErrorKind === 'provider_unconfigured'"
+      class="rounded-lg border border-brand-200 dark:border-brand-900/60 bg-brand-50/60 dark:bg-brand-950/20 p-3 text-xs text-brand-700 dark:text-brand-300 flex items-start gap-2"
+    >
+      <KeyRound class="size-4 shrink-0 mt-0.5" />
+      <div class="flex-1">
+        {{ generateError }}
+        <div class="mt-2 flex items-center gap-3">
+          <NuxtLink
+            to="/dashboard/settings/ai"
+            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-white bg-brand-600 rounded-md hover:bg-brand-700 transition-colors no-underline"
+          >
+            Go to AI Settings
+          </NuxtLink>
+          <button class="underline" @click="dismissError">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error: budget/limit exceeded (429/402) — upgrade notice -->
+    <div
+      v-if="generateErrorKind === 'budget_exceeded'"
+      class="rounded-lg border border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950 p-3 text-xs text-warning-700 dark:text-warning-400 flex items-start gap-2"
+    >
+      <TrendingUp class="size-4 shrink-0 mt-0.5" />
+      <div class="flex-1">
+        {{ generateError }}
+        <div class="mt-2 flex items-center gap-3">
+          <NuxtLink
+            to="/dashboard/settings/billing"
+            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-white bg-warning-600 rounded-md hover:bg-warning-700 transition-colors no-underline"
+          >
+            Upgrade plan
+          </NuxtLink>
+          <button class="underline" @click="dismissError">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error: generation failed (502 / other) — friendly retry -->
+    <div
+      v-if="generateErrorKind === 'generation_failed'"
       class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950 p-3 text-xs text-danger-700 dark:text-danger-400 flex items-start gap-2"
     >
       <AlertTriangle class="size-4 shrink-0 mt-0.5" />
-      <div>
+      <div class="flex-1">
         {{ generateError }}
-        <div class="mt-2">
-          <button class="underline" @click="generateError = null">Dismiss</button>
+        <div class="mt-2 flex items-center gap-2">
+          <button
+            :disabled="isGenerating"
+            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-brand-600 rounded-md hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            @click="generateScenario"
+          >
+            <Loader2 v-if="isGenerating" class="size-3 animate-spin" />
+            <RefreshCw v-else class="size-3" />
+            {{ isGenerating ? 'Retrying…' : 'Retry' }}
+          </button>
+          <button class="underline" @click="dismissError">Dismiss</button>
         </div>
       </div>
     </div>

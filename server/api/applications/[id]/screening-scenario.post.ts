@@ -238,11 +238,17 @@ export default defineEventHandler(async (event) => {
 
       await recordFailure(errorMessage, accumulatedPromptTokens, accumulatedCompletionTokens)
 
+      // Never forward raw provider/LLM error text in the thrown statusMessage —
+      // same rule as toClientScenario()/the GET endpoint. The count-mismatch
+      // branch is already a fixed, generic string (no interpolated err.message);
+      // the fallback branch is collapsed here too. The detailed `errorMessage`
+      // (including err.message) is persisted server-side only, via recordFailure
+      // (screeningScenario.errorMessage) and captureAiGeneration above.
       throw createError({
         statusCode: 502,
         statusMessage: isCountMismatch
           ? `AI screening scenario generation failed: model did not return the requested ${scenarioConfig.questionCount} questions after retry.`
-          : `AI screening scenario generation failed: ${errorMessage}`,
+          : 'Screening scenario generation failed',
       })
     }
   }

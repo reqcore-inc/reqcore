@@ -283,6 +283,11 @@ describe('POST /api/applications/:id/screening-scenario', () => {
 
     await expect(screeningScenarioPostHandler(makeEvent('app-1'))).rejects.toMatchObject({
       statusCode: 502,
+      // Raw provider/LLM error text must never reach the client — the
+      // thrown statusMessage collapses to a fixed, generic string. The
+      // detailed message (with the raw err.message) is persisted
+      // server-side only, asserted below via insertCalls[0].errorMessage.
+      statusMessage: 'Screening scenario generation failed',
     })
 
     expect(generateScreeningScenario).toHaveBeenCalledTimes(1)
@@ -304,6 +309,9 @@ describe('POST /api/applications/:id/screening-scenario', () => {
 
     await expect(screeningScenarioPostHandler(makeEvent('app-1'))).rejects.toMatchObject({
       statusCode: 502,
+      // Already a fixed, generic string (no interpolated err.message) —
+      // confirmed unchanged, not re-collapsed to the fallback copy.
+      statusMessage: 'AI screening scenario generation failed: model did not return the requested 8 questions after retry.',
     })
 
     expect(generateScreeningScenario).toHaveBeenCalledTimes(2)
