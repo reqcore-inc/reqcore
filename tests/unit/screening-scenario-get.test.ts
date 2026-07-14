@@ -1,3 +1,4 @@
+/// <reference path="../../.nuxt/types/nitro-imports.d.ts" />
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { defineEventHandler, getValidatedRouterParams, createError } from 'h3'
 
@@ -19,11 +20,19 @@ beforeAll(async () => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  // Re-stub the h3 helpers that must survive across tests in this file
-  // (unstubAllGlobals clears everything, including these).
+  // `vi.unstubAllGlobals()` clears every global stub, including the h3
+  // helpers this file owns AND tests/setup.ts's logger stubs (logInfo/
+  // logWarn/logError/logDebug), which run once before this whole file and
+  // would otherwise stay wiped for the rest of the file's tests. Re-stub
+  // both sets so later tests in this file (and anything they exercise
+  // transitively) still see working globals.
   vi.stubGlobal('defineEventHandler', defineEventHandler)
   vi.stubGlobal('getValidatedRouterParams', getValidatedRouterParams)
   vi.stubGlobal('createError', createError)
+  vi.stubGlobal('logInfo', vi.fn())
+  vi.stubGlobal('logWarn', vi.fn())
+  vi.stubGlobal('logError', vi.fn())
+  vi.stubGlobal('logDebug', vi.fn())
 })
 
 function stubGlobals(opts: {
@@ -32,7 +41,7 @@ function stubGlobals(opts: {
   orgId?: string
 }) {
   const orgId = opts.orgId ?? 'org-1'
-  const findFirst = vi.fn(async () => opts.app)
+  const findFirst = vi.fn(async (_query?: { where?: unknown }) => opts.app)
   // Track the args passed into `where(...)` so we can assert the org
   // predicate actually reached the query, not just that the mock returns
   // canned data (universal rule: assert on call arguments, not just stubs).
@@ -130,8 +139,8 @@ describe('GET /api/applications/:id/screening-scenario', () => {
 
   it('returns the newest row as latest, with history ordered newest-first', async () => {
     const rows = [
-      { id: 'scn-2', createdAt: new Date('2026-07-10T00:00:00Z'), status: 'completed' },
-      { id: 'scn-1', createdAt: new Date('2026-07-01T00:00:00Z'), status: 'completed' },
+      { id: 'scn-2', createdAt: new Date('2026-07-10T00:00:00Z'), status: 'completed', errorMessage: null },
+      { id: 'scn-1', createdAt: new Date('2026-07-01T00:00:00Z'), status: 'completed', errorMessage: null },
     ]
     stubGlobals({ app: { id: 'app-1' }, rows })
 
@@ -141,5 +150,30 @@ describe('GET /api/applications/:id/screening-scenario', () => {
     expect(result.history).toEqual(rows)
     expect(result.history[0].id).toBe('scn-2')
     expect(result.history[1].id).toBe('scn-1')
+  })
+
+  it('never forwards raw provider/LLM error text — collapses errorMessage to a fixed indicator', async () => {
+    const rows = [
+      { id: 'scn-1', createdAt: new Date('2026-07-10T00:00:00Z'), status: 'failed', errorMessage: 'upstream 500: leaked provider stack trace with API key sk-xxx' },
+    ]
+    stubGlobals({ app: { id: 'app-1' }, rows })
+
+    const result = await screeningScenarioGetHandler(makeEvent('app-1'))
+
+    expect(result.history[0].errorMessage).toBe('generation_failed')
+    expect(result.history[0].errorMessage).not.toContain('sk-xxx')
+    expect(result.latest.errorMessage).toBe('generation_failed')
+  })
+
+  it('never exposes costUsdMicros or generatedById to scoring:read callers', async () => {
+    const rows = [
+      { id: 'scn-1', createdAt: new Date(), status: 'completed', errorMessage: null },
+    ]
+    stubGlobals({ app: { id: 'app-1' }, rows })
+
+    const result = await screeningScenarioGetHandler(makeEvent('app-1'))
+
+    expect(result.history[0]).not.toHaveProperty('costUsdMicros')
+    expect(result.history[0]).not.toHaveProperty('generatedById')
   })
 })

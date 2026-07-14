@@ -29,7 +29,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Application not found' })
   }
 
-  const history = await db.select({
+  // Deliberately withhold billing/internal-audit columns from scoring:read
+  // callers — mirrors scores.get.ts, which never returns analysisRun's
+  // billingMode/scoredById to the client. `costUsdMicros` (platform spend)
+  // and `generatedById` (internal user id) stay server-side only.
+  // Token counts (promptTokens/completionTokens) ARE exposed here because
+  // scores.get.ts's precedent already exposes the equivalent analysisRun
+  // columns to scoring:read — token counts are considered safe usage
+  // metadata, not billing/internal-identity data.
+  const rows = await db.select({
     id: screeningScenario.id,
     questions: screeningScenario.questions,
     config: screeningScenario.config,
@@ -38,9 +46,7 @@ export default defineEventHandler(async (event) => {
     model: screeningScenario.model,
     promptTokens: screeningScenario.promptTokens,
     completionTokens: screeningScenario.completionTokens,
-    costUsdMicros: screeningScenario.costUsdMicros,
     errorMessage: screeningScenario.errorMessage,
-    generatedById: screeningScenario.generatedById,
     createdAt: screeningScenario.createdAt,
   })
     .from(screeningScenario)
@@ -50,6 +56,13 @@ export default defineEventHandler(async (event) => {
     ))
     .orderBy(desc(screeningScenario.createdAt))
     .limit(HISTORY_LIMIT)
+
+  // Never forward raw provider/LLM error text to the client — collapse any
+  // stored error into a fixed, user-facing indicator.
+  const history = rows.map(row => ({
+    ...row,
+    errorMessage: row.errorMessage ? 'generation_failed' : null,
+  }))
 
   return {
     latest: history[0] ?? null,
