@@ -160,6 +160,8 @@ export const application = pgTable('application', {
   score: integer('score'),
   notes: text('notes'),
   coverLetterText: text('cover_letter_text'),
+  /** When a screening invitation email was last sent for this application. NULL = never sent. */
+  screeningInvitationSentAt: timestamp('screening_invitation_sent_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (t) => ([
@@ -535,6 +537,25 @@ export const emailTemplate = pgTable('email_template', {
   index('email_template_created_by_id_idx').on(t.createdById),
 ]))
 
+/**
+ * Per-user screening invitation email template within an organization.
+ * Each user maintains at most one screening invitation template per org,
+ * used when sending screening invitation emails to candidates.
+ */
+export const screeningEmailTemplate = pgTable('screening_email_template', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  subject: text('subject').notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => ([
+  uniqueIndex('screening_email_template_org_user_idx').on(t.organizationId, t.userId),
+  index('screening_email_template_organization_id_idx').on(t.organizationId),
+  index('screening_email_template_user_id_idx').on(t.userId),
+]))
+
 export const commentTargetEnum = pgEnum('comment_target', ['candidate', 'application', 'job'])
 
 /**
@@ -906,6 +927,11 @@ export const interviewRelations = relations(interview, ({ one }) => ({
 export const emailTemplateRelations = relations(emailTemplate, ({ one }) => ({
   organization: one(organization, { fields: [emailTemplate.organizationId], references: [organization.id] }),
   createdBy: one(user, { fields: [emailTemplate.createdById], references: [user.id] }),
+}))
+
+export const screeningEmailTemplateRelations = relations(screeningEmailTemplate, ({ one }) => ({
+  organization: one(organization, { fields: [screeningEmailTemplate.organizationId], references: [organization.id] }),
+  user: one(user, { fields: [screeningEmailTemplate.userId], references: [user.id] }),
 }))
 
 export const calendarIntegrationRelations = relations(calendarIntegration, ({ one }) => ({
