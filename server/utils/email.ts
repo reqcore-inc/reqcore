@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
 import { renderTemplate as renderTemplateShared } from '~~/shared/template-renderer'
+import type { ScreeningTemplateVariable } from '~~/shared/screening-template'
 
 // ─── Resend client ────────────────────────────────────────────────────────────
 
@@ -561,6 +562,62 @@ export async function sendInterviewInvitationEmail(params: {
   })
 }
 
+/**
+ * Org-branded HTML email shell shared by every "sent on behalf of an
+ * organization" email (interview invitations, screening invitations, ...).
+ * Extracted from what was originally `buildInterviewInvitationHtml`'s
+ * inline template so new email types reuse the exact same header/footer
+ * chrome instead of hand-rolling a second copy that could drift.
+ */
+function buildBrandedEmailShell(params: {
+  title: string
+  organizationName: string
+  bodyRowHtml: string
+  extraRowsHtml?: string
+  maxWidth?: number
+}): string {
+  const { title, organizationName, bodyRowHtml, extraRowsHtml = '', maxWidth = 480 } = params
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(title)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:${maxWidth}px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
+          <!-- Header -->
+          <tr>
+            <td style="padding:32px 32px 24px;text-align:center;border-bottom:1px solid #f4f4f5;">
+              <h1 style="margin:0;font-size:20px;font-weight:600;color:#09090b;">${escapeHtml(organizationName)}</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              ${bodyRowHtml}
+            </td>
+          </tr>${extraRowsHtml}
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 32px;text-align:center;border-top:1px solid #f4f4f5;background-color:#fafafa;">
+              <p style="margin:0;font-size:12px;color:#a1a1aa;">
+                Sent by ${escapeHtml(organizationName)} via Reqcore
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+}
+
 function buildInterviewInvitationHtml(subject: string, bodyText: string, data: InterviewEmailData): string {
   const bodyHtml = escapeHtml(bodyText).replace(/\n/g, '<br />')
 
@@ -607,46 +664,15 @@ function buildInterviewInvitationHtml(subject: string, bodyText: string, data: I
           </tr>`
     : ''
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(subject)}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
-          <!-- Header -->
-          <tr>
-            <td style="padding:32px 32px 24px;text-align:center;border-bottom:1px solid #f4f4f5;">
-              <h1 style="margin:0;font-size:20px;font-weight:600;color:#09090b;">${escapeHtml(data.organizationName)}</h1>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px;">
-              <div style="font-size:14px;line-height:1.7;color:#3f3f46;">
+  return buildBrandedEmailShell({
+    title: subject,
+    organizationName: data.organizationName,
+    maxWidth: 560,
+    bodyRowHtml: `<div style="font-size:14px;line-height:1.7;color:#3f3f46;">
                 ${bodyHtml}
-              </div>
-            </td>
-          </tr>${responseButtonsHtml}
-          <!-- Footer -->
-          <tr>
-            <td style="padding:16px 32px;text-align:center;border-top:1px solid #f4f4f5;background-color:#fafafa;">
-              <p style="margin:0;font-size:12px;color:#a1a1aa;">
-                Sent by ${escapeHtml(data.organizationName)} via Reqcore
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
+              </div>`,
+    extraRowsHtml: responseButtonsHtml,
+  })
 }
 
 /**
@@ -670,4 +696,92 @@ function buildInterviewInvitationText(
     '',
     '─────────────────────────────',
   ].join('\n')
+}
+
+// ─────────────────────────────────────────────
+// Screening invitation emails
+// ─────────────────────────────────────────────
+
+export interface ScreeningEmailData {
+  candidateName: string
+  candidateFirstName: string
+  candidateLastName: string
+  candidateEmail: string
+  jobTitle: string
+  organizationName: string
+  senderName: string
+}
+
+function screeningEmailDataToVariables(data: ScreeningEmailData): Record<ScreeningTemplateVariable, string> {
+  return {
+    candidateName: data.candidateName,
+    candidateFirstName: data.candidateFirstName,
+    candidateLastName: data.candidateLastName,
+    candidateEmail: data.candidateEmail,
+    jobTitle: data.jobTitle,
+    organizationName: data.organizationName,
+    senderName: data.senderName,
+  }
+}
+
+/**
+ * Pure render step for a screening invitation email: substitutes `{{tags}}`
+ * via the shared canonical renderer, strips CR/LF from the rendered subject
+ * (header-injection guard — a malicious/careless value in a template
+ * variable like `jobTitle` must never be able to inject extra headers such
+ * as `Bcc:`), and escapes the rendered body before embedding it in the
+ * shared org-branded HTML shell. The plain-text part is left unescaped.
+ *
+ * Exported with zero env/db access so it is directly unit-testable for
+ * XSS/CRLF regressions without stubbing Nitro globals.
+ */
+export function renderScreeningInvitationContent(
+  subject: string,
+  body: string,
+  data: ScreeningEmailData,
+): { subject: string, html: string, text: string } {
+  const vars = screeningEmailDataToVariables(data)
+  const renderedSubjectRaw = renderTemplateShared(subject, vars)
+  const renderedBody = renderTemplateShared(body, vars)
+
+  // Header-injection guard: truncate at the first CR/LF instead of just
+  // collapsing it to a space. A template variable (e.g. jobTitle) that
+  // smuggles in `\r\nBcc: attacker@evil.com` must not have that trailing
+  // content survive anywhere in the outgoing Subject header — truncating
+  // drops it entirely rather than merely removing the newline that would
+  // have started a new header line.
+  const renderedSubject = renderedSubjectRaw.split(/[\r\n]/)[0]!.trim()
+
+  const bodyHtml = escapeHtml(renderedBody).replace(/\n/g, '<br />')
+  const html = buildBrandedEmailShell({
+    title: renderedSubject,
+    organizationName: data.organizationName,
+    bodyRowHtml: `<div style="font-size:14px;line-height:1.7;color:#3f3f46;">${bodyHtml}</div>`,
+  })
+
+  return { subject: renderedSubject, html, text: renderedBody }
+}
+
+/**
+ * Send a screening invitation email to a candidate.
+ * Falls back to console.info when no email provider is configured.
+ */
+export async function sendScreeningInvitationEmail(params: {
+  subject: string
+  body: string
+  data: ScreeningEmailData
+}): Promise<void> {
+  const rendered = renderScreeningInvitationContent(params.subject, params.body, params.data)
+
+  await sendEmail({
+    to: params.data.candidateEmail,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+    resendTags: [{ name: 'category', value: 'screening-invitation' }],
+    logFallback:
+      `Screening invitation email → ${params.data.candidateEmail} | `
+      + `Subject: ${rendered.subject} | Job: ${params.data.jobTitle}`,
+    errorCategory: 'email.screening_invitation_send_failed',
+  })
 }
