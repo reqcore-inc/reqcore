@@ -1,5 +1,5 @@
-import { test, expect } from '../fixtures'
-import type { Page, Route } from '@playwright/test'
+import { test, expect, declineAnalyticsConsent } from '../fixtures'
+import type { Browser, Page, Request, Response, Route } from '@playwright/test'
 
 /**
  * Critical flow: the "Screening" tab on the candidate detail sidebar
@@ -127,7 +127,7 @@ async function mockScreeningScenarioRoutes(
  * apply as a candidate, then return to the recruiter's dashboard so the
  * caller can open the CandidateDetailSidebar.
  */
-async function setUpApplicationAndOpenCandidatesTable(page: Page, browser: Parameters<Parameters<typeof test>[1]>[0]['browser'], testInfo: { retry: number }) {
+async function setUpApplicationAndOpenCandidatesTable(page: Page, browser: Browser, testInfo: { retry: number }) {
   await page.goto('/dashboard/jobs/new')
   await page.waitForLoadState('networkidle')
   await page.getByLabel('Job title').waitFor({ state: 'visible', timeout: 15_000 })
@@ -165,6 +165,7 @@ async function setUpApplicationAndOpenCandidatesTable(page: Page, browser: Param
 
   // ── Candidate flow: fresh unauthenticated context ─────────────────────────
   const candidateContext = await browser.newContext()
+  await declineAnalyticsConsent(candidateContext)
   const candidatePage = await candidateContext.newPage()
 
   const applicant = {
@@ -186,7 +187,7 @@ async function setUpApplicationAndOpenCandidatesTable(page: Page, browser: Param
 
   const [applyResponse] = await Promise.all([
     candidatePage.waitForResponse(
-      resp =>
+      (resp: Response) =>
         resp.url().includes(`/api/public/jobs/${jobSlug}/apply`) &&
         resp.request().method() === 'POST',
       { timeout: 30_000 },
@@ -224,7 +225,7 @@ async function setUpApplicationAndOpenCandidatesTable(page: Page, browser: Param
  */
 async function openCandidateSidebar(page: Page, applicant: { firstName: string, lastName: string }): Promise<string> {
   const sidebarAppRequestPromise = page.waitForRequest(
-    req => /\/api\/applications\/[^/]+$/.test(req.url()) && req.method() === 'GET',
+    (req: Request) => /\/api\/applications\/[^/]+$/.test(req.url()) && req.method() === 'GET',
     { timeout: 15_000 },
   ).catch(() => null)
 
@@ -303,16 +304,20 @@ test.describe('Screening Scenario tab', () => {
 
     // ── Select question count 10 + tone Technical ──────────────────────────
     // The "Questions" <select> and tone <button> group are not associated to
-    // their labels via `for`/`aria-labelledby`, and the Screening tab body is
-    // the only mounted tab content (each tab body is `v-if`-gated in
-    // CandidateDetailSidebar.vue), so a bare element locator is unambiguous.
-    await page.locator('select').selectOption('10')
-    await page.getByRole('button', { name: 'Technical', exact: true }).click()
+    // their labels via `for`/`aria-labelledby`, so scope to the sidebar
+    // <aside> root — the candidates table page underneath also renders a
+    // "Rows" pagination <select> that stays mounted behind the sidebar
+    // overlay (the sidebar is a v-if aside on the same page, not a
+    // navigation), so a bare `page.locator('select')` resolves to 2
+    // elements and would be a strict-mode violation.
+    const sidebar = page.locator('aside')
+    await sidebar.locator('select').selectOption('10')
+    await sidebar.getByRole('button', { name: 'Technical', exact: true }).click()
 
     // ── Click Generate ──────────────────────────────────────────────────────
     await Promise.all([
       page.waitForResponse(
-        resp => resp.url().includes(`/api/applications/${applicationId}/screening-scenario`) && resp.request().method() === 'POST',
+        (resp: Response) => resp.url().includes(`/api/applications/${applicationId}/screening-scenario`) && resp.request().method() === 'POST',
       ),
       generateButton.click(),
     ])
@@ -340,7 +345,8 @@ test.describe('Screening Scenario tab', () => {
     // If the markup were parsed/executed, this locator (a real <script> DOM
     // node injected via v-html or similar) would exist. Vue's default `{{ }}`
     // interpolation escapes HTML, so no such element should ever be created.
-    await expect(page.locator('script:has-text("alert(1)")')).toHaveCount(0)
+    // Scoped to the sidebar <aside> for consistency with the other assertions.
+    await expect(sidebar.locator('script:has-text("alert(1)")')).toHaveCount(0)
 
     // ── Button now reads Regenerate ──────────────────────────────────────────
     const regenerateButton = page.getByRole('button', { name: 'Regenerate' })
@@ -349,7 +355,7 @@ test.describe('Screening Scenario tab', () => {
     // ── Simulate regenerate with a second fixture (history length 2) ────────
     await Promise.all([
       page.waitForResponse(
-        resp => resp.url().includes(`/api/applications/${applicationId}/screening-scenario`) && resp.request().method() === 'POST',
+        (resp: Response) => resp.url().includes(`/api/applications/${applicationId}/screening-scenario`) && resp.request().method() === 'POST',
       ),
       regenerateButton.click(),
     ])
@@ -362,7 +368,7 @@ test.describe('Screening Scenario tab', () => {
     const regenerateButtonAgain = page.getByRole('button', { name: 'Regenerate' })
     await Promise.all([
       page.waitForResponse(
-        resp => resp.url().includes(`/api/applications/${applicationId}/screening-scenario`) && resp.request().method() === 'POST',
+        (resp: Response) => resp.url().includes(`/api/applications/${applicationId}/screening-scenario`) && resp.request().method() === 'POST',
       ),
       regenerateButtonAgain.click(),
     ])
