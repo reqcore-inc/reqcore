@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import {
-  Building2, Users, UserCircle, ChevronLeft, Settings, Plug, Brain, ShieldCheck, Globe, ShieldAlert, CreditCard, Lock,
+  Building2, Users, UserCircle, ChevronLeft, Settings, Plug, Brain, ShieldCheck, Globe, ShieldAlert, CreditCard, Lock, Mail,
 } from 'lucide-vue-next'
 import type { PlanFeature } from '~~/shared/billing'
 
@@ -87,6 +87,13 @@ const settingsNav: SettingsNavItem[] = [
     exact: true,
     badge: 'Beta',
     feature: 'sso',
+  },
+  {
+    label: 'Emails',
+    description: 'Screening invitation template',
+    to: '/dashboard/settings/emails',
+    icon: Mail,
+    exact: true,
   },
   {
     label: 'Account',

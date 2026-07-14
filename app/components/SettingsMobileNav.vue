@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  Building2, Users, UserCircle, ChevronLeft, Plug, Brain, ShieldCheck, Globe, CreditCard,
+  Building2, Users, UserCircle, ChevronLeft, Plug, Brain, ShieldCheck, Globe, CreditCard, Mail,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -47,6 +47,12 @@ const settingsNav = [
     label: 'SSO',
     to: '/dashboard/settings/sso',
     icon: ShieldCheck,
+    exact: true,
+  },
+  {
+    label: 'Emails',
+    to: '/dashboard/settings/emails',
+    icon: Mail,
     exact: true,
   },
   {
