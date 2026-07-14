@@ -1,0 +1,1 @@
+{"timestamp":"2026-07-14T01:00:19Z","task_id":"1.4","test_file":"tests/unit/screening-scenario-post.test.ts","exit_code":1,"framework":"vitest","stderr_tail":"Cannot find module '/server/api/applications/[id]/screening-scenario.post' imported from screening-scenario-post.test.ts","cwd_hash":"0d5784389326"}
