@@ -49,6 +49,7 @@ Reqcore is licensed under the AGPLv3 and can be self-hosted with Docker Compose 
 - [x] Application tracking (link candidates to jobs, status workflow)
 - [x] Document storage (resumes, cover letters via MinIO/S3)
 - [x] Dashboard with pipeline overview
+- [x] Screening invitations — recruiters send candidates a screening invitation email per application from a personal, per-user template with `{{variable}}` placeholders and preview-before-send; sending is audited, rate-limited, and moves new applications to the screening stage
 - [x] Organic SEO (sitemap, robots, JSON-LD structured data, blog content engine)
 
 ### Phase 2 — Intelligence

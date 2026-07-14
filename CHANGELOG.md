@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Add
 
 ### Added
 
+* **screening invitations:** add a per-application "Invite to screening" button with a confirmation modal (recipient + live preview), sending a screening invitation email rendered from the recruiter's personal template (`/dashboard/settings/emails`, `{{variable}}` placeholders with validation and preview). Sending is permission-gated and rate-limited with a 2-minute atomic cooldown, escapes all candidate-provided values in the HTML part, records activity-log entries, and auto-advances applications from **New** to **Screening** (never backwards).
 * **GDPR retention:** add a shared candidate-retention runner with a daily Nitro task, external cron endpoint, instance-wide emergency switch, quarantine restoration on renewed public engagement, localized administration UI, and computed expiry visibility.
 * **GDPR erasure:** remove application-linked comments, custom properties, and activity records in addition to the candidate database graph and S3 objects.
 * **blog:** add Cluster 8 career page articles — pillar (career-page-that-converts) and two supporting articles (career-page-seo, google-for-jobs-structured-data)
