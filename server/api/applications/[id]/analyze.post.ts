@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 import {
-  application, scoringCriterion, criterionScore,
-  analysisRun, document, candidate,
+  application, scoringCriterion,
+  analysisRun, criterionScore,
 } from '../../../database/schema'
 import { scoreApplication, computeCompositeScore } from '../../../utils/ai/scoring'
 import type { CriterionDefinition } from '../../../utils/ai/scoring'
@@ -9,7 +9,7 @@ import { resolveAnalysisProvider } from '../../../utils/ai/resolveProvider'
 import { assertPlatformBudget, BudgetExceededError, budgetErrorToHttp } from '../../../utils/ai/budget'
 import { computeCostUsdMicros } from '../../../utils/ai/pricing'
 import { captureAiGeneration } from '../../../utils/ai/observability'
-import { extractResumeText } from '../../../utils/resume-parser'
+import { loadApplicationContext } from '../../../utils/loadApplicationContext'
 import { createRateLimiter } from '../../../utils/rateLimit'
 import { z } from 'zod'
 
@@ -34,20 +34,10 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event).catch(() => null)
   const parsedBody = body ? bodySchema.parse(body) : null
 
-  // Fetch application with candidate, job, and documents
-  const app = await db.query.application.findFirst({
-    where: and(eq(application.id, applicationId), eq(application.organizationId, orgId)),
-    with: {
-      candidate: {
-        columns: { id: true, firstName: true, lastName: true },
-      },
-      job: {
-        columns: { id: true, title: true, description: true },
-      },
-    },
-  })
+  // Load application + candidate + job + resume text, org-scoped and IDOR-guarded.
+  const context = await loadApplicationContext(applicationId, orgId)
 
-  if (!app) {
+  if (!context) {
     throw createError({ statusCode: 404, statusMessage: 'Application not found' })
   }
 
@@ -57,7 +47,7 @@ export default defineEventHandler(async (event) => {
   // Fetch scoring criteria for this job
   const criteria = await db.select().from(scoringCriterion)
     .where(and(
-      eq(scoringCriterion.jobId, app.job.id),
+      eq(scoringCriterion.jobId, context.jobId),
       eq(scoringCriterion.organizationId, orgId),
     ))
 
@@ -68,28 +58,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Fetch candidate documents (resume text)
-  const docs = await db.select({
-    id: document.id,
-    parsedContent: document.parsedContent,
-    type: document.type,
-  })
-    .from(document)
-    .where(and(
-      eq(document.candidateId, app.candidate.id),
-      eq(document.organizationId, orgId),
-    ))
-
-  const resumeDoc = docs.find(d => d.type === 'resume')
-  const resumeText = extractResumeText(resumeDoc?.parsedContent)
+  const resumeText = context.resumeText
 
   if (!resumeText) {
     // Resume document exists but parsing failed or was incomplete
-    if (resumeDoc) {
+    if (context.resumeDocumentId) {
       throw createError({
         statusCode: 422,
         statusMessage: 'Resume was uploaded but text extraction failed. Try re-parsing the document.',
-        data: { code: 'PARSE_FAILED', documentId: resumeDoc.id },
+        data: { code: 'PARSE_FAILED', documentId: context.resumeDocumentId },
       })
     }
     throw createError({
@@ -98,7 +75,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!app.job.description) {
+  if (!context.jobDescription) {
     throw createError({
       statusCode: 422,
       statusMessage: 'Job description is required for AI analysis.',
@@ -129,12 +106,12 @@ export default defineEventHandler(async (event) => {
   let result
   try {
     result = await scoreApplication(resolved.providerConfig, {
-      jobTitle: app.job.title,
-      jobDescription: app.job.description,
+      jobTitle: context.jobTitle,
+      jobDescription: context.jobDescription,
       criteria: criteriaDefinitions,
       resumeText,
-      coverLetterText: app.coverLetterText,
-      applicationNotes: app.notes,
+      coverLetterText: context.coverLetterText,
+      applicationNotes: context.notes,
     })
   } catch (err: any) {
     // Record failed analysis run
