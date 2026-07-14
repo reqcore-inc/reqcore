@@ -3,7 +3,9 @@
  *
  * Three lines of defence, checked *before* any platform-paid LLM call:
  *   1. Per-run output cap        — enforced via maxTokens in the provider call.
- *   2. Per-org monthly ceiling   — by plan tier, summed from analysisRun.
+ *   2. Per-org monthly ceiling   — by plan tier, summed from analysisRun
+ *                                  and screeningScenario (all platform-billed
+ *                                  AI generation surfaces).
  *   3. Global daily kill-switch  — one cap across ALL orgs; the runaway-loop
  *                                  insurance (a re-scoring bug, not normal use,
  *                                  is how you actually lose money).
@@ -13,7 +15,7 @@
  * key and bill; we only track those, we don't cap them.
  */
 import { and, eq, gte, sql } from 'drizzle-orm'
-import { analysisRun } from '../../database/schema'
+import { analysisRun, screeningScenario } from '../../database/schema'
 import { microsToUsd } from './pricing'
 import { resolveOrgPlanId } from '../billing/plan'
 import { FREE_PLAN_ANALYSIS_LIMIT } from '../../../shared/billing'
@@ -67,22 +69,41 @@ export class BudgetExceededError extends Error {
   }
 }
 
-/** Count completed platform-paid runs for an org (lifetime). */
+/**
+ * Count completed platform-paid runs for an org (lifetime), summed across
+ * BOTH platform-billed AI generation surfaces: analysisRun (shortlist
+ * scoring) and screeningScenario (screening question generation).
+ */
 async function countPlatformRuns(orgId: string): Promise<number> {
-  const [row] = await db
-    .select({ total: sql<string>`count(*)` })
-    .from(analysisRun)
-    .where(and(
-      eq(analysisRun.billingMode, 'platform'),
-      eq(analysisRun.organizationId, orgId),
-      eq(analysisRun.status, 'completed'),
-    ))
-  return Number(row?.total ?? 0)
+  const [[analysisRow], [scenarioRow]] = await Promise.all([
+    db
+      .select({ total: sql<string>`count(*)` })
+      .from(analysisRun)
+      .where(and(
+        eq(analysisRun.billingMode, 'platform'),
+        eq(analysisRun.organizationId, orgId),
+        eq(analysisRun.status, 'completed'),
+      )),
+    db
+      .select({ total: sql<string>`count(*)` })
+      .from(screeningScenario)
+      .where(and(
+        eq(screeningScenario.billingMode, 'platform'),
+        eq(screeningScenario.organizationId, orgId),
+        eq(screeningScenario.status, 'completed'),
+      )),
+  ])
+  return Number(analysisRow?.total ?? 0) + Number(scenarioRow?.total ?? 0)
 }
 
-/** Sum platform-paid spend (µ$) for an org since `since`. */
+/**
+ * Sum platform-paid spend (µ$) since `since`, summed across BOTH
+ * platform-billed AI generation surfaces: analysisRun and screeningScenario.
+ * Scoped to `orgId` when given (monthly org ceiling), otherwise global
+ * (daily kill-switch across all orgs).
+ */
 async function sumPlatformSpendMicros(since: Date, orgId?: string): Promise<number> {
-  const where = orgId
+  const analysisWhere = orgId
     ? and(
         eq(analysisRun.billingMode, 'platform'),
         eq(analysisRun.organizationId, orgId),
@@ -93,11 +114,28 @@ async function sumPlatformSpendMicros(since: Date, orgId?: string): Promise<numb
         gte(analysisRun.createdAt, since),
       )
 
-  const [row] = await db
-    .select({ total: sql<string>`coalesce(sum(${analysisRun.costUsdMicros}), 0)` })
-    .from(analysisRun)
-    .where(where)
-  return Number(row?.total ?? 0)
+  const scenarioWhere = orgId
+    ? and(
+        eq(screeningScenario.billingMode, 'platform'),
+        eq(screeningScenario.organizationId, orgId),
+        gte(screeningScenario.createdAt, since),
+      )
+    : and(
+        eq(screeningScenario.billingMode, 'platform'),
+        gte(screeningScenario.createdAt, since),
+      )
+
+  const [[analysisRow], [scenarioRow]] = await Promise.all([
+    db
+      .select({ total: sql<string>`coalesce(sum(${analysisRun.costUsdMicros}), 0)` })
+      .from(analysisRun)
+      .where(analysisWhere),
+    db
+      .select({ total: sql<string>`coalesce(sum(${screeningScenario.costUsdMicros}), 0)` })
+      .from(screeningScenario)
+      .where(scenarioWhere),
+  ])
+  return Number(analysisRow?.total ?? 0) + Number(scenarioRow?.total ?? 0)
 }
 
 function startOfUtcMonth(): Date {
