@@ -66,8 +66,21 @@ function setActiveField(field: ActiveField) {
   activeField.value = field
 }
 
+/**
+ * Builds the `{{name}}` placeholder text for a variable chip via string
+ * concatenation (not a template literal). Vue's compiler-core scans for a
+ * mustache interpolation's closing delimiter with a plain `indexOf('}}')`
+ * search, so a template-literal `}}` embedded in an expression can be
+ * mistaken for the interpolation's own closing brace and corrupt the
+ * compiled expression. Concatenation keeps `{{`/`}}` out of any expression
+ * that Vue itself has to parse.
+ */
+function chipLabel(name: string): string {
+  return '{{' + name + '}}'
+}
+
 function insertVariable(name: string) {
-  const placeholder = `{{${name}}}`
+  const placeholder = chipLabel(name)
   const targetRef = activeField.value === 'subject' ? subjectInputRef : bodyTextareaRef
   const valueRef = activeField.value === 'subject' ? subject : body
   const el = targetRef.value
@@ -101,7 +114,7 @@ function findTagWarnings(text: string): string[] {
 
   for (const tag of extractTemplateTags(text)) {
     if (!allowed.has(tag)) {
-      warnings.add(`{{${tag}}}`)
+      warnings.add(chipLabel(tag))
     }
   }
 
@@ -285,7 +298,7 @@ async function handleSave() {
               class="inline-flex items-center rounded-full bg-surface-50 dark:bg-surface-800/60 hover:bg-brand-50 dark:hover:bg-brand-950/40 border border-surface-200 dark:border-surface-700 hover:border-brand-300 dark:hover:border-brand-700 px-2.5 py-1 text-xs font-mono text-brand-700 dark:text-brand-300 transition-colors cursor-pointer"
               @click="insertVariable(name)"
             >
-              {{ `{{${name}}}` }}
+              {{ chipLabel(name) }}
             </button>
           </div>
         </div>
