@@ -2,14 +2,14 @@
 import {
   X, User, Calendar, Clock, Hash, MessageSquare, FileText,
   ExternalLink, Mail, Phone, Upload, Download, Eye, Trash2,
-  ArrowLeft, AlertTriangle, Brain, History, RefreshCw,
+  ArrowLeft, AlertTriangle, Brain, History, RefreshCw, ClipboardList,
 } from 'lucide-vue-next'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 
 const props = defineProps<{
   applicationId: string
   open: boolean
-  initialTab?: 'overview' | 'documents' | 'responses' | 'ai_analysis' | 'timeline'
+  initialTab?: 'overview' | 'documents' | 'responses' | 'ai_analysis' | 'screening' | 'timeline'
 }>()
 
 const emit = defineEmits<{
@@ -36,7 +36,7 @@ const hasSubNav = computed(() => {
 // Tabs
 // ─────────────────────────────────────────────
 
-const activeTab = ref<'overview' | 'documents' | 'responses' | 'ai_analysis' | 'timeline'>(
+const activeTab = ref<'overview' | 'documents' | 'responses' | 'ai_analysis' | 'screening' | 'timeline'>(
   props.initialTab ?? 'overview',
 )
 
@@ -560,6 +560,16 @@ function formatInterviewDate(dateStr: string) {
           </button>
           <button
             class="cursor-pointer px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px inline-flex items-center gap-1.5"
+            :class="activeTab === 'screening'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 dark:hover:text-surface-300'"
+            @click="activeTab = 'screening'"
+          >
+            <ClipboardList class="size-3.5" />
+            Screening
+          </button>
+          <button
+            class="cursor-pointer px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px inline-flex items-center gap-1.5"
             :class="activeTab === 'timeline'
               ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 dark:hover:text-surface-300'"
@@ -1041,6 +1051,13 @@ function formatInterviewDate(dateStr: string) {
           <!-- ═══════════════════════════════════════ -->
           <div v-if="activeTab === 'ai_analysis'">
             <ScoreBreakdown :application-id="props.applicationId" @scored="refresh(); emit('updated')" />
+          </div>
+
+          <!-- ═══════════════════════════════════════ -->
+          <!-- SCREENING TAB                           -->
+          <!-- ═══════════════════════════════════════ -->
+          <div v-if="activeTab === 'screening'">
+            <ScreeningScenarioPanel :application-id="props.applicationId" @generated="emit('updated')" />
           </div>
 
           <!-- ═══════════════════════════════════════ -->
