@@ -33,6 +33,8 @@ const emit = defineEmits<{
   (e: 'generated'): void
 }>()
 
+const { track } = useTrack()
+
 const QUESTION_COUNT_OPTIONS = [5, 8, 10, 15] as const
 const TONE_OPTIONS = [
   { value: 'technical', label: 'Technical' },
@@ -199,6 +201,11 @@ async function generateScenario() {
       body: { questionCount: questionCount.value, tone: tone.value },
     })
     await refresh()
+    track('screening_scenario_generated', {
+      application_id: props.applicationId,
+      question_count: questionCount.value,
+      tone: tone.value,
+    })
     emit('generated')
   } catch (err: any) {
     const mapped = mapGenerationError(err)
