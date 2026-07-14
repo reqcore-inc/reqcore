@@ -64,7 +64,7 @@ unknown_data:
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | TA5.1 | Unit suite `tests/unit/transcript-analysis*.test.ts` following `ai-provider-grandfathered.test.ts` mock pattern: provider/plan resolution + BYOK fallback, budget-429 boundary (`billing-limits.test.ts` pattern), malformed/out-of-range AI JSON, prompt injection, org isolation (`demo-account-isolation.test.ts` pattern), quarantine, parser fixtures (`resume-parser.test.ts` pattern), kind-filter regressions. `[tdd:required]` | `npm run test` green; every Phase 1–3 behavior has a covering test | TA3.2 | cc:完了 [a8deaf6] |
-| TA5.2 | e2e `e2e/critical-flows/transcript-analysis.spec.ts` (clone `resume-upload.spec.ts` file-config pattern, mocked AI provider — no live LLM): upload valid/invalid types, paste, run, breakdown + advisory banner render. `[tdd:required]` | `npm run test:e2e` green locally | TA4.2 | cc:TODO |
+| TA5.2 | e2e `e2e/critical-flows/transcript-analysis.spec.ts` (clone `resume-upload.spec.ts` file-config pattern, mocked AI provider — no live LLM): upload valid/invalid types, paste, run, breakdown + advisory banner render. `[tdd:required]` | `npm run test:e2e` green locally | TA4.2 | cc:WIP |
 | TA5.3 | Closeout: `npm run typecheck` + full test suites; `harness-review` artifact; evidence pack → PR body; push branch + open PR (pre-approved item #1). `[tdd:skip:verification-phase]` | Review artifact attached; PR open with evidence; CI green | TA5.1, TA5.2 | cc:TODO |
 
 ---
