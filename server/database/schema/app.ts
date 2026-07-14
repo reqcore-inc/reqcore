@@ -22,7 +22,7 @@ export const jobTypeEnum = pgEnum('job_type', ['full_time', 'part_time', 'contra
 export const applicationStatusEnum = pgEnum('application_status', [
   'new', 'screening', 'interview', 'offer', 'hired', 'rejected',
 ])
-export const documentTypeEnum = pgEnum('document_type', ['resume', 'cover_letter', 'other'])
+export const documentTypeEnum = pgEnum('document_type', ['resume', 'cover_letter', 'other', 'transcript'])
 export const questionTypeEnum = pgEnum('question_type', [
   'short_text', 'long_text', 'single_select', 'multi_select',
   'number', 'date', 'url', 'checkbox', 'file_upload',
@@ -584,6 +584,38 @@ export const analysisBillingModeEnum = pgEnum('analysis_billing_mode', [
 ])
 
 /**
+ * What kind of AI analysis this run performed. Both kinds share the same
+ * budget/billing gate (see `server/utils/ai/budget.ts`) and the same table —
+ * readers that must stay scoped to application scoring (scores endpoint,
+ * EE stats, Matching Logic UI) filter to `application_scoring`; readers that
+ * must count both intentionally (budget gate, DSAR export) do not filter.
+ * See docs/spec/transcript-analysis.md "Data model" and
+ * docs/research/ta0.1-analysis-run-readers.md.
+ */
+export const analysisRunKindEnum = pgEnum('analysis_run_kind', [
+  'application_scoring', 'transcript_analysis',
+])
+
+// ─────────────────────────────────────────────
+// Screening Transcript Analysis
+// ─────────────────────────────────────────────
+
+export const transcriptSourceTypeEnum = pgEnum('transcript_source_type', ['upload', 'paste'])
+
+export const transcriptExtractionModeEnum = pgEnum('transcript_extraction_mode', [
+  'per_answer', 'section_level',
+])
+
+/**
+ * Advisory recommendation only — this feature never changes application status
+ * automatically (GDPR Art. 22 / EU AI Act Annex III posture). See
+ * docs/spec/transcript-analysis.md "Product contract".
+ */
+export const transcriptAnalysisRecommendationEnum = pgEnum('transcript_analysis_recommendation', [
+  'advance', 'hold', 'do_not_advance', 'insufficient_evidence',
+])
+
+/**
  * Immutable audit trail for all significant actions within an organization.
  * Append-only — no UPDATE or DELETE allowed via the API.
  */
@@ -781,6 +813,13 @@ export const analysisRun = pgTable('analysis_run', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
   applicationId: text('application_id').notNull().references(() => application.id, { onDelete: 'cascade' }),
+  /**
+   * Which analysis this run performed. Existing scoring readers (scores
+   * endpoint, EE stats, Matching Logic UI) must filter to
+   * `application_scoring`; the budget gate and DSAR export intentionally
+   * count both kinds. See analysisRunKindEnum doc comment above.
+   */
+  kind: analysisRunKindEnum('kind').notNull().default('application_scoring'),
   status: analysisRunStatusEnum('status').notNull().default('completed'),
   /** Provider + model used for this run */
   provider: text('provider').notNull(),
@@ -816,6 +855,92 @@ export const analysisRun = pgTable('analysis_run', {
 ]))
 
 // ─────────────────────────────────────────────
+// Screening Transcript Analysis
+// ─────────────────────────────────────────────
+// See docs/spec/transcript-analysis.md "Data model" for the authoritative
+// contract this schema implements.
+
+/**
+ * A screening-call transcript attached to an application, either uploaded
+ * (goes through the existing `document` pipeline — MIME validation, S3
+ * storage, GDPR erasure coverage) or pasted as plain text.
+ *
+ * `documentId` cascades on delete: the document IS the source of truth for
+ * uploaded transcript text (`document.parsedContent`); once it's erased,
+ * the transcript row it anchors is meaningless and must not survive as an
+ * orphan (GDPR erasure completeness). `interviewId` is an optional
+ * cross-link that must NOT gate this feature behind the Solo+ interviews
+ * plan tier, so it uses `set null` — losing the interview link must never
+ * cascade-delete transcript data.
+ */
+export const screeningTranscript = pgTable('screening_transcript', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
+  applicationId: text('application_id').notNull().references(() => application.id, { onDelete: 'cascade' }),
+  /** Optional cross-link — must not require the Solo+ interviews gate. */
+  interviewId: text('interview_id').references(() => interview.id, { onDelete: 'set null' }),
+  sourceType: transcriptSourceTypeEnum('source_type').notNull(),
+  /** Uploads only — text is read from `document.parsedContent`. */
+  documentId: text('document_id').references(() => document.id, { onDelete: 'cascade' }),
+  /** Paste only, ≤ 200,000 chars (enforced at the API layer, not here). */
+  rawText: text('raw_text'),
+  /** Whether the text sent to the LLM was truncated (60,000-char cap) — surfaced in the UI. */
+  truncated: boolean('truncated').notNull().default(false),
+  createdById: text('created_by_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ([
+  index('screening_transcript_organization_id_idx').on(t.organizationId),
+  index('screening_transcript_application_id_idx').on(t.applicationId),
+  index('screening_transcript_created_at_idx').on(t.createdAt),
+]))
+
+/**
+ * Result of an AI analysis run on a screening transcript: a per-answer
+ * breakdown (nullable — only populated in `per_answer` extraction mode, see
+ * docs/research/ta0.2-transcript-spike.md), section-level scores (always
+ * present), and an advisory recommendation. `analysisRunId` links to the
+ * companion `analysis_run` row that carries provider/model/billing/budget
+ * accounting for this run.
+ *
+ * Deliberately has NO raw LLM response column — unlike `analysisRun`, the
+ * validated structured output here IS the record; a raw-response column
+ * would risk quoting candidate PII verbatim from the transcript.
+ */
+export const transcriptAnalysis = pgTable('transcript_analysis', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
+  transcriptId: text('transcript_id').notNull().references(() => screeningTranscript.id, { onDelete: 'cascade' }),
+  applicationId: text('application_id').notNull().references(() => application.id, { onDelete: 'cascade' }),
+  /** Companion audit/billing row — see analysisRunKindEnum. */
+  analysisRunId: text('analysis_run_id').notNull().references(() => analysisRun.id, { onDelete: 'cascade' }),
+  status: analysisRunStatusEnum('status').notNull().default('completed'),
+  /**
+   * Nullable: null means `section_level` mode (no per-answer pairing).
+   * Populated only when `extractionMode === 'per_answer'`.
+   */
+  answerBreakdown: jsonb('answer_breakdown').$type<Record<string, unknown>[] | null>(),
+  /** Topic/category-level scores — always present, independent of extractionMode. */
+  sectionScores: jsonb('section_scores').notNull().$type<Record<string, unknown>[]>(),
+  /**
+   * Computed server-side from the structural heuristic + self-reported
+   * pairingConfidence — never trusted verbatim from the model. See
+   * docs/research/ta0.2-transcript-spike.md "Implications for TA3.1".
+   */
+  extractionMode: transcriptExtractionModeEnum('extraction_mode').notNull(),
+  /** Advisory only — this feature never changes application status automatically. */
+  recommendation: transcriptAnalysisRecommendationEnum('recommendation').notNull(),
+  /** Confidence from 0 to 100 (%). */
+  confidence: integer('confidence').notNull(),
+  rationale: text('rationale').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ([
+  index('transcript_analysis_organization_id_idx').on(t.organizationId),
+  index('transcript_analysis_application_id_idx').on(t.applicationId),
+  index('transcript_analysis_transcript_id_idx').on(t.transcriptId),
+  index('transcript_analysis_created_at_idx').on(t.createdAt),
+]))
+
+// ─────────────────────────────────────────────
 // Relations
 // ─────────────────────────────────────────────
 
@@ -847,11 +972,14 @@ export const applicationRelations = relations(application, ({ one, many }) => ({
   criterionScores: many(criterionScore),
   analysisRuns: many(analysisRun),
   source: one(applicationSource),
+  screeningTranscripts: many(screeningTranscript),
+  transcriptAnalyses: many(transcriptAnalysis),
 }))
 
-export const documentRelations = relations(document, ({ one }) => ({
+export const documentRelations = relations(document, ({ one, many }) => ({
   organization: one(organization, { fields: [document.organizationId], references: [organization.id] }),
   candidate: one(candidate, { fields: [document.candidateId], references: [candidate.id] }),
+  screeningTranscripts: many(screeningTranscript),
 }))
 
 export const jobQuestionRelations = relations(jobQuestion, ({ one }) => ({
@@ -897,10 +1025,11 @@ export const joinRequestRelations = relations(joinRequest, ({ one }) => ({
   reviewedBy: one(user, { fields: [joinRequest.reviewedById], references: [user.id] }),
 }))
 
-export const interviewRelations = relations(interview, ({ one }) => ({
+export const interviewRelations = relations(interview, ({ one, many }) => ({
   organization: one(organization, { fields: [interview.organizationId], references: [organization.id] }),
   application: one(application, { fields: [interview.applicationId], references: [application.id] }),
   createdBy: one(user, { fields: [interview.createdById], references: [user.id] }),
+  screeningTranscripts: many(screeningTranscript),
 }))
 
 export const emailTemplateRelations = relations(emailTemplate, ({ one }) => ({
@@ -932,6 +1061,25 @@ export const analysisRunRelations = relations(analysisRun, ({ one }) => ({
   organization: one(organization, { fields: [analysisRun.organizationId], references: [organization.id] }),
   application: one(application, { fields: [analysisRun.applicationId], references: [application.id] }),
   scoredBy: one(user, { fields: [analysisRun.scoredById], references: [user.id] }),
+  transcriptAnalysis: one(transcriptAnalysis, { fields: [analysisRun.id], references: [transcriptAnalysis.analysisRunId] }),
+}))
+
+// ─── Screening Transcript Analysis Relations ───────────────────────
+
+export const screeningTranscriptRelations = relations(screeningTranscript, ({ one, many }) => ({
+  organization: one(organization, { fields: [screeningTranscript.organizationId], references: [organization.id] }),
+  application: one(application, { fields: [screeningTranscript.applicationId], references: [application.id] }),
+  interview: one(interview, { fields: [screeningTranscript.interviewId], references: [interview.id] }),
+  document: one(document, { fields: [screeningTranscript.documentId], references: [document.id] }),
+  createdBy: one(user, { fields: [screeningTranscript.createdById], references: [user.id] }),
+  analyses: many(transcriptAnalysis),
+}))
+
+export const transcriptAnalysisRelations = relations(transcriptAnalysis, ({ one }) => ({
+  organization: one(organization, { fields: [transcriptAnalysis.organizationId], references: [organization.id] }),
+  transcript: one(screeningTranscript, { fields: [transcriptAnalysis.transcriptId], references: [screeningTranscript.id] }),
+  application: one(application, { fields: [transcriptAnalysis.applicationId], references: [application.id] }),
+  analysisRun: one(analysisRun, { fields: [transcriptAnalysis.analysisRunId], references: [analysisRun.id] }),
 }))
 
 // ─── Source Tracking Relations ─────────────────────────────────────

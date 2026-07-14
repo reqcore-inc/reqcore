@@ -253,6 +253,13 @@
       "when": 1782890973909,
       "tag": "0035_perpetual_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1783990383632,
+      "tag": "0036_secret_pixie",
+      "breakpoints": true
     }
   ]
 }
