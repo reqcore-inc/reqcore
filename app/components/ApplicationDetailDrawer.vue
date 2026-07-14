@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { X, ExternalLink, User, Briefcase, Calendar, Clock, Hash, FileText, MessageSquare } from 'lucide-vue-next'
+import { X, ExternalLink, User, Briefcase, Calendar, Clock, Hash, FileText, MessageSquare, Mail } from 'lucide-vue-next'
 import { APPLICATION_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
 
@@ -54,6 +54,12 @@ const allowedTransitions = computed(() => {
 
 const isTransitioning = ref(false)
 const showInterviewSidebar = ref(false)
+const showScreeningInviteModal = ref(false)
+
+function handleScreeningInvitationSent() {
+  showScreeningInviteModal.value = false
+  refresh()
+}
 
 async function handleTransition(newStatus: string) {
   isTransitioning.value = true
@@ -244,6 +250,19 @@ onUnmounted(() => {
                   <Calendar class="size-3.5" />
                   Schedule Interview
                 </button>
+                <button
+                  class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-surface-300 dark:border-surface-700 bg-white/80 dark:bg-surface-900 px-3.5 py-1.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:border-brand-400 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30 hover:text-brand-700 dark:hover:text-brand-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                  @click="showScreeningInviteModal = true"
+                >
+                  <Mail class="size-3.5" />
+                  {{ application.screeningInvitationSentAt ? 'Resend invitation' : 'Invite to screening' }}
+                </button>
+                <span
+                  v-if="application.screeningInvitationSentAt"
+                  class="text-xs text-surface-500 dark:text-surface-400"
+                >
+                  Screening invitation sent {{ new Date(application.screeningInvitationSentAt).toLocaleDateString() }}
+                </span>
               </div>
             </div>
 
@@ -445,6 +464,14 @@ onUnmounted(() => {
       :job-title="application.job.title"
       @close="showInterviewSidebar = false"
       @scheduled="showInterviewSidebar = false"
+    />
+
+    <!-- Screening invitation confirmation modal -->
+    <ScreeningInviteModal
+      v-if="showScreeningInviteModal && application"
+      :application="application"
+      @close="showScreeningInviteModal = false"
+      @sent="handleScreeningInvitationSent"
     />
   </Teleport>
 </template>
