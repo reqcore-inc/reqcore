@@ -55,9 +55,13 @@ const isGenerating = ref(false)
  * string (screening-scenario.post.ts), and 4xx branches below only ever use
  * server-authored (not raw-LLM) copy or fixed friendly copy.
  */
-type GenerationErrorKind = 'provider_unconfigured' | 'budget_exceeded' | 'generation_failed'
+type GenerationErrorKind = 'provider_unconfigured' | 'validation_failed' | 'budget_exceeded' | 'generation_failed'
 const generateErrorKind = ref<GenerationErrorKind | null>(null)
 const generateError = ref<string | null>(null)
+// budgetErrorToHttp()'s data.scope — 'org_free_limit' | 'org_monthly' | 'global_daily'.
+// Only populated when generateErrorKind === 'budget_exceeded'; used to suppress the
+// "Upgrade plan" CTA for 'global_daily' (a platform-wide pause upgrading can't fix).
+const generateErrorBudgetScope = ref<string | null>(null)
 
 const { data: scenarioData, status, refresh } = useFetch<ScreeningScenarioData>(
   () => `/api/applications/${props.applicationId}/screening-scenario`,
@@ -91,13 +95,16 @@ const isInitialLoad = computed(() => status.value === 'pending' && !cachedScenar
 // prop can't be threaded down from its existing application/candidate
 // fetches. Rather than guess reactively from a response that structurally
 // cannot carry this information, this component derives both signals from
-// two EXISTING endpoints it's already permitted to call (no new server API
-// surface added): `/api/applications/:id/scores` (compositeScore — the same
-// data ScoreBreakdown.vue renders) and `/api/candidates/:id` (documents[].parsed
-// — the same flag the Documents tab relies on). This does add two extra
-// client requests beyond what the parent already fetches; a follow-up task
-// wiring these through as props from CandidateDetailSidebar would remove the
-// duplication once the parent is back in scope.
+// EXISTING endpoints it's already permitted to call (no new server API surface
+// added): `/api/applications/:id/scores` (compositeScore — the same data
+// ScoreBreakdown.vue renders) directly for hasScore, and — because the parsed-
+// resume flag lives on the candidate, not the application — a two-hop bridge
+// for hasParsedResume: `/api/applications/:id` (for candidate.id) then
+// `/api/candidates/:id` (documents[].parsed — the same flag the Documents tab
+// relies on). That's 3 extra client requests total beyond what the parent
+// already fetches (scores + the applications bridge + candidates); a follow-up
+// task wiring these through as props from CandidateDetailSidebar would remove
+// the duplication once the parent is back in scope.
 interface ApplicationScoreSummary {
   compositeScore: number | null
 }
@@ -109,7 +116,17 @@ const { data: scoreSummary } = useFetch<ApplicationScoreSummary>(
     watch: [() => props.applicationId],
   },
 )
-const scoreSignalLoaded = computed(() => scoreSummary.value != null)
+// Stale-value guard (same problem cachedScenarioData solves above): useFetch
+// doesn't clear `data` the instant `props.applicationId` changes — the previous
+// candidate's response can still be sitting in scoreSummary.value while the key
+// is mid-refetch for the new id. Track which applicationId each successful
+// response actually belongs to, so switching candidates can't transiently show
+// a "no score yet" notice built from the PREVIOUS candidate's data.
+const scoreSignalAppId = ref<string | null>(null)
+watch(scoreSummary, (val) => {
+  if (val) scoreSignalAppId.value = props.applicationId
+})
+const scoreSignalLoaded = computed(() => scoreSummary.value != null && scoreSignalAppId.value === props.applicationId)
 const hasScore = computed(() => scoreSummary.value?.compositeScore != null)
 
 interface ApplicationCandidateRef {
@@ -123,7 +140,20 @@ const { data: applicationRef } = useFetch<ApplicationCandidateRef>(
     watch: [() => props.applicationId],
   },
 )
-const candidateIdForResumeCheck = computed(() => applicationRef.value?.candidate?.id ?? null)
+// Same stale-value guard pattern as scoreSignalAppId, but as the first hop of
+// a two-hop bridge: applicationRef.value can still hold the PREVIOUS
+// candidate's id right after props.applicationId changes. candidateIdForResumeCheck
+// only resolves to a real id once applicationRef is confirmed to belong to the
+// currently selected application — otherwise it's null ("not yet known"),
+// which correctly keeps hasParsedResume/resumeSignalLoaded from using a
+// mismatched candidate id.
+const applicationRefAppId = ref<string | null>(null)
+watch(applicationRef, (val) => {
+  if (val) applicationRefAppId.value = props.applicationId
+})
+const candidateIdForResumeCheck = computed(() =>
+  applicationRefAppId.value === props.applicationId ? (applicationRef.value?.candidate?.id ?? null) : null,
+)
 
 interface CandidateDocumentSummary {
   type: string
@@ -145,7 +175,20 @@ watch(candidateIdForResumeCheck, (id) => {
   if (id) refreshCandidateDetail()
 }, { immediate: true })
 
-const resumeSignalLoaded = computed(() => candidateDetail.value != null)
+// Second hop of the guard: track which candidateId the current candidateDetail
+// response actually belongs to. Two candidate ids (not applicationIds) so that
+// switching to a DIFFERENT application for the SAME candidate — where the
+// /candidates/:id key doesn't change, so no refetch happens — still correctly
+// re-validates as soon as candidateIdForResumeCheck confirms (no stale hide).
+const candidateDetailFetchedForId = ref<string | null>(null)
+watch(candidateDetail, (val) => {
+  if (val) candidateDetailFetchedForId.value = candidateIdForResumeCheck.value
+})
+const resumeSignalLoaded = computed(() =>
+  candidateDetail.value != null
+  && candidateIdForResumeCheck.value != null
+  && candidateDetailFetchedForId.value === candidateIdForResumeCheck.value,
+)
 const hasParsedResume = computed(() =>
   (candidateDetail.value?.documents ?? []).some(doc => doc.type === 'resume' && doc.parsed),
 )
@@ -156,15 +199,39 @@ const hasParsedResume = computed(() =>
  * as a small pure function (rather than inline in the catch block) makes the
  * status/data → state mapping easy to audit in one place.
  */
-function mapGenerationError(err: any): { kind: GenerationErrorKind, message: string } {
+// The exact phrase loadAiConfig() (server/utils/ai/loadConfig.ts:43-46) throws
+// when no BYOK/platform provider is configured — "No AI provider configured.
+// Add one in Settings → AI to enable <purpose>." The purpose suffix varies by
+// caller, so match on the fixed, purpose-independent prefix only. Mirrors the
+// classification precedent in app/pages/dashboard/jobs/[id]/ai-analysis.vue
+// (statusCode === 422 && statusMessage.includes('AI provider not configured')-
+// style check), adapted to this endpoint's actual server copy.
+const PROVIDER_UNCONFIGURED_PHRASE = 'No AI provider configured'
+
+function mapGenerationError(err: any): { kind: GenerationErrorKind, message: string, budgetScope: string | null } {
   const statusCode: number | undefined = err?.statusCode ?? err?.data?.statusCode ?? err?.response?.status
   const budgetCode = err?.data?.data?.code
+  const statusMessage: string = typeof err?.data?.statusMessage === 'string' ? err.data.statusMessage : ''
 
-  // resolveAnalysisProvider() → loadAiConfig() 422: no BYOK/platform provider configured.
   if (statusCode === 422) {
+    // resolveAnalysisProvider() → loadAiConfig() 422: no BYOK/platform provider
+    // configured. This is the ONLY 422 that gets the BYOK CTA.
+    if (statusMessage.includes(PROVIDER_UNCONFIGURED_PHRASE)) {
+      return {
+        kind: 'provider_unconfigured',
+        message: 'No AI provider configured for this workspace.',
+        budgetScope: null,
+      }
+    }
+    // Any other 422 from this route (e.g. "Job description is required to
+    // generate a screening scenario.") is a request-validation failure, not a
+    // provider problem — show the server's own message verbatim. It's already
+    // a safe, fixed, first-party string (not raw provider/LLM text), same as
+    // the statusMessage the GET/POST endpoints already return for this case.
     return {
-      kind: 'provider_unconfigured',
-      message: 'No AI provider configured for this workspace.',
+      kind: 'validation_failed',
+      message: statusMessage || 'Unable to generate a screening scenario for this application.',
+      budgetScope: null,
     }
   }
 
@@ -175,9 +242,14 @@ function mapGenerationError(err: any): { kind: GenerationErrorKind, message: str
   if (budgetCode === 'AI_BUDGET_EXCEEDED' || statusCode === 402) {
     return {
       kind: 'budget_exceeded',
-      message: typeof err?.data?.statusMessage === 'string' && err.data.statusMessage.length > 0
-        ? err.data.statusMessage
+      message: statusMessage.length > 0
+        ? statusMessage
         : 'AI usage limit reached for this workspace.',
+      // 'org_free_limit' | 'org_monthly' | 'global_daily' — see budget.ts's
+      // BudgetExceededError scope. Read here (not guessed) so the template can
+      // suppress the "Upgrade plan" CTA for 'global_daily' (a platform-wide
+      // pause; upgrading this org's plan does not lift it).
+      budgetScope: typeof err?.data?.data?.scope === 'string' ? err.data.data.scope : null,
     }
   }
 
@@ -187,6 +259,7 @@ function mapGenerationError(err: any): { kind: GenerationErrorKind, message: str
   return {
     kind: 'generation_failed',
     message: 'Screening scenario generation failed. Please try again.',
+    budgetScope: null,
   }
 }
 
@@ -194,6 +267,7 @@ async function generateScenario() {
   isGenerating.value = true
   generateError.value = null
   generateErrorKind.value = null
+  generateErrorBudgetScope.value = null
   try {
     await $fetch(`/api/applications/${props.applicationId}/screening-scenario`, {
       method: 'POST',
@@ -211,6 +285,7 @@ async function generateScenario() {
     const mapped = mapGenerationError(err)
     generateErrorKind.value = mapped.kind
     generateError.value = mapped.message
+    generateErrorBudgetScope.value = mapped.budgetScope
   } finally {
     isGenerating.value = false
   }
@@ -219,6 +294,7 @@ async function generateScenario() {
 function dismissError() {
   generateError.value = null
   generateErrorKind.value = null
+  generateErrorBudgetScope.value = null
 }
 </script>
 
@@ -360,7 +436,23 @@ function dismissError() {
       </div>
     </div>
 
-    <!-- Error: budget/limit exceeded (429/402) — upgrade notice -->
+    <!-- Error: request validation failed (422, not provider-unconfigured) — server message verbatim -->
+    <div
+      v-if="generateErrorKind === 'validation_failed'"
+      class="rounded-lg border border-surface-200/80 dark:border-surface-800/60 bg-surface-50 dark:bg-surface-800/40 p-3 text-xs text-surface-600 dark:text-surface-300 flex items-start gap-2"
+    >
+      <Info class="size-4 shrink-0 mt-0.5 text-surface-400" />
+      <div class="flex-1">
+        {{ generateError }}
+        <div class="mt-2">
+          <button class="underline" @click="dismissError">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error: budget/limit exceeded (429/402) — upgrade notice. 'global_daily' is
+         a platform-wide pause (not this org's budget), so upgrading a plan can't
+         fix it — suppress the "Upgrade plan" CTA and relabel for that scope. -->
     <div
       v-if="generateErrorKind === 'budget_exceeded'"
       class="rounded-lg border border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950 p-3 text-xs text-warning-700 dark:text-warning-400 flex items-start gap-2"
@@ -370,6 +462,7 @@ function dismissError() {
         {{ generateError }}
         <div class="mt-2 flex items-center gap-3">
           <NuxtLink
+            v-if="generateErrorBudgetScope !== 'global_daily'"
             to="/dashboard/settings/billing"
             class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-white bg-warning-600 rounded-md hover:bg-warning-700 transition-colors no-underline"
           >
