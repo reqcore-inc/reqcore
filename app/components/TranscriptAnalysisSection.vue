@@ -243,6 +243,7 @@ function latestAnalysis(t: Transcript): TranscriptAnalysis | null {
         type="file"
         accept=".pdf,.doc,.docx"
         class="hidden"
+        data-testid="transcript-upload-input"
         @change="handleFileSelected"
       />
       <div class="flex items-center gap-3">
@@ -301,6 +302,9 @@ function latestAnalysis(t: Transcript): TranscriptAnalysis | null {
         <div
           v-for="t in transcripts"
           :key="t.id"
+          data-testid="transcript-row"
+          :data-source-type="t.sourceType"
+          :data-transcript-id="t.id"
           class="rounded-xl border border-surface-200/80 dark:border-surface-800/60 bg-white dark:bg-surface-950 p-3"
         >
           <div class="flex items-center justify-between gap-3">

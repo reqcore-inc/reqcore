@@ -112,7 +112,7 @@ function toggleAnswer(i: number) {
 </script>
 
 <template>
-  <div class="mt-2.5 pt-2.5 border-t border-surface-100 dark:border-surface-800 space-y-3">
+  <div data-testid="transcript-analysis-results" class="mt-2.5 pt-2.5 border-t border-surface-100 dark:border-surface-800 space-y-3">
     <!-- Advisory banner -->
     <div class="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/40 p-3">
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
