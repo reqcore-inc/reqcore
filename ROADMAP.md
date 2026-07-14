@@ -245,6 +245,18 @@ Goal: AI helps recruiters find the best candidates — transparently.
 - [ ] Sort/filter by AI score
 - [ ] Local AI via Ollama as alternative to cloud
 
+### Milestone 10.5: Screening Scenarios
+
+AI-generated interview scripts recruiters follow during screening calls — transparent, regenerable, per application.
+
+- [ ] `screening_scenario` table (append-only generation history, org-scoped)
+- [ ] Generation endpoint reusing BYOK/platform provider resolution, budget gate, and AI observability
+- [ ] Configurable generation: question count + tone (technical / balanced / casual)
+- [ ] Questions include category + rationale (visible "why" — Auditable Intelligence)
+- [ ] Screening tab in the candidate application view with generate/regenerate
+- [ ] Screening generations count toward free-tier AI run limits
+- [ ] Included in GDPR erasure/export data graph
+
 ---
 
 ## Phase 3: Collaboration
