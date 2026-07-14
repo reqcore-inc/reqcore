@@ -45,8 +45,13 @@ const { data: template, status: templateStatus } = useFetch<ScreeningEmailTempla
 
 const isResend = computed(() => !!props.application.screeningInvitationSentAt)
 
+// NOTE: candidateName intentionally mirrors the server's exact construction
+// (`${firstName} ${lastName}`, see send-screening-invitation.post.ts) rather
+// than formatPersonName()'s org-aware nameDisplayFormat. Using the org
+// preference here would make this preview diverge from the email actually
+// sent for orgs configured with a "last_first" display order.
 const previewVariables = computed<Record<string, string>>(() => ({
-  candidateName: formatPersonName(props.application.candidate.firstName, props.application.candidate.lastName),
+  candidateName: `${props.application.candidate.firstName} ${props.application.candidate.lastName}`,
   candidateFirstName: props.application.candidate.firstName,
   candidateLastName: props.application.candidate.lastName,
   candidateEmail: props.application.candidate.email,
