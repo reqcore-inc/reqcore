@@ -4,7 +4,9 @@ import {
   getScreeningEmailTemplateForUser,
   upsertScreeningEmailTemplate,
 } from '../../server/utils/screeningEmailTemplate'
+import { screeningEmailTemplate } from '../../server/database/schema'
 import { DEFAULT_SCREENING_TEMPLATE } from '../../shared/screening-template'
+import { renderTemplate } from '../../shared/template-renderer'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -57,6 +59,25 @@ describe('updateScreeningEmailTemplateSchema', () => {
       expect(message).toContain('barTag')
       expect(message).toContain('bazTag')
     }
+  })
+
+  it('rejects a tag with inner whitespace ({{ jobTitle }}) because the renderer never substitutes it', () => {
+    // Regression guard: the validator's tag pattern must match shared/template-renderer.ts's
+    // canonical pattern exactly. A hand-rolled second regex that tolerates inner whitespace
+    // would let `{{ jobTitle }}` pass validation while renderTemplate() leaves it untouched,
+    // leaking a literal `{{ jobTitle }}` into the candidate's email.
+    const subject = 'Next steps: {{ jobTitle }} at {{organizationName}}'
+
+    const result = updateScreeningEmailTemplateSchema.safeParse({
+      subject,
+      body: 'valid body',
+    })
+    expect(result.success).toBe(false)
+
+    // Prove the failure mode this guards against: renderTemplate leaves the malformed
+    // tag untouched (unresolved) even though `jobTitle` itself is a known variable name.
+    const rendered = renderTemplate(subject, { jobTitle: 'Engineer', organizationName: 'Acme' })
+    expect(rendered).toContain('{{ jobTitle }}')
   })
 })
 
@@ -147,7 +168,7 @@ describe('upsertScreeningEmailTemplate', () => {
   })
 
   it('does not affect another user in the same organization (cross-user isolation)', async () => {
-    const { db, inserted } = makeDb()
+    const { db, inserted, conflictTargets } = makeDb()
     vi.stubGlobal('db', db)
 
     await upsertScreeningEmailTemplate({
@@ -157,8 +178,15 @@ describe('upsertScreeningEmailTemplate', () => {
       body: 'User A body',
     })
 
-    // Values written must be scoped to userA only — never leaking to another userId.
-    expect(inserted[0].userId).toBe('userA')
-    expect(inserted[0].userId).not.toBe('userB')
+    // The row written is scoped to userA, not some other user in the same org.
+    expect(inserted[0]).toMatchObject({ organizationId: 'org1', userId: 'userA' })
+
+    // The upsert's conflict target is the composite (organizationId, userId) unique
+    // index — proving the ON CONFLICT clause can only ever match/update userA's own
+    // row, never another user's row in the same organization (userB, userC, ...).
+    expect(conflictTargets[0]).toEqual([
+      screeningEmailTemplate.organizationId,
+      screeningEmailTemplate.userId,
+    ])
   })
 })

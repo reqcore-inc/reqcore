@@ -1,26 +1,48 @@
 import { z } from 'zod'
 import { SCREENING_TEMPLATE_VARIABLES } from '~~/shared/screening-template'
+import { extractTemplateTags, TEMPLATE_TAG_LIKE_PATTERN } from '~~/shared/template-renderer'
 import { MAX_BODY_LENGTH, MAX_SUBJECT_LENGTH } from './emailTemplate'
 
 // ─────────────────────────────────────────────
 // Screening email template validation schema
 // ─────────────────────────────────────────────
 
-const TEMPLATE_TAG_PATTERN = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g
+/** A well-formed `{{tag}}` placeholder — matches the canonical renderer pattern exactly. */
+const WELL_FORMED_TAG_PATTERN = /^\{\{\w+\}\}$/
 
-/** Returns the set of `{{tag}}` placeholders in `text` that are not in SCREENING_TEMPLATE_VARIABLES. */
+/**
+ * Returns the `{{...}}`-looking placeholders in `text` that are invalid, i.e.
+ * that would NOT be substituted by `renderTemplate` (shared/template-renderer.ts)
+ * and would therefore leak into the candidate's email unresolved. This covers:
+ *  - well-formed `{{tag}}` placeholders referencing a variable outside
+ *    SCREENING_TEMPLATE_VARIABLES (unknown tag), and
+ *  - malformed `{{...}}`-looking blocks that don't match the renderer's
+ *    canonical `{{tag}}` pattern at all (e.g. `{{ jobTitle }}` with inner
+ *    whitespace) — the renderer's regex requires no whitespace inside braces,
+ *    so these are never replaced and would render literally.
+ *
+ * Deliberately reuses `extractTemplateTags`/`TEMPLATE_TAG_LIKE_PATTERN` from
+ * shared/template-renderer.ts instead of a hand-rolled regex, so validation
+ * can never drift from what the renderer actually substitutes.
+ */
 export function findUnknownScreeningTemplateTags(text: string): string[] {
   const allowed = new Set<string>(SCREENING_TEMPLATE_VARIABLES)
-  const unknown = new Set<string>()
+  const invalid = new Set<string>()
 
-  for (const match of text.matchAll(TEMPLATE_TAG_PATTERN)) {
-    const tag = match[1]
-    if (tag && !allowed.has(tag)) {
-      unknown.add(tag)
+  for (const tag of extractTemplateTags(text)) {
+    if (!allowed.has(tag)) {
+      invalid.add(`{{${tag}}}`)
     }
   }
 
-  return [...unknown]
+  for (const match of text.matchAll(TEMPLATE_TAG_LIKE_PATTERN)) {
+    const raw = match[0]
+    if (!WELL_FORMED_TAG_PATTERN.test(raw)) {
+      invalid.add(raw)
+    }
+  }
+
+  return [...invalid]
 }
 
 /** Schema for updating the current user's screening invitation email template. */
@@ -33,7 +55,7 @@ export const updateScreeningEmailTemplateSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['subject'],
-      message: `Unknown template variable(s): ${unknownSubjectTags.map(t => `{{${t}}}`).join(', ')}`,
+      message: `Unknown template variable(s): ${unknownSubjectTags.join(', ')}`,
     })
   }
 
@@ -42,7 +64,7 @@ export const updateScreeningEmailTemplateSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['body'],
-      message: `Unknown template variable(s): ${unknownBodyTags.map(t => `{{${t}}}`).join(', ')}`,
+      message: `Unknown template variable(s): ${unknownBodyTags.join(', ')}`,
     })
   }
 })
