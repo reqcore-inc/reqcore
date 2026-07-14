@@ -31,6 +31,11 @@ export default defineEventHandler(async (event) => {
           // automated-decision logic) and must be included in the export.
           analysisRuns: true,
           source: true,
+          // Screening-call transcripts (incl. rawText for pasted transcripts)
+          // and their AI analyses are personal data under Art. 15 — see
+          // docs/spec/transcript-analysis.md "Security & privacy floor".
+          screeningTranscripts: true,
+          transcriptAnalyses: true,
         },
       },
     },

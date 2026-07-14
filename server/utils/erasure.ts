@@ -20,6 +20,12 @@
  *   2. Then, in one transaction, delete the polymorphic rows and the candidate.
  *      The candidate delete cascades application → responses / interviews /
  *      criterion_score / analysis_run / application_source, and document rows.
+ *      It also cascades application → screening_transcript → transcript_analysis
+ *      (both reference `application_id` with `onDelete: 'cascade'` — see
+ *      docs/spec/transcript-analysis.md "Data model"), so those rows need no
+ *      explicit delete here. Uploaded transcripts are `document` rows
+ *      (type='transcript') linked to the candidate, so the S3 deletion loop
+ *      below already covers them for free — it has no `type` filter.
  *
  * `db`, `deleteFromS3`, `logWarn`, `logInfo`, `logError` are Nitro auto-imports (globals).
  */
@@ -33,6 +39,8 @@ import {
   comment,
   activityLog,
   retentionAudit,
+  screeningTranscript,
+  transcriptAnalysis,
 } from '../database/schema'
 import { isPurgeEligible } from './retention'
 
@@ -193,6 +201,33 @@ async function eraseOne(
     : []
   const interviewIds = interviews.map(row => row.id)
 
+  // GDPR TA1.3: screening_transcript / transcript_analysis rows both cascade
+  // via `application_id` (onDelete: 'cascade'), so the candidate/application
+  // delete below already erases them without an explicit tx.delete. We still
+  // fetch their ids so any activity_log rows logged against them (resourceType
+  // 'transcript' / 'transcript_analysis') are swept up in the polymorphic
+  // activityLog delete, since activity_log has no FK to either table.
+  const transcripts = applicationIds.length > 0
+    ? await db.query.screeningTranscript.findMany({
+        where: and(
+          eq(screeningTranscript.organizationId, orgId),
+          inArray(screeningTranscript.applicationId, applicationIds),
+        ),
+        columns: { id: true },
+      })
+    : []
+  const transcriptIds = transcripts.map(row => row.id)
+  const transcriptAnalyses = applicationIds.length > 0
+    ? await db.query.transcriptAnalysis.findMany({
+        where: and(
+          eq(transcriptAnalysis.organizationId, orgId),
+          inArray(transcriptAnalysis.applicationId, applicationIds),
+        ),
+        columns: { id: true },
+      })
+    : []
+  const transcriptAnalysisIds = transcriptAnalyses.map(row => row.id)
+
   const commentScope = applicationIds.length > 0
     ? or(
         and(eq(comment.targetType, 'candidate'), eq(comment.targetId, candidateId)),
@@ -215,6 +250,12 @@ async function eraseOne(
       : []),
     ...(documentIds.length > 0
       ? [and(eq(activityLog.resourceType, 'document'), inArray(activityLog.resourceId, documentIds))]
+      : []),
+    ...(transcriptIds.length > 0
+      ? [and(eq(activityLog.resourceType, 'transcript'), inArray(activityLog.resourceId, transcriptIds))]
+      : []),
+    ...(transcriptAnalysisIds.length > 0
+      ? [and(eq(activityLog.resourceType, 'transcript_analysis'), inArray(activityLog.resourceId, transcriptAnalysisIds))]
       : []),
   ]
   const activityScope = activityScopes.length === 1 ? activityScopes[0]! : or(...activityScopes)

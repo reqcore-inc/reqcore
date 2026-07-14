@@ -27,6 +27,9 @@ and self-hosted deployments. No paid plan, license key, or quota gates any of it
 - **Erasure**: a single erasure service removes the candidate's data graph in the
   live system — DB records, applications, documents, **S3 objects**, AI results,
   interviews, responses, custom properties, comments, and activity-log entries.
+  This includes screening-call transcripts and their AI analyses: transcript and
+  analysis rows cascade-delete via the application, and uploaded transcript files
+  are ordinary documents so the same **S3 object** deletion already covers them.
   Permanent erasure is triggered explicitly from the retention review screen
   (behind a type-the-name confirmation) and by the automated retention sweep; both
   use the **same** path, so they produce identical results. (Backups are handled
@@ -39,9 +42,9 @@ and self-hosted deployments. No paid plan, license key, or quota gates any of it
   sweep.
 - **Data-subject support**: per-candidate JSON export (Art. 15 / 20) covering the
   candidate, applications, responses, interviews, scores, AI analysis runs,
-  comments, custom properties, and activity log; uploaded-file *contents* are
-  retrieved via their individual download links. Corrections are made via the
-  normal candidate edit screens.
+  screening transcripts and transcript analyses, comments, custom properties, and
+  activity log; uploaded-file *contents* are retrieved via their individual
+  download links. Corrections are made via the normal candidate edit screens.
 - **Privacy notice**: an org-configurable notice shown on the public application
   form, with policy URL and contact email.
 - **Privacy-safe audit**: every retention action writes a `retention_audit` row

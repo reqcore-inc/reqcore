@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { PgDialect } from 'drizzle-orm/pg-core'
+import type { SQL } from 'drizzle-orm'
 import { eraseCandidates } from '../../server/utils/erasure'
+import { activityLog } from '../../server/database/schema'
+
+const dialect = new PgDialect()
+
+/** Renders a drizzle SQL condition to its SQL text + bound params for assertions. */
+function renderWhere(cond: unknown) {
+  return dialect.sqlToQuery(cond as SQL)
+}
 
 // ─────────────────────────────────────────────
 // Build a configurable in-memory mock of the Nitro auto-imported `db` global.
@@ -12,6 +22,10 @@ interface MockOpts {
   documents?: string[]
   applications?: string[]
   interviews?: string[]
+  /** screening_transcript ids tied to the candidate's applications. */
+  transcripts?: string[]
+  /** transcript_analysis ids tied to the candidate's applications. */
+  analyses?: string[]
   comments?: unknown[]
   properties?: unknown[]
   activityLogs?: unknown[]
@@ -27,6 +41,7 @@ function makeDb(opts: MockOpts) {
   const selectResults = [opts.comments ?? [], opts.properties ?? [], opts.activityLogs ?? []]
   let selectIdx = 0
   const inserts: Record<string, unknown>[] = []
+  const selectCalls: { from: unknown, where: unknown }[] = []
   const deletedRows = opts.candidateDeleted === false ? [] : [{ id: opts.id ?? 'c1' }]
   const txDelete = vi.fn(() => ({
     where: vi.fn(() => Object.assign(Promise.resolve(deletedRows), {
@@ -37,6 +52,11 @@ function makeDb(opts: MockOpts) {
   const insert = vi.fn(() => ({
     values: vi.fn((v: Record<string, unknown>) => { inserts.push(v); return Promise.resolve() }),
   }))
+
+  const documentFindMany = vi.fn(async (args?: { where?: unknown }) => {
+    if (args) (documentFindMany as { lastArgs?: unknown }).lastArgs = args
+    return (opts.documents ?? []).map((storageKey, index) => ({ id: `d${index + 1}`, storageKey }))
+  }) as ReturnType<typeof vi.fn> & { lastArgs?: { where?: unknown } }
 
   const db = {
     query: {
@@ -51,20 +71,29 @@ function makeDb(opts: MockOpts) {
           : undefined)),
       },
       document: {
-        findMany: vi.fn(async () =>
-          (opts.documents ?? []).map((storageKey, index) => ({ id: `d${index + 1}`, storageKey })),
-        ),
+        findMany: documentFindMany,
       },
       application: { findMany: vi.fn(async () => (opts.applications ?? []).map(id => ({ id }))) },
       interview: { findMany: vi.fn(async () => (opts.interviews ?? []).map(id => ({ id }))) },
+      screeningTranscript: {
+        findMany: vi.fn(async () => (opts.transcripts ?? []).map(id => ({ id }))),
+      },
+      transcriptAnalysis: {
+        findMany: vi.fn(async () => (opts.analyses ?? []).map(id => ({ id }))),
+      },
     },
     select: vi.fn(() => ({
-      from: vi.fn(() => ({ where: vi.fn(() => Promise.resolve(selectResults[selectIdx++])) })),
+      from: vi.fn((table: unknown) => ({
+        where: vi.fn((cond: unknown) => {
+          selectCalls.push({ from: table, where: cond })
+          return Promise.resolve(selectResults[selectIdx++])
+        }),
+      })),
     })),
     transaction,
     insert,
   }
-  return { db, transaction, txDelete, insert, inserts }
+  return { db, transaction, txDelete, insert, inserts, selectCalls }
 }
 
 let deleteFromS3: ReturnType<typeof vi.fn>
@@ -265,5 +294,95 @@ describe('eraseCandidates', () => {
     expect(report.processed).toBe(1)
     expect(report.erased).toBe(1)
     expect(report.skipped).toBe(0)
+  })
+
+  describe('transcript + transcript_analysis GDPR wiring (TA1.3)', () => {
+    it('deletes S3 objects for uploaded transcript documents — document.findMany has no `type` filter, so type=transcript documents are already covered by the existing candidate-document erasure path', async () => {
+      const m = makeDb({
+        candidateExists: true,
+        documents: ['resume-storage-key', 'transcript-storage-key'],
+      })
+      vi.stubGlobal('db', m.db)
+
+      const report = await eraseCandidates('org1', ['c1'], {})
+
+      expect(report.results[0].status).toBe('erased')
+      // Both the resume document AND the transcript-typed document's S3 object
+      // were deleted — proving the existing candidate-document S3 erasure path
+      // already covers uploaded transcripts (screening_transcript.documentId
+      // points at a `document` row of type='transcript').
+      expect(deleteFromS3).toHaveBeenCalledWith('resume-storage-key')
+      expect(deleteFromS3).toHaveBeenCalledWith('transcript-storage-key')
+      expect(deleteFromS3).toHaveBeenCalledTimes(2)
+
+      // Prove the query itself is type-agnostic: the `where` clause passed to
+      // document.findMany only scopes by candidateId + organizationId, never
+      // by `type`, so it can never silently skip transcript-typed documents.
+      const lastArgs = (m.db.query.document.findMany as unknown as { mock: { calls: [{ where: unknown }][] } })
+        .mock.calls[0][0]
+      const rendered = renderWhere(lastArgs.where)
+      expect(rendered.sql).not.toMatch(/"type"/)
+    })
+
+    it('fetches screening_transcript and transcript_analysis rows scoped to the candidate applications (rows themselves cascade-delete via the application FK — no explicit tx.delete needed)', async () => {
+      const m = makeDb({
+        candidateExists: true,
+        documents: ['k1'],
+        applications: ['a1', 'a2'],
+        transcripts: ['t1', 't2'],
+        analyses: ['an1'],
+      })
+      vi.stubGlobal('db', m.db)
+
+      const report = await eraseCandidates('org1', ['c1'], {})
+
+      expect(report.results[0].status).toBe('erased')
+      expect(m.db.query.screeningTranscript.findMany).toHaveBeenCalledTimes(1)
+      expect(m.db.query.transcriptAnalysis.findMany).toHaveBeenCalledTimes(1)
+      // No new tx.delete calls: transcript/analysis rows are NOT deleted
+      // explicitly — they cascade via `screening_transcript.application_id`
+      // and `transcript_analysis.application_id` FKs (onDelete: 'cascade'),
+      // same as the application delete cascade already covers
+      // responses/interviews/scores/analysis_run/documents.
+      expect(m.txDelete).toHaveBeenCalledTimes(4)
+    })
+
+    it('adds transcript and transcript_analysis resourceTypes (scoped to the fetched ids) to the activityLog erasure scope', async () => {
+      const m = makeDb({
+        candidateExists: true,
+        documents: ['k1'],
+        applications: ['a1'],
+        transcripts: ['t1', 't2'],
+        analyses: ['an1'],
+      })
+      vi.stubGlobal('db', m.db)
+
+      await eraseCandidates('org1', ['c1'], {})
+
+      const activityCall = m.selectCalls.find(c => c.from === activityLog)
+      expect(activityCall).toBeDefined()
+      const rendered = renderWhere(activityCall!.where)
+      expect(rendered.params).toContain('transcript')
+      expect(rendered.params).toContain('transcript_analysis')
+      expect(rendered.params).toContain('t1')
+      expect(rendered.params).toContain('t2')
+      expect(rendered.params).toContain('an1')
+    })
+
+    it('does NOT add transcript/transcript_analysis scopes when the candidate has no applications (nothing to scope by)', async () => {
+      const m = makeDb({ candidateExists: true, documents: ['k1'] })
+      vi.stubGlobal('db', m.db)
+
+      await eraseCandidates('org1', ['c1'], {})
+
+      // No applications → transcript/analysis lookups are skipped entirely.
+      expect(m.db.query.screeningTranscript.findMany).not.toHaveBeenCalled()
+      expect(m.db.query.transcriptAnalysis.findMany).not.toHaveBeenCalled()
+
+      const activityCall = m.selectCalls.find(c => c.from === activityLog)
+      const rendered = renderWhere(activityCall!.where)
+      expect(rendered.params).not.toContain('transcript')
+      expect(rendered.params).not.toContain('transcript_analysis')
+    })
   })
 })
