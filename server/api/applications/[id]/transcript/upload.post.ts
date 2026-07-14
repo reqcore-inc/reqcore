@@ -99,8 +99,9 @@ export default defineEventHandler(async (event) => {
   const detectedType = await fileTypeFromBuffer(fileBuffer)
   let mimeType = detectedType?.mime
 
-  // file-type can't detect legacy .doc (OLE2 compound documents) — validate magic bytes manually
-  if (!mimeType) {
+  // file-type detects OLE2 compound binary documents (.doc) as 'application/x-cfb',
+  // or misses them entirely — validate magic bytes manually in both cases
+  if (!mimeType || mimeType === 'application/x-cfb') {
     const OLE2_MAGIC = Buffer.from([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1])
     if (fileBuffer.length >= 8 && Buffer.compare(fileBuffer.subarray(0, 8), OLE2_MAGIC) === 0) {
       mimeType = 'application/msword'

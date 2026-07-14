@@ -183,4 +183,29 @@ describe('POST /api/applications/:id/transcript/upload', () => {
       sourceType: 'upload',
     })
   })
+
+  it('accepts a legacy .doc detected by file-type as application/x-cfb (OLE2 fallback)', async () => {
+    const OLE2_MAGIC = Buffer.from([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1])
+    const docBuffer = Buffer.concat([OLE2_MAGIC, Buffer.alloc(64)])
+    fileTypeFromBuffer.mockResolvedValue({ mime: 'application/x-cfb', ext: 'cfb' })
+    readMultipartFormData.mockResolvedValue([
+      { name: 'file', filename: 'transcript.doc', data: docBuffer },
+    ])
+
+    await handler(makeEvent())
+
+    expect(uploadToS3).toHaveBeenCalledTimes(1)
+    expect(insertDocumentReturning).toHaveBeenCalledTimes(1)
+    expect(setResponseStatus).toHaveBeenCalledWith(expect.anything(), 201)
+  })
+
+  it('still rejects an x-cfb detection whose bytes are not a real OLE2 document', async () => {
+    fileTypeFromBuffer.mockResolvedValue({ mime: 'application/x-cfb', ext: 'cfb' })
+    readMultipartFormData.mockResolvedValue([
+      { name: 'file', filename: 'fake.doc', data: Buffer.from('not ole2 at all, just text') },
+    ])
+
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 400 })
+    expect(uploadToS3).not.toHaveBeenCalled()
+  })
 })
