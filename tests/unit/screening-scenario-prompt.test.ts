@@ -58,8 +58,8 @@ describe('screeningScenarioConfigSchema', () => {
 })
 
 describe('screeningScenarioResponseSchema', () => {
-  it('accepts a valid payload', () => {
-    const result = screeningScenarioResponseSchema.safeParse({
+  it('accepts a valid payload matching the requested question count', () => {
+    const result = screeningScenarioResponseSchema(1).safeParse({
       questions: [
         { category: 'Technical Depth', question: 'Tell me about a scaling challenge you solved.', rationale: 'Probes production experience mentioned in resume.' },
       ],
@@ -68,36 +68,56 @@ describe('screeningScenarioResponseSchema', () => {
   })
 
   it('rejects an empty questions array', () => {
-    const result = screeningScenarioResponseSchema.safeParse({ questions: [] })
+    const result = screeningScenarioResponseSchema(1).safeParse({ questions: [] })
     expect(result.success).toBe(false)
   })
 
   it('rejects a question with an empty category', () => {
-    const result = screeningScenarioResponseSchema.safeParse({
+    const result = screeningScenarioResponseSchema(1).safeParse({
       questions: [{ category: '', question: 'Q?', rationale: 'R.' }],
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects a question with an empty question field', () => {
-    const result = screeningScenarioResponseSchema.safeParse({
+    const result = screeningScenarioResponseSchema(1).safeParse({
       questions: [{ category: 'Technical', question: '', rationale: 'R.' }],
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects a question with an empty rationale', () => {
-    const result = screeningScenarioResponseSchema.safeParse({
+    const result = screeningScenarioResponseSchema(1).safeParse({
       questions: [{ category: 'Technical', question: 'Q?', rationale: '' }],
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects a question missing a required field', () => {
-    const result = screeningScenarioResponseSchema.safeParse({
+    const result = screeningScenarioResponseSchema(1).safeParse({
       questions: [{ category: 'Technical', question: 'Q?' }],
     })
     expect(result.success).toBe(false)
+  })
+
+  it('rejects a payload whose question count does not match the requested count', () => {
+    const twoQuestions = Array.from({ length: 2 }, (_, i) => ({
+      category: 'Technical',
+      question: `Question ${i + 1}?`,
+      rationale: `Rationale ${i + 1}.`,
+    }))
+    const result = screeningScenarioResponseSchema(10).safeParse({ questions: twoQuestions })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts a payload whose question count exactly matches the requested count', () => {
+    const tenQuestions = Array.from({ length: 10 }, (_, i) => ({
+      category: 'Technical',
+      question: `Question ${i + 1}?`,
+      rationale: `Rationale ${i + 1}.`,
+    }))
+    const result = screeningScenarioResponseSchema(10).safeParse({ questions: tenQuestions })
+    expect(result.success).toBe(true)
   })
 })
 
@@ -158,6 +178,15 @@ describe('buildScreeningPrompt', () => {
     const input: ScreeningScenarioInput = { ...baseInput, compositeScore: null, criterionScores: null }
     const { user } = buildScreeningPrompt({ questionCount: 6, tone: 'balanced' }, input)
     expect(user).not.toContain('82')
+    expect(user.toLowerCase()).not.toContain('undefined')
+    expect(user.toLowerCase()).not.toContain('null')
+  })
+
+  it('renders composite score with a not-available note when criterionScores is null', () => {
+    const input: ScreeningScenarioInput = { ...baseInput, criterionScores: null }
+    const { user } = buildScreeningPrompt({ questionCount: 6, tone: 'balanced' }, input)
+    expect(user).toContain('82')
+    expect(user.toLowerCase()).toContain('not available')
     expect(user.toLowerCase()).not.toContain('undefined')
     expect(user.toLowerCase()).not.toContain('null')
   })
