@@ -22,11 +22,10 @@ const localePath = useLocalePath()
 // Stage config for clickable pipeline counts
 // ─────────────────────────────────────────────
 
+// Jobs each have their own stages, so this cross-job list aggregates by category.
 const stageConfig = [
-  { key: 'new', label: 'New', textColor: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-950/40' },
-  { key: 'screening', label: 'Screening', textColor: 'text-violet-600 dark:text-violet-400', bgColor: 'bg-violet-50 dark:bg-violet-950/40' },
-  { key: 'interview', label: 'Interview', textColor: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-950/40' },
-  { key: 'offer', label: 'Offer', textColor: 'text-teal-600 dark:text-teal-400', bgColor: 'bg-teal-50 dark:bg-teal-950/40' },
+  { key: 'applied', label: 'Applied', textColor: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-950/40' },
+  { key: 'in_progress', label: 'In progress', textColor: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-950/40' },
   { key: 'hired', label: 'Hired', textColor: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-50 dark:bg-green-950/40' },
   { key: 'rejected', label: 'Rejected', textColor: 'text-surface-500 dark:text-surface-400', bgColor: 'bg-surface-100 dark:bg-surface-800' },
 ] as const
@@ -180,7 +179,7 @@ const statusPriority: Record<string, number> = {
 }
 
 function totalActive(pipeline: any) {
-  return (pipeline?.new ?? 0) + (pipeline?.screening ?? 0) + (pipeline?.interview ?? 0) + (pipeline?.offer ?? 0) + (pipeline?.hired ?? 0)
+  return (pipeline?.applied ?? 0) + (pipeline?.in_progress ?? 0) + (pipeline?.hired ?? 0)
 }
 
 const sortedJobs = computed(() => {
@@ -194,7 +193,7 @@ const sortedJobs = computed(() => {
         case 'status': return dir * (statusPriority[a.status] ?? 9) - dir * (statusPriority[b.status] ?? 9)
         case 'type': return dir * (a.type ?? '').localeCompare(b.type ?? '')
         case 'location': return dir * (a.location ?? '').localeCompare(b.location ?? '')
-        case 'new': return dir * ((a.pipeline?.new ?? 0) - (b.pipeline?.new ?? 0))
+        case 'new': return dir * ((a.pipeline?.applied ?? 0) - (b.pipeline?.applied ?? 0))
         case 'active': return dir * (totalActive(a.pipeline) - totalActive(b.pipeline))
         case 'created': return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
         default: return 0
@@ -208,8 +207,8 @@ const sortedJobs = computed(() => {
     const aPriority = statusPriority[a.status] ?? 9
     const bPriority = statusPriority[b.status] ?? 9
     if (aPriority !== bPriority) return aPriority - bPriority
-    const aNew = a.pipeline?.new ?? 0
-    const bNew = b.pipeline?.new ?? 0
+    const aNew = a.pipeline?.applied ?? 0
+    const bNew = b.pipeline?.applied ?? 0
     if (aNew !== bNew) return bNew - aNew
     const aActive = totalActive(a.pipeline)
     const bActive = totalActive(b.pipeline)
@@ -224,11 +223,11 @@ const sortedJobs = computed(() => {
 // ─────────────────────────────────────────────
 
 const jobsNeedingAttention = computed(() =>
-  sortedJobs.value.filter(j => j.status === 'open' && (j.pipeline?.new ?? 0) > 0),
+  sortedJobs.value.filter(j => j.status === 'open' && (j.pipeline?.applied ?? 0) > 0),
 )
 
 const otherJobs = computed(() =>
-  sortedJobs.value.filter(j => !(j.status === 'open' && (j.pipeline?.new ?? 0) > 0)),
+  sortedJobs.value.filter(j => !(j.status === 'open' && (j.pipeline?.applied ?? 0) > 0)),
 )
 
 // ─────────────────────────────────────────────
@@ -676,10 +675,10 @@ const noResults = computed(() => !isEmpty.value && filteredJobs.value.length ===
                       {{ j.title }}
                     </NuxtLink>
                     <span
-                      v-if="(j.pipeline?.new ?? 0) > 0"
+                      v-if="(j.pipeline?.applied ?? 0) > 0"
                       class="inline-flex items-center justify-center rounded-full bg-warning-100 dark:bg-warning-900/40 text-warning-700 dark:text-warning-400 text-[10px] font-bold px-1.5 py-0.5 shrink-0"
                     >
-                      {{ j.pipeline.new }} new
+                      {{ j.pipeline.applied }} new
                     </span>
                   </div>
                 </td>
@@ -703,10 +702,10 @@ const noResults = computed(() => !isEmpty.value && filteredJobs.value.length ===
                 </td>
                 <td class="px-4 py-3 text-center">
                   <span
-                    v-if="(j.pipeline?.new ?? 0) > 0"
+                    v-if="(j.pipeline?.applied ?? 0) > 0"
                     class="inline-flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400 tabular-nums"
                   >
-                    {{ j.pipeline.new }}
+                    {{ j.pipeline.applied }}
                   </span>
                   <span v-else class="text-surface-300 dark:text-surface-600">0</span>
                 </td>
@@ -738,7 +737,7 @@ const noResults = computed(() => !isEmpty.value && filteredJobs.value.length ===
             :key="j.id"
             :to="localePath(`/dashboard/jobs/${j.id}`)"
             class="group rounded-xl border bg-white dark:bg-surface-900 p-4 flex flex-col gap-3 hover:shadow-md transition-all no-underline"
-            :class="(j.pipeline?.new ?? 0) > 0
+            :class="(j.pipeline?.applied ?? 0) > 0
               ? 'border-warning-200 dark:border-warning-900/60 hover:border-warning-300 dark:hover:border-warning-800'
               : 'border-surface-200 dark:border-surface-800 hover:border-surface-300 dark:hover:border-surface-700'"
           >
@@ -785,11 +784,11 @@ const noResults = computed(() => !isEmpty.value && filteredJobs.value.length ===
 
             <!-- Attention bar -->
             <div
-              v-if="(j.pipeline?.new ?? 0) > 0"
+              v-if="(j.pipeline?.applied ?? 0) > 0"
               class="flex items-center justify-between gap-2 -mx-4 -mb-4 px-4 py-2 rounded-b-xl bg-warning-50/60 dark:bg-warning-950/30 border-t border-warning-100 dark:border-warning-900/30"
             >
               <span class="text-xs font-medium text-warning-700 dark:text-warning-400">
-                {{ j.pipeline.new }} new application{{ j.pipeline.new === 1 ? '' : 's' }}
+                {{ j.pipeline.applied }} new application{{ j.pipeline.applied === 1 ? '' : 's' }}
               </span>
               <span class="inline-flex items-center gap-1 text-xs text-brand-600 dark:text-brand-400 font-medium">
                 <Kanban class="size-3" />
@@ -872,7 +871,7 @@ const noResults = computed(() => !isEmpty.value && filteredJobs.value.length ===
               <!-- Action bar -->
               <div class="flex items-center gap-2 px-5 py-3 bg-warning-50/50 dark:bg-warning-950/20 border-t border-warning-100 dark:border-warning-900/30">
                 <span class="text-xs font-medium text-warning-700 dark:text-warning-400 mr-auto">
-                  {{ j.pipeline.new }} new application{{ j.pipeline.new === 1 ? '' : 's' }} to review
+                  {{ j.pipeline.applied }} new application{{ j.pipeline.applied === 1 ? '' : 's' }} to review
                 </span>
                 <NuxtLink
                   :to="$localePath(`/dashboard/jobs/${j.id}`)"

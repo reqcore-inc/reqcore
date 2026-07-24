@@ -1,5 +1,5 @@
 import { asc, eq, and, desc, inArray, notInArray, or, ilike, gte, lt, isNull, count, sql } from 'drizzle-orm'
-import { application, applicationStatusEnum, candidate, interview, job } from '../../database/schema'
+import { application, candidate, interview, job, pipelineStage } from '../../database/schema'
 import { applicationQuerySchema } from '../../utils/schemas/application'
 import { propertyFiltersArraySchema } from '../../utils/schemas/property'
 import {
@@ -8,12 +8,13 @@ import {
   type PropertyFilter,
 } from '../../utils/properties'
 
-type StatusCountRow = { status: (typeof applicationStatusEnum.enumValues)[number], count: number }
+/** Per-stage application totals for the pipeline badges, keyed by stage id. */
+type StageCountRow = { statusId: string, count: number }
 
-function tallyStatusCounts(rows: StatusCountRow[]) {
-  const counts = { new: 0, screening: 0, interview: 0, offer: 0, hired: 0, rejected: 0 }
+function tallyStageCounts(rows: StageCountRow[]): Record<string, number> {
+  const counts: Record<string, number> = {}
   for (const row of rows) {
-    counts[row.status] = Number(row.count)
+    counts[row.statusId] = Number(row.count)
   }
   return counts
 }
@@ -41,8 +42,11 @@ export default defineEventHandler(async (event) => {
   if (query.candidateId) {
     conditions.push(eq(application.candidateId, query.candidateId))
   }
-  if (query.status) {
-    conditions.push(eq(application.status, query.status))
+  if (query.statusId) {
+    conditions.push(eq(application.statusId, query.statusId))
+  }
+  if (query.statusCategory) {
+    conditions.push(eq(application.statusCategory, query.statusCategory))
   }
   if (query.search) {
     // Escape LIKE meta-characters to keep this a literal substring search.
@@ -99,11 +103,11 @@ export default defineEventHandler(async (event) => {
     propertyFilters = result.data as PropertyFilter[]
   }
 
-  // Job-wide per-status totals for the pipeline tab badges. Intentionally ignores
+  // Job-wide per-stage totals for the pipeline tab badges. Intentionally ignores
   // every active filter so the badges stay put as the user narrows the list.
-  const statusCountsPromise: Promise<StatusCountRow[]> = query.jobId
+  const statusCountsPromise: Promise<StageCountRow[]> = query.jobId
     ? db
-        .select({ status: application.status, count: count() })
+        .select({ statusId: application.statusId, count: count() })
         .from(application)
         .innerJoin(candidate, eq(candidate.id, application.candidateId))
         .where(and(
@@ -111,7 +115,7 @@ export default defineEventHandler(async (event) => {
           eq(application.jobId, query.jobId),
           isNull(candidate.quarantinedAt),
         ))
-        .groupBy(application.status)
+        .groupBy(application.statusId)
     : Promise.resolve([])
 
   if (propertyFilters.length > 0) {
@@ -131,7 +135,7 @@ export default defineEventHandler(async (event) => {
         total: 0,
         page: query.page,
         limit: query.limit,
-        statusCounts: tallyStatusCounts(statusCountRows),
+        statusCounts: tallyStageCounts(statusCountRows),
       }
     }
     conditions.push(inArray(application.id, [...matching]))
@@ -155,7 +159,10 @@ export default defineEventHandler(async (event) => {
     db
       .select({
         id: application.id,
-        status: application.status,
+        statusId: application.statusId,
+        statusCategory: application.statusCategory,
+        statusName: pipelineStage.name,
+        statusColor: pipelineStage.color,
         score: application.score,
         notes: application.notes,
         createdAt: application.createdAt,
@@ -171,6 +178,7 @@ export default defineEventHandler(async (event) => {
       .from(application)
       .innerJoin(candidate, eq(candidate.id, application.candidateId))
       .innerJoin(job, eq(job.id, application.jobId))
+      .innerJoin(pipelineStage, eq(pipelineStage.id, application.statusId))
       .where(where)
       .orderBy(...orderBy)
       .limit(query.limit)
@@ -184,7 +192,7 @@ export default defineEventHandler(async (event) => {
     statusCountsPromise,
   ])
 
-  const statusCounts = tallyStatusCounts(statusCountRows)
+  const statusCounts = tallyStageCounts(statusCountRows)
 
   // Bulk-attach properties for the current page (org-global + per-job)
   const ids = data.map((a) => a.id)

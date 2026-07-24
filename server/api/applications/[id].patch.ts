@@ -1,10 +1,14 @@
 import { eq, and, inArray, isNull } from 'drizzle-orm'
-import { application, candidate } from '../../database/schema'
-import { applicationIdParamSchema, updateApplicationSchema, APPLICATION_STATUS_TRANSITIONS } from '../../utils/schemas/application'
+import { application, candidate, pipelineStage } from '../../database/schema'
+import { applicationIdParamSchema, updateApplicationSchema } from '../../utils/schemas/application'
+import type { StageCategory } from '~~/shared/pipeline'
 
 /**
  * PATCH /api/applications/:id
- * Update application status (with server-side transition validation), notes, and score.
+ * Move an application to a pipeline stage, and/or update notes and score.
+ *
+ * Stage moves are free-form across the job's custom pipeline — there is no fixed
+ * transition graph. The target stage must belong to the application's own job.
  */
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { application: ['update'] })
@@ -17,33 +21,50 @@ export default defineEventHandler(async (event) => {
     isNull(candidate.quarantinedAt),
   ))
 
-  // Fetch current application to validate status transition
+  // Fetch current application (with its current stage) to attribute the change.
   const current = await db.query.application.findFirst({
     where: and(
       eq(application.id, id),
       eq(application.organizationId, orgId),
       inArray(application.candidateId, activeCandidateIds),
     ),
-    columns: { id: true, status: true },
+    columns: { id: true, statusId: true, jobId: true },
+    with: { stage: { columns: { id: true, name: true, category: true } } },
   })
 
   if (!current) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
   }
 
-  // Validate status transition if status is being changed
-  if (body.status && body.status !== current.status) {
-    const allowed = APPLICATION_STATUS_TRANSITIONS[current.status] ?? []
-    if (!allowed.includes(body.status)) {
+  // Resolve + validate the target stage when a move is requested.
+  const isMove = !!body.statusId && body.statusId !== current.statusId
+  let targetStage: { id: string, name: string, category: StageCategory } | undefined
+  if (body.statusId) {
+    const stage = await db.query.pipelineStage.findFirst({
+      where: and(
+        eq(pipelineStage.id, body.statusId),
+        eq(pipelineStage.organizationId, orgId),
+      ),
+      columns: { id: true, name: true, category: true, jobId: true },
+    })
+    if (!stage || stage.jobId !== current.jobId) {
       throw createError({
         statusCode: 422,
-        statusMessage: `Cannot transition from "${current.status}" to "${body.status}". Allowed: ${allowed.join(', ') || 'none'}`,
+        statusMessage: 'Target stage does not belong to this application\'s job',
       })
     }
+    targetStage = stage
   }
 
   const [updated] = await db.update(application)
-    .set({ ...body, updatedAt: new Date() })
+    .set({
+      ...(targetStage ? { statusId: targetStage.id, statusCategory: targetStage.category } : {}),
+      ...(body.notes !== undefined ? { notes: body.notes } : {}),
+      ...(body.score !== undefined ? { score: body.score } : {}),
+      // A manual move clears any automation-rule attribution.
+      ...(isMove ? { autoRule: null } : {}),
+      updatedAt: new Date(),
+    })
     .where(and(
       eq(application.id, id),
       eq(application.organizationId, orgId),
@@ -53,7 +74,8 @@ export default defineEventHandler(async (event) => {
       id: application.id,
       candidateId: application.candidateId,
       jobId: application.jobId,
-      status: application.status,
+      statusId: application.statusId,
+      statusCategory: application.statusCategory,
       score: application.score,
       notes: application.notes,
       createdAt: application.createdAt,
@@ -67,28 +89,28 @@ export default defineEventHandler(async (event) => {
   recordActivity({
     organizationId: orgId,
     actorId: session.user.id,
-    action: body.status && body.status !== current.status ? 'status_changed' : 'updated',
+    action: isMove ? 'status_changed' : 'updated',
     resourceType: 'application',
     resourceId: id,
-    metadata: body.status && body.status !== current.status
-      ? { from: current.status, to: body.status }
+    metadata: isMove
+      ? { from: current.stage.name, to: targetStage!.name, fromStageId: current.statusId, toStageId: targetStage!.id }
       : undefined,
   })
 
   // Track to PostHog for per-user debugging and funnel analytics
-  if (body.status && body.status !== current.status) {
+  if (isMove) {
     trackEvent(event, session, 'application status_changed', {
       application_id: id,
       job_id: updated.jobId,
-      from_status: current.status,
-      to_status: body.status,
+      from_status: current.stage.name,
+      to_status: targetStage!.name,
     })
 
     logApiRequest(event, session, 'application.status_changed', {
       application_id: id,
       job_id: updated.jobId,
-      from_status: current.status,
-      to_status: body.status,
+      from_status: current.stage.name,
+      to_status: targetStage!.name,
     })
   }
 

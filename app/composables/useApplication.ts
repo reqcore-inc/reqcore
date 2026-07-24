@@ -16,9 +16,10 @@ export function useApplication(id: MaybeRefOrGetter<string>) {
     },
   )
 
-  /** Update application fields (status, notes, score) and refresh caches */
+  /** Update application fields (stage, notes, score) and refresh caches */
   async function updateApplication(payload: Partial<{
-    status: 'new' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected'
+    /** Pipeline stage id — must belong to the application's job. */
+    statusId: string
     notes: string | null
     score: number | null
   }>) {

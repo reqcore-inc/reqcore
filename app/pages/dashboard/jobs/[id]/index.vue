@@ -13,7 +13,8 @@ import type { Component } from 'vue'
 import type { Interview, InterviewMutationResult } from '~/composables/useInterviews'
 import type { PropertyEntry, PropertyFilter } from '~~/shared/properties'
 import { usePreviewReadOnly } from '~/composables/usePreviewReadOnly'
-import { APPLICATION_STATUS_TRANSITIONS, INTERVIEW_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
+import { INTERVIEW_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
+import { stageColorClasses } from '~~/shared/pipeline'
 
 definePageMeta({
   layout: 'dashboard',
@@ -39,14 +40,41 @@ const { job: jobData, status: jobFetchStatus, error: jobError } = useJob(jobId)
 // Applications data
 // ─────────────────────────────────────────────
 
-const PIPELINE_STATUSES = ['new', 'screening', 'interview', 'offer', 'hired', 'rejected'] as const
-type PipelineStatus = typeof PIPELINE_STATUSES[number]
+// The job's custom pipeline stages drive every column, label and colour here.
+// Awaited so the applications query below is built with a real stage id on the
+// first pass (see `ready` in useJobStages).
+const { stages, stageById, ready: stagesReady } = useJobStages(jobId)
+await stagesReady
 
-// Read initial pipeline stage from URL query param (?stage=screening)
-const initialStage = PIPELINE_STATUSES.includes(route.query.stage as any)
-  ? (route.query.stage as PipelineStatus)
-  : 'new'
-const focusStatus = ref<PipelineStatus>(initialStage)
+const requestedStage = route.query.stage as string | undefined
+
+/**
+ * Focused stage id.
+ *
+ * Derived rather than assigned from a watcher: on the server the stages fetch
+ * resolves during setup, and a watcher-set ref would still be empty when the
+ * applications query and the tab list are first evaluated — leaving the pipeline
+ * unrendered in the SSR HTML. The explicit user choice is held separately and
+ * falls back to ?stage= (accepting a stage id OR a category, since the dashboard
+ * links by category), then the entry stage.
+ */
+const selectedStageId = ref<string | null>(null)
+
+const focusStatus = computed<string>({
+  get: () => {
+    const list = stages.value
+    if (list.length === 0) return ''
+    if (selectedStageId.value && list.some(s => s.id === selectedStageId.value)) {
+      return selectedStageId.value
+    }
+    const byId = list.find(s => s.id === requestedStage)
+    const byCategory = list.find(s => s.category === requestedStage)
+    return (byId ?? byCategory ?? list.find(s => s.isEntry) ?? list[0])!.id
+  },
+  set: (value: string) => {
+    selectedStageId.value = value
+  },
+})
 const searchTerm = ref('')
 const debouncedSearchTerm = ref('')
 let searchDebounceTimer: ReturnType<typeof setTimeout>
@@ -124,7 +152,7 @@ const PIPELINE_PAGE_SIZE = 50
 const page = ref(1)
 const applicationQuery = computed(() => ({
   jobId,
-  status: focusStatus.value,
+  statusId: focusStatus.value,
   page: page.value,
   limit: PIPELINE_PAGE_SIZE,
   ...(debouncedSearchTerm.value && { search: debouncedSearchTerm.value }),
@@ -159,22 +187,12 @@ function closePanels() {
 
 const filteredApplications = computed(() => applications.value)
 
-type StatusCountMap = {
-  new: number
-  screening: number
-  interview: number
-  offer: number
-  hired: number
-  rejected: number
-}
-
-const statusCounts = computed(() => {
-  const counts: StatusCountMap = { new: 0, screening: 0, interview: 0, offer: 0, hired: 0, rejected: 0 }
-  const apiCounts = appData.value?.statusCounts
-  if (apiCounts) {
-    for (const status of PIPELINE_STATUSES) {
-      counts[status] = apiCounts[status] ?? 0
-    }
+/** Per-stage totals for the column badges, keyed by stage id. */
+const statusCounts = computed<Record<string, number>>(() => {
+  const counts: Record<string, number> = {}
+  const apiCounts = appData.value?.statusCounts as Record<string, number> | undefined
+  for (const stage of stages.value) {
+    counts[stage.id] = apiCounts?.[stage.id] ?? 0
   }
   return counts
 })
@@ -346,17 +364,15 @@ function getTimelineActionStyle(action: string): TimelineActionStyle {
   return map[action] ?? { icon: Clock, color: 'text-surface-500 dark:text-surface-400', bg: 'bg-surface-100 dark:bg-surface-800' }
 }
 
+/**
+ * Timeline entries record stage NAMES (stages are renameable, so the historical
+ * name is what was true at the time). Colour by the current stage of that name
+ * when it still exists, else a neutral badge.
+ */
 function getTimelineStatusBadge(status: string): string {
-  const s = status.toLowerCase()
-  const map: Record<string, string> = {
-    new: 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300',
-    screening: 'bg-violet-100 text-violet-700 dark:bg-violet-900/60 dark:text-violet-300',
-    interview: 'bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300',
-    offer: 'bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300',
-    hired: 'bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-300',
-    rejected: 'bg-surface-200 text-surface-600 dark:bg-surface-700 dark:text-surface-300',
-  }
-  return map[s] ?? 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300'
+  const match = stages.value.find(s => s.name.toLowerCase() === status.toLowerCase())
+  if (match) return stageColorClasses(match.color).badge
+  return 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300'
 }
 
 function describeTimelineItem(item: TimelineEntry): string {
@@ -719,35 +735,17 @@ useSeoMeta({
 // Application status transitions
 // ─────────────────────────────────────────────
 
-const statusBadgeClasses: Record<string, string> = {
-  new: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-  screening: 'bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
-  interview: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  offer: 'bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-400',
-  hired: 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400',
-  rejected: 'bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400',
+/** Badge/label helpers driven by the job's own stages. */
+function statusBadgeClass(stageId: string | null | undefined): string {
+  return stageColorClasses(stageById.value.get(stageId ?? '')?.color).badge
 }
 
-const transitionLabels: Record<string, string> = {
-  new: 'Re-open',
-  screening: 'Screening',
-  interview: 'Interview',
-  offer: 'Offer',
-  hired: 'Hired',
-  rejected: 'Reject',
+function statusDotClass(stageId: string | null | undefined): string {
+  return stageColorClasses(stageById.value.get(stageId ?? '')?.color).dot
 }
 
-const transitionClasses: Record<string, string> = {
-  new: 'border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800',
-  screening: 'bg-violet-600 text-white hover:bg-violet-700',
-  interview: 'bg-amber-600 text-white hover:bg-amber-700',
-  offer: 'bg-teal-600 text-white hover:bg-teal-700',
-  hired: 'bg-green-700 text-white hover:bg-green-800',
-  rejected: 'bg-danger-600 text-white hover:bg-danger-700',
-}
-
-function formatStatusLabel(status: string) {
-  return status.charAt(0).toUpperCase() + status.slice(1)
+function formatStatusLabel(stageId: string | null | undefined): string {
+  return stageById.value.get(stageId ?? '')?.name ?? 'Unknown'
 }
 
 function formatResponseValue(value: unknown): string {
@@ -785,27 +783,28 @@ function scoreClass(score: number) {
   return 'bg-danger-50 text-danger-700 dark:bg-danger-950 dark:text-danger-400'
 }
 
+// Moves are free-form across the job's custom pipeline: any stage other than
+// the one the candidate is currently in.
 const allowedTransitions = computed(() => {
   if (!currentSummary.value) return []
-  return APPLICATION_STATUS_TRANSITIONS[currentSummary.value.status] ?? []
+  return stages.value.filter(s => s.id !== currentSummary.value!.statusId)
 })
 
-function isCurrentStatus(status: string) {
-  return currentSummary.value?.status === status
+function isCurrentStatus(stageId: string) {
+  return currentSummary.value?.statusId === stageId
 }
 
-function isStatusActionEnabled(status: string) {
+function isStatusActionEnabled(stageId: string) {
   if (!currentSummary.value) return false
-  if (isCurrentStatus(status)) return false
-  return allowedTransitions.value.includes(status)
+  return !isCurrentStatus(stageId)
 }
 
-function isFocusStatus(status: PipelineStatus) {
-  return focusStatus.value === status
+function isFocusStatus(stageId: string) {
+  return focusStatus.value === stageId
 }
 
-function setFocusStatus(status: PipelineStatus) {
-  focusStatus.value = status
+function setFocusStatus(stageId: string) {
+  focusStatus.value = stageId
 }
 
 function selectCandidate(index: number) {
@@ -852,22 +851,12 @@ async function handleInterviewScheduled() {
 
   if (wasRescheduled) return
 
-  // Scheduling moves the candidate into the interview stage server-side. Refresh
-  // the pipeline to reflect that, and when the transition applies, follow the
-  // candidate to the interview column so the user sees the scheduled interview.
-  if (currentSummary.value && currentSummary.value.status !== 'interview') {
-    const allowed = APPLICATION_STATUS_TRANSITIONS[currentSummary.value.status] ?? []
-    if (allowed.includes('interview')) {
-      await refreshApps()
-
-      if (scheduledApplicationId) {
-        focusStatus.value = 'interview'
-        await nextTick()
-        if (filteredApplications.value.some(app => app.id === scheduledApplicationId)) {
-          selectedApplicationId.value = scheduledApplicationId
-        }
-      }
-    }
+  // Scheduling no longer moves the candidate automatically — with custom stages
+  // there is no stage that reliably means "interview". Just refresh so the
+  // newly scheduled interview shows on the candidate.
+  await refreshApps()
+  if (scheduledApplicationId && filteredApplications.value.some(app => app.id === scheduledApplicationId)) {
+    selectedApplicationId.value = scheduledApplicationId
   }
 }
 
@@ -1101,11 +1090,11 @@ async function changeStatus(status: string) {
   try {
     await $fetch(`/api/applications/${applicationId}`, {
       method: 'PATCH',
-      body: { status },
+      body: { statusId: status },
     })
 
     track('pipeline_stage_changed', {
-      from_stage: currentSummary.value.status,
+      from_stage: currentSummary.value.statusId,
       to_stage: status,
     })
 
@@ -1289,16 +1278,16 @@ if (import.meta.client) {
 }
 
 function goToPreviousStage() {
-  const idx = PIPELINE_STATUSES.indexOf(focusStatus.value)
+  const idx = stages.value.findIndex(s => s.id === focusStatus.value)
   if (idx > 0) {
-    focusStatus.value = PIPELINE_STATUSES[idx - 1]!
+    focusStatus.value = stages.value[idx - 1]!.id
   }
 }
 
 function goToNextStage() {
-  const idx = PIPELINE_STATUSES.indexOf(focusStatus.value)
-  if (idx < PIPELINE_STATUSES.length - 1) {
-    focusStatus.value = PIPELINE_STATUSES[idx + 1]!
+  const idx = stages.value.findIndex(s => s.id === focusStatus.value)
+  if (idx < stages.value.length - 1) {
+    focusStatus.value = stages.value[idx + 1]!.id
   }
 }
 
@@ -1334,12 +1323,7 @@ function handleKeyNavigation(event: KeyboardEvent) {
   const num = parseInt(event.key)
   if (num >= 1 && num <= 9 && allowedTransitions.value.length >= num) {
     event.preventDefault()
-    const targetStatus = allowedTransitions.value[num - 1]!
-    if (targetStatus === 'interview') {
-      openInterviewScheduler()
-    } else {
-      changeStatus(targetStatus)
-    }
+    changeStatus(allowedTransitions.value[num - 1]!.id)
   }
 }
 
@@ -1457,30 +1441,23 @@ function closeDocPreview() {
       <div class="shrink-0 border-b border-surface-200/80 bg-white dark:border-surface-800/60 dark:bg-surface-900">
         <div class="flex items-center gap-1 overflow-x-auto scrollbar-thin sm:scrollbar-none px-3 sm:px-5 py-2">
           <button
-            v-for="status in PIPELINE_STATUSES"
-            :key="`tab-${status}`"
+            v-for="stage in stages"
+            :key="`tab-${stage.id}`"
             class="relative flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 focus:outline-none"
-            :class="isFocusStatus(status)
+            :class="isFocusStatus(stage.id)
               ? 'bg-brand-50 text-brand-700 shadow-sm ring-1 ring-brand-200/60 dark:bg-brand-950/40 dark:text-brand-300 dark:ring-brand-800/40'
               : 'text-surface-500 hover:bg-surface-50 hover:text-surface-700 dark:text-surface-400 dark:hover:bg-surface-800/60 dark:hover:text-surface-200'"
-            @click="setFocusStatus(status)"
+            @click="setFocusStatus(stage.id)"
           >
-            <span class="pipeline-status-dot size-2 rounded-full" :class="{
-              'bg-blue-500 dark:bg-blue-400': status === 'new',
-              'bg-violet-500 dark:bg-violet-400': status === 'screening',
-              'bg-amber-500 dark:bg-amber-400': status === 'interview',
-              'bg-teal-500 dark:bg-teal-400': status === 'offer',
-              'bg-green-600 dark:bg-green-300': status === 'hired',
-              'bg-surface-400 dark:bg-surface-500': status === 'rejected',
-            }" />
-            {{ formatStatusLabel(status) }}
+            <span class="pipeline-status-dot size-2 rounded-full" :class="statusDotClass(stage.id)" />
+            {{ stage.name }}
             <span
               class="inline-flex min-w-[20px] items-center justify-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold tabular-nums transition-colors duration-200"
-              :class="isFocusStatus(status)
+              :class="isFocusStatus(stage.id)
                 ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300'
                 : 'bg-surface-100 text-surface-500 dark:bg-surface-800/80 dark:text-surface-400'"
             >
-              {{ statusCounts[status] ?? 0 }}
+              {{ statusCounts[stage.id] ?? 0 }}
             </span>
           </button>
 
@@ -1778,14 +1755,14 @@ function closeDocPreview() {
             <div v-if="allowedTransitions.length > 0" class="shrink-0 border-b border-surface-200/80 bg-white/95 backdrop-blur-sm px-4 sm:px-6 py-2.5 dark:border-surface-800/60 dark:bg-surface-900/95">
               <div class="mx-auto flex flex-wrap items-center gap-1.5 sm:gap-2" :class="detailWidthClass">
                 <button
-                  v-for="(nextStatus, idx) in allowedTransitions"
-                  :key="nextStatus"
+                  v-for="(nextStage, idx) in allowedTransitions"
+                  :key="nextStage.id"
                   :disabled="isMutating"
                   class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm inline-flex items-center gap-1.5"
-                  :class="transitionClasses[nextStatus] ?? 'border border-surface-300 text-surface-600 hover:bg-surface-50'"
-                  @click="nextStatus === 'interview' ? openInterviewScheduler() : changeStatus(nextStatus)"
+                  :class="stageColorClasses(nextStage.color).badge"
+                  @click="changeStatus(nextStage.id)"
                 >
-                  {{ transitionLabels[nextStatus] ?? nextStatus }}
+                  {{ nextStage.name }}
                   <kbd class="inline-flex items-center justify-center rounded px-1 py-0.5 text-[10px] font-mono leading-none opacity-60 bg-black/10 dark:bg-white/10 min-w-[16px]">{{ idx + 1 }}</kbd>
                 </button>
               </div>
@@ -1812,17 +1789,10 @@ function closeDocPreview() {
                           {{ formatPersonName(currentSummary.candidateFirstName, currentSummary.candidateLastName) }}
                         </h2>
                         <span
-                          class="inline-flex shrink-0 items-center rounded-lg px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset"
-                          :class="{
-                            'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:ring-blue-800': currentSummary.status === 'new',
-                            'bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:ring-violet-800': currentSummary.status === 'screening',
-                            'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:ring-amber-800': currentSummary.status === 'interview',
-                            'bg-teal-50 text-teal-700 ring-teal-200 dark:bg-teal-950/50 dark:text-teal-400 dark:ring-teal-800': currentSummary.status === 'offer',
-                            'bg-green-50 text-green-700 ring-green-200 dark:bg-green-950/50 dark:text-green-400 dark:ring-green-800': currentSummary.status === 'hired',
-                            'bg-surface-100 text-surface-500 ring-surface-200 dark:bg-surface-800/50 dark:text-surface-400 dark:ring-surface-700': currentSummary.status === 'rejected',
-                          }"
+                          class="inline-flex shrink-0 items-center rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wide"
+                          :class="statusBadgeClass(currentSummary.statusId)"
                         >
-                          {{ currentSummary.status }}
+                          {{ formatStatusLabel(currentSummary.statusId) }}
                         </span>
                         <span
                           v-if="resolvedCurrentApplication?.autoRule"

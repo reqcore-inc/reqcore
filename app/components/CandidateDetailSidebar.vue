@@ -84,38 +84,15 @@ const documents = computed(() => candidateData.value?.documents ?? [])
 // ─────────────────────────────────────────────
 // Status transitions
 // ─────────────────────────────────────────────
-import { APPLICATION_STATUS_TRANSITIONS } from '~~/shared/status-transitions'
+import { stageColorClasses } from '~~/shared/pipeline'
 
-const transitionLabels: Record<string, string> = {
-  new: 'Re-open',
-  screening: 'Screening',
-  interview: 'Interview',
-  offer: 'Offer',
-  hired: 'Hired',
-  rejected: 'Reject',
-}
-
-const transitionClasses: Record<string, string> = {
-  new: 'border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800',
-  screening: 'bg-violet-600 text-white hover:bg-violet-700',
-  interview: 'bg-amber-600 text-white hover:bg-amber-700',
-  offer: 'bg-teal-600 text-white hover:bg-teal-700',
-  hired: 'bg-green-700 text-white hover:bg-green-800',
-  rejected: 'bg-danger-600 text-white hover:bg-danger-700',
-}
-
-const statusBadgeClasses: Record<string, string> = {
-  new: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:ring-blue-800',
-  screening: 'bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:ring-violet-800',
-  interview: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:ring-amber-800',
-  offer: 'bg-teal-50 text-teal-700 ring-teal-200 dark:bg-teal-950/50 dark:text-teal-400 dark:ring-teal-800',
-  hired: 'bg-green-50 text-green-700 ring-green-200 dark:bg-green-950/50 dark:text-green-400 dark:ring-green-800',
-  rejected: 'bg-surface-100 text-surface-500 ring-surface-200 dark:bg-surface-800/50 dark:text-surface-400 dark:ring-surface-700',
-}
+// Stage moves are free-form across the job's custom pipeline: every stage except
+// the one the application is currently in.
+const { stages: jobStages } = useJobStages(computed(() => application.value?.job?.id ?? ''))
 
 const allowedTransitions = computed(() => {
   if (!application.value) return []
-  return APPLICATION_STATUS_TRANSITIONS[application.value.status] ?? []
+  return jobStages.value.filter(s => s.id !== application.value!.statusId)
 })
 
 const isTransitioning = ref(false)
@@ -125,11 +102,11 @@ async function handleTransition(newStatus: string) {
   try {
     await $fetch(`/api/applications/${props.applicationId}`, {
       method: 'PATCH',
-      body: { status: newStatus },
+      body: { statusId: newStatus },
     })
     track('sidebar_status_changed', {
       application_id: props.applicationId,
-      from_status: application.value?.status,
+      from_status: application.value?.statusId,
       to_status: newStatus,
     })
     await refresh()
@@ -590,9 +567,9 @@ function formatInterviewDate(dateStr: string) {
               <div class="flex items-center gap-2 mb-3">
                 <span
                   class="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold capitalize ring-1 ring-inset"
-                  :class="statusBadgeClasses[application.status] ?? 'bg-surface-100 text-surface-600 ring-surface-200'"
+                  :class="stageColorClasses(application.stage?.color).badge"
                 >
-                  {{ application.status }}
+                  {{ application.stage?.name ?? '—' }}
                 </span>
                 <span class="text-sm text-surface-400">
                   Applied {{ new Date(application.createdAt).toLocaleDateString() }}
@@ -603,13 +580,13 @@ function formatInterviewDate(dateStr: string) {
                 <span class="text-xs font-medium text-surface-500 dark:text-surface-400 mr-0.5">Move to:</span>
                 <button
                   v-for="nextStatus in allowedTransitions"
-                  :key="nextStatus"
+                  :key="nextStatus.id"
                   :disabled="isTransitioning"
                   class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
-                  :class="transitionClasses[nextStatus] ?? 'border border-surface-300 text-surface-600 hover:bg-surface-50'"
-                  @click="handleTransition(nextStatus)"
+                  :class="stageColorClasses(nextStatus.color).badge"
+                  @click="handleTransition(nextStatus.id)"
                 >
-                  {{ transitionLabels[nextStatus] ?? nextStatus }}
+                  {{ nextStatus.name }}
                 </button>
               </div>
             </div>
@@ -678,8 +655,8 @@ function formatInterviewDate(dateStr: string) {
                 </div>
                 <div>
                   <dt class="text-xs font-medium text-surface-400 dark:text-surface-500 mb-1">Status</dt>
-                  <dd class="text-surface-800 dark:text-surface-200 font-medium capitalize">
-                    {{ application.status }}
+                  <dd class="text-surface-800 dark:text-surface-200 font-medium">
+                    {{ application.stage?.name ?? '—' }}
                   </dd>
                 </div>
                 <div>

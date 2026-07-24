@@ -48,17 +48,25 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // New applications land in the job's entry stage.
+  const entryStage = await getEntryStage(body.jobId, orgId)
+  if (!entryStage) {
+    throw createError({ statusCode: 500, statusMessage: 'Job has no pipeline stages' })
+  }
+
   const [created] = await db.insert(application).values({
     organizationId: orgId,
     candidateId: body.candidateId,
     jobId: body.jobId,
     notes: body.notes,
-    status: 'new',
+    statusId: entryStage.id,
+    statusCategory: entryStage.category,
   }).returning({
     id: application.id,
     candidateId: application.candidateId,
     jobId: application.jobId,
-    status: application.status,
+    statusId: application.statusId,
+    statusCategory: application.statusCategory,
     score: application.score,
     notes: application.notes,
     createdAt: application.createdAt,

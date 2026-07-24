@@ -98,17 +98,54 @@ describe('evaluateRule matchType', () => {
 describe('evaluateApplicationRules ordering', () => {
   const types: Record<string, QuestionType> = { q1: 'single_select' }
   const rules: EvaluatedRule[] = [
-    { id: 'r1', name: 'Disabled reject', enabled: false, matchType: 'all', action: 'rejected', conditions: [{ questionId: 'q1', operator: 'is_one_of', value: ['No'] }] },
-    { id: 'r2', name: 'Reject no', enabled: true, matchType: 'all', action: 'rejected', conditions: [{ questionId: 'q1', operator: 'is_one_of', value: ['No'] }] },
-    { id: 'r3', name: 'Advance yes', enabled: true, matchType: 'all', action: 'interview', conditions: [{ questionId: 'q1', operator: 'is_one_of', value: ['Yes'] }] },
+    { id: 'r1', name: 'Disabled reject', enabled: false, matchType: 'all', targetStageId: 'stage-rejected', targetStageCategory: 'rejected', conditions: [{ questionId: 'q1', operator: 'is_one_of', value: ['No'] }] },
+    { id: 'r2', name: 'Reject no', enabled: true, matchType: 'all', targetStageId: 'stage-rejected', targetStageCategory: 'rejected', conditions: [{ questionId: 'q1', operator: 'is_one_of', value: ['No'] }] },
+    { id: 'r3', name: 'Advance yes', enabled: true, matchType: 'all', targetStageId: 'stage-interview', targetStageCategory: 'in_progress', conditions: [{ questionId: 'q1', operator: 'is_one_of', value: ['Yes'] }] },
   ]
 
   it('returns the first enabled matching rule', () => {
-    expect(evaluateApplicationRules(rules, { q1: 'No' }, types)).toEqual({ ruleId: 'r2', ruleName: 'Reject no', action: 'rejected', matchedQuestionIds: ['q1'] })
-    expect(evaluateApplicationRules(rules, { q1: 'Yes' }, types)).toEqual({ ruleId: 'r3', ruleName: 'Advance yes', action: 'interview', matchedQuestionIds: ['q1'] })
+    expect(evaluateApplicationRules(rules, { q1: 'No' }, types)).toEqual({ ruleId: 'r2', ruleName: 'Reject no', action: 'stage-rejected', actionCategory: 'rejected', matchedQuestionIds: ['q1'] })
+    expect(evaluateApplicationRules(rules, { q1: 'Yes' }, types)).toEqual({ ruleId: 'r3', ruleName: 'Advance yes', action: 'stage-interview', actionCategory: 'in_progress', matchedQuestionIds: ['q1'] })
   })
 
   it('skips disabled rules and returns null when nothing matches', () => {
     expect(evaluateApplicationRules(rules, { q1: 'Maybe' }, types)).toBeNull()
+  })
+
+  // Rules target arbitrary user-created stages, not a fixed action catalogue.
+  it('targets a custom stage and reports its category', () => {
+    const customRules: EvaluatedRule[] = [{
+      id: 'r9',
+      name: 'Portfolio check',
+      enabled: true,
+      matchType: 'all',
+      targetStageId: 'stage-portfolio-review',
+      targetStageCategory: 'in_progress',
+      conditions: [{ questionId: 'q1', operator: 'is_one_of', value: ['Yes'] }],
+    }]
+
+    expect(evaluateApplicationRules(customRules, { q1: 'Yes' }, types)).toEqual({
+      ruleId: 'r9',
+      ruleName: 'Portfolio check',
+      action: 'stage-portfolio-review',
+      actionCategory: 'in_progress',
+      matchedQuestionIds: ['q1'],
+    })
+  })
+
+  // The apply flow skips AI scoring on a rejection by reading actionCategory,
+  // so a renamed rejection stage must still report `rejected`.
+  it('reports the rejected category for a renamed rejection stage', () => {
+    const renamed: EvaluatedRule[] = [{
+      id: 'r10',
+      name: 'Knockout',
+      enabled: true,
+      matchType: 'all',
+      targetStageId: 'stage-not-a-fit',
+      targetStageCategory: 'rejected',
+      conditions: [{ questionId: 'q1', operator: 'is_one_of', value: ['No'] }],
+    }]
+
+    expect(evaluateApplicationRules(renamed, { q1: 'No' }, types)?.actionCategory).toBe('rejected')
   })
 })

@@ -13,6 +13,7 @@ const { handlePreviewReadOnlyError } = usePreviewReadOnly()
 
 const { job } = useJob(jobId)
 const { questions } = useJobQuestions(jobId)
+const { stages } = useJobStages(jobId)
 const { rules, status, error, saveRules, runRules } = useApplicationRules(jobId)
 
 useSeoMeta({
@@ -53,7 +54,8 @@ async function onRun() {
     if (res.matched === 0) {
       toast.info('No matches', `Checked ${res.evaluated} applicant${res.evaluated === 1 ? '' : 's'} — none matched your rules.`)
     } else {
-      const parts = Object.entries(res.byAction).map(([action, n]) => `${n} → ${action}`)
+      const stageName = (id: string) => stages.value.find(s => s.id === id)?.name ?? id
+      const parts = Object.entries(res.byAction).map(([stageId, n]) => `${n} → ${stageName(stageId)}`)
       toast.success(`${res.matched} applicant${res.matched === 1 ? '' : 's'} updated`, parts.join(', '))
       refreshNuxtData(`pipeline-apps-${jobId}`)
     }
@@ -85,6 +87,7 @@ async function onRun() {
       v-else
       :questions="builderQuestions"
       :server-rules="rules"
+      :stages="stages"
       :saving="saving"
       :running="running"
       @save="onSave"

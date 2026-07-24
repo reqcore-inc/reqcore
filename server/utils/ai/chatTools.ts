@@ -12,7 +12,7 @@
  * `list_*` to discover IDs, then `get_*` to fetch details.
  */
 import { tool } from 'ai'
-import { and, desc, eq, ilike, inArray, isNull, or } from 'drizzle-orm'
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {
   application,
@@ -22,6 +22,7 @@ import {
   document,
   interview,
   job,
+  pipelineStage,
   scoringCriterion,
 } from '../../database/schema'
 import { downloadFromS3 } from '../s3'
@@ -154,17 +155,34 @@ export function buildChatbotTools(ctx: ChatbotToolContext) {
         'use get_candidate / read_resume for deeper analysis.',
       inputSchema: z.object({
         jobId: z.string().min(1).describe('The job to list applications for.'),
-        status: z.enum(['new', 'screening', 'interview', 'offer', 'hired', 'rejected']).optional(),
+        stageName: z.string().min(1).optional()
+          .describe('Filter by the name of one of this job\'s custom pipeline stages (case-insensitive).'),
+        statusCategory: z.enum(['applied', 'in_progress', 'hired', 'rejected']).optional()
+          .describe('Filter by the role a stage plays, when the exact stage name is unknown.'),
         limit: z.number().int().min(1).max(100).default(50),
       }),
-      execute: async ({ jobId, status, limit }) => {
+      execute: async ({ jobId, stageName, statusCategory, limit }) => {
         assertJobInScope(ctx.scope, jobId)
         const conditions = [
           eq(application.organizationId, ctx.orgId),
           eq(application.jobId, jobId),
           inArray(application.candidateId, activeCandidateIds),
         ]
-        if (status) conditions.push(eq(application.status, status))
+        if (statusCategory) conditions.push(eq(application.statusCategory, statusCategory))
+        if (stageName) {
+          const matching = await db
+            .select({ id: pipelineStage.id })
+            .from(pipelineStage)
+            .where(and(
+              eq(pipelineStage.jobId, jobId),
+              eq(pipelineStage.organizationId, ctx.orgId),
+              sql`lower(${pipelineStage.name}) = ${stageName.toLowerCase()}`,
+            ))
+          // An unknown stage name must match nothing rather than everything.
+          conditions.push(matching.length > 0
+            ? inArray(application.statusId, matching.map(m => m.id))
+            : sql`false`)
+        }
 
         const rows = await db.query.application.findMany({
           where: and(...conditions),
@@ -174,6 +192,7 @@ export function buildChatbotTools(ctx: ChatbotToolContext) {
             candidate: {
               columns: { id: true, firstName: true, lastName: true, email: true },
             },
+            stage: { columns: { name: true, category: true } },
           },
         })
         return rows.map((a) => ({
@@ -181,7 +200,8 @@ export function buildChatbotTools(ctx: ChatbotToolContext) {
           candidateId: a.candidateId,
           candidateName: `${a.candidate.firstName} ${a.candidate.lastName}`.trim(),
           candidateEmail: a.candidate.email,
-          status: a.status,
+          status: a.stage?.name ?? null,
+          statusCategory: a.statusCategory,
           score: a.score,
           createdAt: a.createdAt,
         }))
@@ -274,6 +294,7 @@ export function buildChatbotTools(ctx: ChatbotToolContext) {
           where: and(...appConditions),
           with: {
             job: { columns: { id: true, title: true, status: true } },
+            stage: { columns: { name: true } },
           },
         })
 
@@ -326,7 +347,8 @@ export function buildChatbotTools(ctx: ChatbotToolContext) {
           quickNotes: c.quickNotes,
           applications: apps.map((a) => ({
             id: a.id,
-            status: a.status,
+            status: a.stage?.name ?? null,
+            statusCategory: a.statusCategory,
             score: a.score,
             notes: a.notes,
             jobId: a.job.id,

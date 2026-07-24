@@ -420,12 +420,19 @@ export default defineEventHandler(async (event) => {
   // 8. Create application
   // ─────────────────────────────────────────────
 
+  // New applications land in the job's entry stage.
+  const entryStage = await getEntryStage(jobId, orgId)
+  if (!entryStage) {
+    throw createError({ statusCode: 500, statusMessage: 'Job has no pipeline stages' })
+  }
+
   const [newApplication] = await db.transaction(async (tx) => {
     return tx.insert(application).values({
       organizationId: orgId,
       candidateId,
       jobId,
-      status: 'new',
+      statusId: entryStage.id,
+      statusCategory: entryStage.category,
       coverLetterText: coverLetterText || null,
     }).returning({ id: application.id })
   })
@@ -680,7 +687,7 @@ export default defineEventHandler(async (event) => {
   // Skip scoring when a rule already disqualified the applicant — no point
   // spending AI budget on a rejected candidate.
 
-  if (existingJob.autoScoreOnApply && newApplication && ruleMatch?.action !== 'rejected') {
+  if (existingJob.autoScoreOnApply && newApplication && ruleMatch?.actionCategory !== 'rejected') {
     autoScoreApplication(newApplication.id, orgId).catch((err) => {
       logError('application.auto_score_failed', {
         application_id: newApplication.id,

@@ -1,5 +1,6 @@
-import { job, jobQuestion, scoringCriterion } from '../../database/schema'
+import { job, jobQuestion, pipelineStage, scoringCriterion } from '../../database/schema'
 import { createJobWizardSchema } from '../../utils/schemas/job'
+import { DEFAULT_STAGES } from '~~/shared/pipeline'
 
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { job: ['create'] })
@@ -65,6 +66,17 @@ export default defineEventHandler(async (event) => {
     if (!createdJob) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create job' })
     }
+
+    // Every job starts with the default pipeline; recruiters customise from here.
+    await tx.insert(pipelineStage).values(DEFAULT_STAGES.map((stage, index) => ({
+      organizationId: orgId,
+      jobId,
+      name: stage.name,
+      color: stage.color,
+      category: stage.category,
+      displayOrder: index,
+      isEntry: stage.isEntry,
+    })))
 
     if (body.questions.length) {
       await tx.insert(jobQuestion).values(body.questions.map((question, index) => ({

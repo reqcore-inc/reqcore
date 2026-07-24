@@ -1,5 +1,5 @@
 import { eq, and, asc } from 'drizzle-orm'
-import { applicationRule, job } from '../../../../database/schema'
+import { applicationRule, job, pipelineStage } from '../../../../database/schema'
 import { bulkRulesSchema, ruleJobIdParamSchema } from '../../../../utils/schemas/applicationRule'
 
 /**
@@ -21,6 +21,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Job not found' })
   }
 
+  // Every rule must target a stage belonging to THIS job.
+  const stages = await db
+    .select({ id: pipelineStage.id })
+    .from(pipelineStage)
+    .where(and(
+      eq(pipelineStage.jobId, jobId),
+      eq(pipelineStage.organizationId, orgId),
+    ))
+  const stageIds = new Set(stages.map(s => s.id))
+  const invalid = body.rules.find(r => !stageIds.has(r.targetStageId))
+  if (invalid) {
+    throw createError({
+      statusCode: 422,
+      statusMessage: `Rule "${invalid.name}" targets a stage that does not belong to this job`,
+    })
+  }
+
   const saved = await db.transaction(async (tx) => {
     await tx.delete(applicationRule)
       .where(and(
@@ -36,7 +53,7 @@ export default defineEventHandler(async (event) => {
         jobId,
         name: r.name,
         matchType: r.matchType,
-        action: r.action,
+        targetStageId: r.targetStageId,
         enabled: r.enabled,
         conditions: r.conditions,
         displayOrder: index,

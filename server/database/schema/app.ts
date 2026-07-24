@@ -19,8 +19,8 @@ import { organization, user } from './auth'
 
 export const jobStatusEnum = pgEnum('job_status', ['draft', 'open', 'closed', 'archived'])
 export const jobTypeEnum = pgEnum('job_type', ['full_time', 'part_time', 'contract', 'internship'])
-export const applicationStatusEnum = pgEnum('application_status', [
-  'new', 'screening', 'interview', 'offer', 'hired', 'rejected',
+export const stageCategoryEnum = pgEnum('stage_category', [
+  'applied', 'in_progress', 'hired', 'rejected',
 ])
 export const documentTypeEnum = pgEnum('document_type', ['resume', 'cover_letter', 'other'])
 export const questionTypeEnum = pgEnum('question_type', [
@@ -172,7 +172,18 @@ export const application = pgTable('application', {
   organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
   candidateId: text('candidate_id').notNull().references(() => candidate.id, { onDelete: 'cascade' }),
   jobId: text('job_id').notNull().references(() => job.id, { onDelete: 'cascade' }),
-  status: applicationStatusEnum('status').notNull().default('new'),
+  /**
+   * The custom pipeline stage this application currently sits in. `onDelete:
+   * 'restrict'` — a stage that still has applications can't be deleted (the API
+   * requires reassignment first). See {@link pipelineStage}.
+   */
+  statusId: text('status_id').notNull().references(() => pipelineStage.id, { onDelete: 'restrict' }),
+  /**
+   * Denormalised copy of the current stage's category, kept in sync on every
+   * status write. Hot-path filters (dashboard stats, apply flow, automation
+   * rules, list counts) read this so they stay index-friendly and never join.
+   */
+  statusCategory: stageCategoryEnum('status_category').notNull().default('applied'),
   score: integer('score'),
   notes: text('notes'),
   coverLetterText: text('cover_letter_text'),
@@ -191,7 +202,33 @@ export const application = pgTable('application', {
   index('application_organization_id_idx').on(t.organizationId),
   index('application_candidate_id_idx').on(t.candidateId),
   index('application_job_id_idx').on(t.jobId),
+  index('application_status_id_idx').on(t.statusId),
+  index('application_status_category_idx').on(t.statusCategory),
   uniqueIndex('application_org_candidate_job_idx').on(t.organizationId, t.candidateId, t.jobId),
+]))
+
+/**
+ * Custom pipeline stages for a job — the ordered statuses an application moves
+ * through. Every job gets the six {@link DEFAULT_STAGES} on creation; recruiters
+ * can then rename, recolour, reorder, add and delete stages. `category` carries
+ * the system role (entry/terminal); `isEntry` marks the single stage fresh
+ * applications land in. See shared/pipeline.ts for the catalogue and defaults.
+ */
+export const pipelineStage = pgTable('pipeline_stage', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
+  jobId: text('job_id').notNull().references(() => job.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  color: text('color').notNull().default('slate'),
+  category: stageCategoryEnum('category').notNull().default('in_progress'),
+  displayOrder: integer('display_order').notNull().default(0),
+  /** Exactly one stage per job is the entry point for new applications. */
+  isEntry: boolean('is_entry').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => ([
+  index('pipeline_stage_organization_id_idx').on(t.organizationId),
+  index('pipeline_stage_job_id_idx').on(t.jobId),
 ]))
 
 /**
@@ -907,7 +944,6 @@ export const scoringCriterion = pgTable('scoring_criterion', {
  * an unknown question as non-matching and the builder UI surfaces it for cleanup.
  */
 export const ruleMatchTypeEnum = pgEnum('rule_match_type', ['all', 'any'])
-export const ruleActionEnum = pgEnum('rule_action', ['rejected', 'screening', 'interview'])
 
 export const applicationRule = pgTable('application_rule', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -915,7 +951,12 @@ export const applicationRule = pgTable('application_rule', {
   jobId: text('job_id').notNull().references(() => job.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   matchType: ruleMatchTypeEnum('match_type').notNull().default('all'),
-  action: ruleActionEnum('action').notNull().default('rejected'),
+  /**
+   * The pipeline stage a matching application is moved into. `onDelete:
+   * 'cascade'` — deleting the target stage deletes the rule (a rule with no
+   * destination is meaningless).
+   */
+  targetStageId: text('target_stage_id').notNull().references(() => pipelineStage.id, { onDelete: 'cascade' }),
   enabled: boolean('enabled').notNull().default(true),
   conditions: jsonb('conditions').$type<import('../../../shared/application-rules').RuleCondition[]>().notNull().default([]),
   displayOrder: integer('display_order').notNull().default(0),
@@ -1104,6 +1145,13 @@ export const jobRelations = relations(job, ({ one, many }) => ({
   questions: many(jobQuestion),
   scoringCriteria: many(scoringCriterion),
   trackingLinks: many(trackingLink),
+  stages: many(pipelineStage),
+}))
+
+export const pipelineStageRelations = relations(pipelineStage, ({ one, many }) => ({
+  organization: one(organization, { fields: [pipelineStage.organizationId], references: [organization.id] }),
+  job: one(job, { fields: [pipelineStage.jobId], references: [job.id] }),
+  applications: many(application),
 }))
 
 export const candidateRelations = relations(candidate, ({ one, many }) => ({
@@ -1116,6 +1164,7 @@ export const applicationRelations = relations(application, ({ one, many }) => ({
   organization: one(organization, { fields: [application.organizationId], references: [organization.id] }),
   candidate: one(candidate, { fields: [application.candidateId], references: [candidate.id] }),
   job: one(job, { fields: [application.jobId], references: [job.id] }),
+  stage: one(pipelineStage, { fields: [application.statusId], references: [pipelineStage.id] }),
   responses: many(questionResponse),
   interviews: many(interview),
   criterionScores: many(criterionScore),

@@ -1,4 +1,5 @@
 import type { PropertyEntry } from './properties'
+import type { StageCategory } from './pipeline'
 
 export interface CandidateDetail {
   id: string
@@ -14,7 +15,13 @@ export interface CandidateDetail {
   updatedAt: string
   applications: Array<{
     id: string
-    status: 'new' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected'
+    /** Current pipeline stage — resolved from the application's own job. */
+    status: {
+      id: string
+      name: string
+      color: string
+      category: StageCategory
+    }
     createdAt: string
     job: { id: string; title: string }
   }>

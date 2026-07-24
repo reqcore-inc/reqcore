@@ -280,6 +280,9 @@ export async function commitImport(params: {
   const { orgId, jobId, duplicatePolicy, targetJobId } = params
   const result: CommitResult = { created: 0, updated: 0, skipped: 0, applied: 0 }
 
+  // Resolve the target job's entry stage once; every imported applicant lands there.
+  const entryStage = targetJobId ? await getEntryStage(targetJobId, orgId) : null
+
   const candidatePropertyDefinitions = await db.query.propertyDefinition.findMany({
     where: and(
       eq(propertyDefinition.organizationId, orgId),
@@ -311,9 +314,9 @@ export async function commitImport(params: {
 
   /** Link a resolved candidate to the target job, if one was chosen. */
   async function linkToJob(candidateId: string) {
-    if (!targetJobId) return
+    if (!targetJobId || !entryStage) return
     const [app] = await db.insert(application)
-      .values({ organizationId: orgId, candidateId, jobId: targetJobId, status: 'new' })
+      .values({ organizationId: orgId, candidateId, jobId: targetJobId, statusId: entryStage.id, statusCategory: entryStage.category })
       .onConflictDoNothing({
         target: [application.organizationId, application.candidateId, application.jobId],
       })

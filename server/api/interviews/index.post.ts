@@ -1,7 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { interview, application, organization } from '../../database/schema'
 import { createInterviewSchema } from '../../utils/schemas/interview'
-import { APPLICATION_STATUS_TRANSITIONS } from '../../utils/schemas/application'
 import { createCalendarEvent } from '../../utils/google-calendar'
 import { tierHasFeature } from '../../../shared/billing'
 import { sendInterviewConversationMessage } from '../../utils/interview-conversation'
@@ -65,30 +64,12 @@ export default defineEventHandler(async (event) => {
 
   if (!created) throw createError({ statusCode: 500, statusMessage: 'Failed to create interview' })
 
-  // Scheduling an interview moves the candidate into the interview stage.
-  // Done server-side so the transition is guaranteed once the interview
-  // exists, regardless of how the client leaves the scheduling flow.
-  if (app.status !== 'interview' && (APPLICATION_STATUS_TRANSITIONS[app.status] ?? []).includes('interview')) {
-    await db.update(application)
-      .set({ status: 'interview', updatedAt: new Date() })
-      .where(and(eq(application.id, app.id), eq(application.organizationId, orgId)))
-
-    recordActivity({
-      organizationId: orgId,
-      actorId: session.user.id,
-      action: 'status_changed',
-      resourceType: 'application',
-      resourceId: app.id,
-      metadata: { from: app.status, to: 'interview' },
-    })
-
-    trackEvent(event, session, 'application status_changed', {
-      application_id: app.id,
-      job_id: app.jobId,
-      from_status: app.status,
-      to_status: 'interview',
-    })
-  }
+  // NOTE: scheduling an interview used to auto-advance the application to the
+  // fixed `interview` status. With per-job custom pipelines there is no stage
+  // that reliably means "interview" (a job may not have one, or may have
+  // several), so the stage is left untouched and the recruiter moves the
+  // candidate explicitly. Reinstate this by adding an opt-in per-job
+  // "move to this stage when an interview is scheduled" setting.
 
   // Sync to Google Calendar only when explicitly requested
   let calendarEventLink: string | null = null

@@ -3,8 +3,6 @@ import { Plus, Trash2, ChevronUp, ChevronDown, Zap, AlertTriangle, PlayCircle } 
 import {
   OPERATOR_META,
   OPERATORS_BY_QUESTION_TYPE,
-  RULE_ACTIONS,
-  RULE_ACTION_LABELS,
   type QuestionType,
   type RuleAction,
   type RuleMatchType,
@@ -12,6 +10,7 @@ import {
   type ApplicationRuleInput,
   type RuleCondition,
 } from '~~/shared/application-rules'
+import { stageColorClasses, type PipelineStage } from '~~/shared/pipeline'
 import type { ApplicationRule } from '~/composables/useApplicationRules'
 
 interface FormQuestion {
@@ -24,6 +23,8 @@ interface FormQuestion {
 const props = defineProps<{
   questions: FormQuestion[]
   serverRules: ApplicationRule[]
+  /** The job's custom pipeline stages — rule targets are picked from these. */
+  stages: PipelineStage[]
   saving: boolean
   running: boolean
 }>()
@@ -44,7 +45,7 @@ interface DraftRule {
   _key: string
   name: string
   matchType: RuleMatchType
-  action: RuleAction
+  targetStageId: RuleAction
   enabled: boolean
   conditions: DraftCondition[]
 }
@@ -56,7 +57,7 @@ function toDraft(rules: ApplicationRule[]): DraftRule[] {
     _key: key(),
     name: r.name,
     matchType: r.matchType,
-    action: r.action,
+    targetStageId: r.targetStageId,
     enabled: r.enabled,
     conditions: (r.conditions ?? []).map(c => ({ ...c, _key: key() })),
   }))
@@ -77,7 +78,7 @@ function toPayload(rules: DraftRule[]): ApplicationRuleInput[] {
   return rules.map(r => ({
     name: r.name.trim(),
     matchType: r.matchType,
-    action: r.action,
+    targetStageId: r.targetStageId,
     enabled: r.enabled,
     conditions: r.conditions.map(({ _key, ...c }) => c),
   }))
@@ -87,7 +88,7 @@ const serverPayload = computed(() => JSON.stringify(
   props.serverRules.map(r => ({
     name: r.name,
     matchType: r.matchType,
-    action: r.action,
+    targetStageId: r.targetStageId,
     enabled: r.enabled,
     conditions: (r.conditions ?? []).map(c => ({ questionId: c.questionId, operator: c.operator, value: c.value })),
   })),
@@ -124,7 +125,17 @@ function isMissingQuestion(questionId: string): boolean {
 // Mutations
 // ─────────────────────────────────────────────
 
-const canAdd = computed(() => props.questions.length > 0)
+const canAdd = computed(() => props.questions.length > 0 && props.stages.length > 0)
+
+/**
+ * Sensible default target for a new rule: the first `rejected`-category stage
+ * (the classic knockout-question use case), else the first non-entry stage.
+ */
+const defaultTargetStageId = computed(() => {
+  const rejected = props.stages.find(s => s.category === 'rejected')
+  if (rejected) return rejected.id
+  return (props.stages.find(s => !s.isEntry) ?? props.stages[0])?.id ?? ''
+})
 
 function addRule() {
   if (!canAdd.value) return
@@ -133,7 +144,7 @@ function addRule() {
     _key: key(),
     name: `Rule ${draft.value.length + 1}`,
     matchType: 'all',
-    action: 'rejected',
+    targetStageId: defaultTargetStageId.value,
     enabled: true,
     conditions: firstQ ? [newCondition(firstQ.id)] : [],
   })
@@ -211,12 +222,20 @@ const validationError = computed<string | null>(() => {
   return null
 })
 
-const actionOptions = RULE_ACTIONS.map(a => ({ value: a, label: RULE_ACTION_LABELS[a] }))
+// Targets come from the job's own pipeline — any stage is a valid destination.
+const actionOptions = computed(() =>
+  props.stages.map(s => ({ value: s.id, label: `Move to ${s.name}` })),
+)
 
-const actionBadgeClass: Record<RuleAction, string> = {
-  rejected: 'text-danger-600 dark:text-danger-400',
-  screening: 'text-warning-600 dark:text-warning-400',
-  interview: 'text-brand-600 dark:text-brand-400',
+/** Colour the arrow with the target stage's own colour. */
+function stageArrowClass(stageId: string): string {
+  const stage = props.stages.find(s => s.id === stageId)
+  return stageColorClasses(stage?.color).badge
+}
+
+/** A rule whose target stage was deleted elsewhere — surfaced for cleanup. */
+function isMissingStage(stageId: string): boolean {
+  return !!stageId && !props.stages.some(s => s.id === stageId)
 }
 
 function handleSave() {
@@ -430,11 +449,21 @@ const inputClass = selectClass + ' min-w-0'
 
           <!-- Action -->
           <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-surface-100 dark:border-surface-800 text-sm">
-            <span class="text-surface-500 dark:text-surface-400">Then set the applicant's status to</span>
-            <span class="font-semibold" :class="actionBadgeClass[rule.action]">→</span>
-            <select v-model="rule.action" :class="selectClass" class="font-semibold">
+            <span class="text-surface-500 dark:text-surface-400">Then move the applicant to</span>
+            <span
+              class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+              :class="stageArrowClass(rule.targetStageId)"
+            >→</span>
+            <select v-model="rule.targetStageId" :class="selectClass" class="font-semibold">
               <option v-for="a in actionOptions" :key="a.value" :value="a.value">{{ a.label }}</option>
             </select>
+            <span
+              v-if="isMissingStage(rule.targetStageId)"
+              class="flex items-center gap-1.5 text-xs text-warning-600 dark:text-warning-400"
+            >
+              <AlertTriangle class="size-3.5" />
+              Target stage was deleted — pick another.
+            </span>
           </div>
         </div>
 
