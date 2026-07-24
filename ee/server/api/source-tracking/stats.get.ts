@@ -89,18 +89,18 @@ export default defineEventHandler(async (event) => {
       .orderBy(desc(count(candidate.id)))
       .limit(10),
 
-    // 3. Conversion funnel — application status breakdown per channel
+    // 3. Conversion funnel — application status breakdown per channel (by category)
     db
       .select({
         channel: applicationSource.channel,
-        status: application.status,
+        status: application.statusCategory,
         count: count().as('count'),
       })
       .from(applicationSource)
       .innerJoin(application, eq(application.id, applicationSource.applicationId))
       .innerJoin(candidate, eq(candidate.id, application.candidateId))
       .where(whereClause)
-      .groupBy(applicationSource.channel, application.status),
+      .groupBy(applicationSource.channel, application.statusCategory),
 
     // 4. Daily trend for the last 30 days
     db
@@ -133,7 +133,7 @@ export default defineEventHandler(async (event) => {
         candidateLastName: candidate.lastName,
         candidateEmail: candidate.email,
         jobTitle: job.title,
-        status: application.status,
+        status: application.statusCategory,
         appliedAt: applicationSource.createdAt,
       })
       .from(applicationSource)
@@ -195,7 +195,7 @@ export default defineEventHandler(async (event) => {
   const funnel: Record<string, Record<string, number>> = {}
   for (const row of statusByChannel) {
     if (!funnel[row.channel]) {
-      funnel[row.channel] = { new: 0, screening: 0, interview: 0, offer: 0, hired: 0, rejected: 0 }
+      funnel[row.channel] = { applied: 0, in_progress: 0, hired: 0, rejected: 0 }
     }
     funnel[row.channel]![row.status] = row.count
   }

@@ -1,5 +1,5 @@
 import { eq, and, desc, sql, count, inArray, isNull } from 'drizzle-orm'
-import { application, candidate, job } from '../../database/schema'
+import { application, candidate, job, pipelineStage } from '../../database/schema'
 
 /**
  * GET /api/dashboard/stats
@@ -44,18 +44,19 @@ export default defineEventHandler(async (event) => {
     // 3. Total applications
     db.$count(application, activeApplicationCondition),
 
-    // 4. New (unreviewed) applications
-    db.$count(application, and(activeApplicationCondition, eq(application.status, 'new'))),
+    // 4. New (unreviewed) applications — those still in an `applied`-category stage
+    db.$count(application, and(activeApplicationCondition, eq(application.statusCategory, 'applied'))),
 
-    // 5. Pipeline breakdown — application count per status
+    // 5. Pipeline breakdown — application count per category (cross-job, so
+    //    aggregated by the stage role rather than per custom stage)
     db
       .select({
-        status: application.status,
+        category: application.statusCategory,
         count: count().as('count'),
       })
       .from(application)
       .where(activeApplicationCondition)
-      .groupBy(application.status),
+      .groupBy(application.statusCategory),
 
     // 6. Jobs by status
     db
@@ -71,7 +72,9 @@ export default defineEventHandler(async (event) => {
     db
       .select({
         id: application.id,
-        status: application.status,
+        statusName: pipelineStage.name,
+        statusColor: pipelineStage.color,
+        statusCategory: application.statusCategory,
         createdAt: application.createdAt,
         candidateId: application.candidateId,
         candidateFirstName: candidate.firstName,
@@ -83,6 +86,7 @@ export default defineEventHandler(async (event) => {
       .from(application)
       .innerJoin(candidate, eq(candidate.id, application.candidateId))
       .innerJoin(job, eq(job.id, application.jobId))
+      .innerJoin(pipelineStage, eq(pipelineStage.id, application.statusId))
       .where(and(eq(application.organizationId, orgId), isNull(candidate.quarantinedAt)))
       .orderBy(desc(application.createdAt))
       .limit(10),
@@ -96,12 +100,10 @@ export default defineEventHandler(async (event) => {
         status: job.status,
         createdAt: job.createdAt,
         applicationCount: count(application.id).as('application_count'),
-        newCount: sql<number>`count(case when ${application.status} = 'new' then 1 end)`.as('new_count'),
-        screeningCount: sql<number>`count(case when ${application.status} = 'screening' then 1 end)`.as('screening_count'),
-        interviewCount: sql<number>`count(case when ${application.status} = 'interview' then 1 end)`.as('interview_count'),
-        offerCount: sql<number>`count(case when ${application.status} = 'offer' then 1 end)`.as('offer_count'),
-        hiredCount: sql<number>`count(case when ${application.status} = 'hired' then 1 end)`.as('hired_count'),
-        rejectedCount: sql<number>`count(case when ${application.status} = 'rejected' then 1 end)`.as('rejected_count'),
+        appliedCount: sql<number>`count(case when ${application.statusCategory} = 'applied' then 1 end)`.as('applied_count'),
+        inProgressCount: sql<number>`count(case when ${application.statusCategory} = 'in_progress' then 1 end)`.as('in_progress_count'),
+        hiredCount: sql<number>`count(case when ${application.statusCategory} = 'hired' then 1 end)`.as('hired_count'),
+        rejectedCount: sql<number>`count(case when ${application.statusCategory} = 'rejected' then 1 end)`.as('rejected_count'),
       })
       .from(job)
       .leftJoin(application, and(
@@ -118,15 +120,13 @@ export default defineEventHandler(async (event) => {
   // Transform grouped rows into keyed objects
   // ─────────────────────────────────────────────
   const pipeline: Record<string, number> = {
-    new: 0,
-    screening: 0,
-    interview: 0,
-    offer: 0,
+    applied: 0,
+    in_progress: 0,
     hired: 0,
     rejected: 0,
   }
   for (const row of pipelineRows) {
-    pipeline[row.status] = row.count
+    pipeline[row.category] = row.count
   }
 
   const jobsByStatus: Record<string, number> = {

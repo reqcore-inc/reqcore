@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ALL_OPERATORS, RULE_ACTIONS } from '~~/shared/application-rules'
+import { ALL_OPERATORS } from '~~/shared/application-rules'
 import type { RuleOperator } from '~~/shared/application-rules'
 
 // ─────────────────────────────────────────────
@@ -22,7 +22,11 @@ const conditionSchema = z.object({
 const ruleSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
   matchType: z.enum(['all', 'any']).default('all'),
-  action: z.enum(RULE_ACTIONS),
+  /**
+   * Pipeline stage to move a matching application into. The handler verifies the
+   * stage belongs to this job (it can't be validated statically).
+   */
+  targetStageId: z.string().min(1, 'Pick a stage'),
   enabled: z.boolean().default(true),
   conditions: z.array(conditionSchema).min(1, 'Add at least one condition').max(20),
 })

@@ -35,10 +35,14 @@ export default defineEventHandler(async (event) => {
     },
     with: {
       applications: {
-        columns: { id: true, status: true, createdAt: true },
+        columns: { id: true, statusId: true, createdAt: true },
         with: {
           job: {
             columns: { id: true, title: true },
+          },
+          // Each application's stage comes from its OWN job's pipeline.
+          stage: {
+            columns: { id: true, name: true, color: true, category: true },
           },
         },
         orderBy: (application, { desc }) => [desc(application.createdAt)],
@@ -107,6 +111,12 @@ export default defineEventHandler(async (event) => {
 
   return {
     ...publicCandidate,
+    // Flatten each application's stage into the `status` shape the UI expects
+    // (see shared/candidates.ts).
+    applications: publicCandidate.applications.map(({ stage, statusId: _statusId, ...app }) => ({
+      ...app,
+      status: stage,
+    })),
     retention,
     documents: documents.map(({ parsedContent, ...doc }) => ({
       ...doc,

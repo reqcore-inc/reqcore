@@ -17,12 +17,10 @@ export function useDashboard() {
     newApplications: 0,
   })
 
-  /** Application count per status */
+  /** Application count per stage category (cross-job aggregate) */
   const pipeline = computed(() => data.value?.pipeline ?? {
-    new: 0,
-    screening: 0,
-    interview: 0,
-    offer: 0,
+    applied: 0,
+    in_progress: 0,
     hired: 0,
     rejected: 0,
   })

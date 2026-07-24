@@ -1,38 +1,25 @@
 <script setup lang="ts">
 import { User, Calendar } from 'lucide-vue-next'
+import { stageColorClasses, type PipelineStage } from '~~/shared/pipeline'
 
-const props = defineProps<{
+defineProps<{
   id: string
   candidateFirstName: string
   candidateLastName: string
   candidateEmail: string
   createdAt: string
   score: number | null
-  allowedTransitions: string[]
+  /**
+   * Stages this card can be moved to — the job's other custom stages. Moves are
+   * free-form now, so this is simply "every stage except the current one".
+   */
+  allowedTransitions: PipelineStage[]
   isTransitioning: boolean
 }>()
 
-const emit = defineEmits<{
-  (e: 'transition', status: string): void
+defineEmits<{
+  (e: 'transition', stageId: string): void
 }>()
-
-const transitionLabels: Record<string, string> = {
-  new: 'Re-open',
-  screening: 'Screening',
-  interview: 'Interview',
-  offer: 'Offer',
-  hired: 'Hired',
-  rejected: 'Reject',
-}
-
-const transitionClasses: Record<string, string> = {
-  new: 'text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700',
-  screening: 'text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950',
-  interview: 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950',
-  offer: 'text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950',
-  hired: 'text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900',
-  rejected: 'text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-950',
-}
 
 const { formatPersonName, formatDateTime } = useOrgSettings()
 </script>
@@ -78,14 +65,14 @@ const { formatPersonName, formatDateTime } = useOrgSettings()
     <!-- Transition buttons -->
     <div v-if="allowedTransitions.length > 0" class="flex flex-wrap gap-1 mt-2 pt-2 border-t border-surface-100 dark:border-surface-800/60">
       <button
-        v-for="nextStatus in allowedTransitions"
-        :key="nextStatus"
+        v-for="nextStage in allowedTransitions"
+        :key="nextStage.id"
         :disabled="isTransitioning"
         class="rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50"
-        :class="transitionClasses[nextStatus] ?? 'text-surface-500 hover:bg-surface-100'"
-        @click.prevent="emit('transition', nextStatus)"
+        :class="stageColorClasses(nextStage.color).badge"
+        @click.prevent="$emit('transition', nextStage.id)"
       >
-        {{ transitionLabels[nextStatus] ?? nextStatus }}
+        {{ nextStage.name }}
       </button>
     </div>
   </div>

@@ -59,17 +59,17 @@ export default defineEventHandler(async (event) => {
     referrerDomains,
     totalAttributed,
   ] = await Promise.all([
-    // 1. Application status breakdown
+    // 1. Application status breakdown — by stage category (cross-job)
     db
       .select({
-        status: application.status,
+        status: application.statusCategory,
         count: count().as('count'),
       })
       .from(applicationSource)
       .innerJoin(application, eq(application.id, applicationSource.applicationId))
       .innerJoin(candidate, eq(candidate.id, application.candidateId))
       .where(whereClause)
-      .groupBy(application.status),
+      .groupBy(application.statusCategory),
 
     // 2. Daily trend (applications over time)
     db
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
         candidateEmail: candidate.email,
         jobTitle: job.title,
         jobId: application.jobId,
-        status: application.status,
+        status: application.statusCategory,
         appliedAt: applicationSource.createdAt,
       })
       .from(applicationSource)
@@ -142,7 +142,7 @@ export default defineEventHandler(async (event) => {
   ])
 
   // ─── Build funnel map ─────────────────────
-  const funnel: Record<string, number> = { new: 0, screening: 0, interview: 0, offer: 0, hired: 0, rejected: 0 }
+  const funnel: Record<string, number> = { applied: 0, in_progress: 0, hired: 0, rejected: 0 }
   for (const row of statusBreakdown) {
     funnel[row.status] = row.count
   }

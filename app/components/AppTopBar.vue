@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   Briefcase, Plus, Bell,
-  Kanban, FileText, LogOut, Table2,
+  Kanban, FileText, LogOut, Table2, Columns3,
   Sun, Moon, MessageSquarePlus, Settings,
   ChevronDown, Menu, X, Users, ChevronLeft,
   LayoutDashboard, Calendar, ArrowUpCircle,
@@ -111,6 +111,7 @@ const jobTabs = computed(() => {
     { label: 'Import', to: `${base}/import`, icon: Upload, exact: true },
     { label: 'Inbox', to: `${base}/inbox`, icon: Inbox, exact: true },
     { label: 'Application Form', to: `${base}/application-form`, icon: FileText, exact: true },
+    { label: 'Stages', to: `${base}/stages`, icon: Columns3, exact: true },
     { label: 'Automation', to: `${base}/rules`, icon: Zap, exact: true },
     { label: 'Source Tracking', to: `${base}/source-tracking`, icon: Radio, exact: true },
     { label: 'AI Analysis', to: `${base}/ai-analysis`, icon: Sparkles, exact: true },

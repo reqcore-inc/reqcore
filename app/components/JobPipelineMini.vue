@@ -1,33 +1,29 @@
 <script setup lang="ts">
 /**
- * A compact, premium pipeline visualization for job cards.
- * Shows application counts per stage as colored segments with totals.
+ * A compact pipeline visualization for job cards.
+ *
+ * Jobs each have their own custom stages, so this cross-job card aggregates by
+ * stage CATEGORY (the role a stage plays) rather than by individual stage.
  */
 
 const props = defineProps<{
   pipeline: {
-    new: number
-    screening: number
-    interview: number
-    offer: number
+    applied: number
+    in_progress: number
     hired: number
     rejected: number
   }
 }>()
 
 const stages = [
-  { key: 'new', label: 'New', dotClass: 'bg-blue-500', barClass: 'bg-blue-500', textClass: 'text-blue-700 dark:text-blue-400' },
-  { key: 'screening', label: 'Screen', dotClass: 'bg-violet-500', barClass: 'bg-violet-500', textClass: 'text-violet-700 dark:text-violet-400' },
-  { key: 'interview', label: 'Interview', dotClass: 'bg-amber-500', barClass: 'bg-amber-500', textClass: 'text-amber-700 dark:text-amber-400' },
-  { key: 'offer', label: 'Offer', dotClass: 'bg-teal-500', barClass: 'bg-teal-500', textClass: 'text-teal-700 dark:text-teal-400' },
+  { key: 'applied', label: 'Applied', dotClass: 'bg-blue-500', barClass: 'bg-blue-500', textClass: 'text-blue-700 dark:text-blue-400' },
+  { key: 'in_progress', label: 'In progress', dotClass: 'bg-amber-500', barClass: 'bg-amber-500', textClass: 'text-amber-700 dark:text-amber-400' },
   { key: 'hired', label: 'Hired', dotClass: 'bg-green-600', barClass: 'bg-green-600', textClass: 'text-green-700 dark:text-green-400' },
 ] as const
 
 const totalActive = computed(() => {
-  return props.pipeline.new
-    + props.pipeline.screening
-    + props.pipeline.interview
-    + props.pipeline.offer
+  return props.pipeline.applied
+    + props.pipeline.in_progress
     + props.pipeline.hired
 })
 

@@ -2,14 +2,16 @@ import { eq, and, desc, count, inArray, isNull } from 'drizzle-orm'
 import { job, application, candidate } from '../../database/schema'
 import { jobQuerySchema } from '../../utils/schemas/job'
 
+// Cross-job list mini-bar aggregates by stage category (each job has its own
+// custom stages, so the compact bar shows the funnel by role).
 interface PipelineCounts {
-  new: number
-  screening: number
-  interview: number
-  offer: number
+  applied: number
+  in_progress: number
   hired: number
   rejected: number
 }
+
+const emptyPipeline = (): PipelineCounts => ({ applied: 0, in_progress: 0, hired: 0, rejected: 0 })
 
 export default defineEventHandler(async (event) => {
   const session = await requirePermission(event, { job: ['read'] })
@@ -56,7 +58,7 @@ export default defineEventHandler(async (event) => {
     const pipelineRows = await db
       .select({
         jobId: application.jobId,
-        status: application.status,
+        category: application.statusCategory,
         count: count().as('count'),
       })
       .from(application)
@@ -65,17 +67,17 @@ export default defineEventHandler(async (event) => {
         inArray(application.jobId, jobIds),
         inArray(application.candidateId, activeCandidateIds),
       ))
-      .groupBy(application.jobId, application.status)
+      .groupBy(application.jobId, application.statusCategory)
 
     for (const row of pipelineRows) {
-      const entry = (pipelineMap[row.jobId] ??= { new: 0, screening: 0, interview: 0, offer: 0, hired: 0, rejected: 0 })
-      entry[row.status as keyof PipelineCounts] = row.count
+      const entry = (pipelineMap[row.jobId] ??= emptyPipeline())
+      entry[row.category as keyof PipelineCounts] = row.count
     }
   }
 
   const enrichedData = data.map((j) => ({
     ...j,
-    pipeline: pipelineMap[j.id] ?? { new: 0, screening: 0, interview: 0, offer: 0, hired: 0, rejected: 0 },
+    pipeline: pipelineMap[j.id] ?? emptyPipeline(),
   }))
 
   return { data: enrichedData, total, page: query.page, limit: query.limit }

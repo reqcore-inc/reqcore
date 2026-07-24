@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { FileText, Search, X, Briefcase, Mail, Clock, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, Maximize2, Minimize2, Check, ChevronLeft, ChevronRight, FoldHorizontal, UnfoldHorizontal } from 'lucide-vue-next'
+import { STAGE_CATEGORIES, STAGE_CATEGORY_META, stageColorClasses, type StageCategory } from '~~/shared/pipeline'
 
 // Shared applications table. Used both by the global /dashboard/applications page
 // and by a single job's candidates tab. Passing `jobId` scopes the list to that
@@ -122,8 +123,11 @@ watch(searchInput, (val) => {
 
 // ── Status filter ─────────────────────────────────────────────────────────────
 
-const STATUS_OPTIONS = ['new', 'screening', 'interview', 'offer', 'hired', 'rejected'] as const
-type Status = typeof STATUS_OPTIONS[number]
+// This list renders both per-job and across jobs. Because every job has its own
+// custom stages, the filter works on stage CATEGORY (a universal role) while each
+// row still shows its own job's stage name and colour.
+const STATUS_OPTIONS = STAGE_CATEGORIES
+type Status = StageCategory
 
 const initialAppStatus = STATUS_OPTIONS.includes(route.query.status as any)
   ? (route.query.status as Status)
@@ -153,7 +157,7 @@ const jobIdFilter = computed(() => props.jobId)
 const { applications, total, fetchStatus, error, refresh } = useApplications({
   page,
   limit: pageSize,
-  status: statusFilter,
+  statusCategory: statusFilter,
   propertyFilters,
   jobId: jobIdFilter,
 })
@@ -237,7 +241,7 @@ const filteredApplications = computed(() => {
       case 'job':
         return dir * a.jobTitle.localeCompare(b.jobTitle)
       case 'status':
-        return dir * a.status.localeCompare(b.status)
+        return dir * (a.statusName ?? '').localeCompare(b.statusName ?? '')
       case 'score':
         return dir * ((a.score ?? -1) - (b.score ?? -1))
       case 'created':
@@ -281,37 +285,11 @@ function scoreClass(score: number) {
   return 'bg-danger-50 text-danger-700 ring-danger-200 dark:bg-danger-950 dark:text-danger-400 dark:ring-danger-800'
 }
 
-const statusBadgeClasses: Record<string, string> = {
-  new: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-  screening: 'bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
-  interview: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  offer: 'bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-400',
-  hired: 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400',
-  rejected: 'bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400',
-}
-
-const statusDotClasses: Record<string, string> = {
-  new: 'bg-blue-500',
-  screening: 'bg-violet-500',
-  interview: 'bg-amber-500',
-  offer: 'bg-teal-500',
-  hired: 'bg-green-600',
-  rejected: 'bg-surface-400 dark:bg-surface-500',
-}
-
-const statusLabels: Record<Status, string> = {
-  new: 'New',
-  screening: 'Screening',
-  interview: 'Interview',
-  offer: 'Offer',
-  hired: 'Hired',
-  rejected: 'Rejected',
-}
-
 // ── Drawer + Saved Views ──────────────────────────────────────────────────────
 
 type ApplicationsViewSettings = {
-  status?: Status
+  /** Saved stage-category filter (stages are per-job, categories are universal). */
+  statusCategory?: Status
   jobId?: string
   propertyFilters: import('~~/shared/properties').PropertyFilter[]
   sortKey: SortKey
@@ -320,7 +298,7 @@ type ApplicationsViewSettings = {
 }
 
 const defaultSettings: ApplicationsViewSettings = {
-  status: undefined,
+  statusCategory: undefined,
   jobId: undefined,
   propertyFilters: [],
   sortKey: 'created',
@@ -334,7 +312,7 @@ const isFullscreen = ref(false)
 // centered on the global cross-job list, matching each page's original layout.
 const isWideDetail = ref(!!props.jobId)
 const currentSettings = computed<ApplicationsViewSettings>(() => ({
-  status: activeStatus.value,
+  statusCategory: activeStatus.value,
   jobId: activeJobId.value,
   propertyFilters: [...propertyFilters.value],
   sortKey: sortKey.value,
@@ -343,7 +321,7 @@ const currentSettings = computed<ApplicationsViewSettings>(() => ({
 }))
 
 function applySettings(s: ApplicationsViewSettings) {
-  activeStatus.value = s.status
+  activeStatus.value = s.statusCategory
   activeJobId.value = s.jobId
   propertyFilters.value = [...(s.propertyFilters ?? [])]
   sortKey.value = s.sortKey
@@ -373,7 +351,7 @@ onMounted(() => {
 })
 
 function settingsEqual(a: ApplicationsViewSettings, b: ApplicationsViewSettings) {
-  return a.status === b.status
+  return a.statusCategory === b.statusCategory
     && a.jobId === b.jobId
     && a.sortKey === b.sortKey
     && a.sortDir === b.sortDir
@@ -530,7 +508,7 @@ async function handleApplicationDeleted() {
                 ? 'bg-surface-900 text-white dark:bg-surface-100 dark:text-surface-900'
                 : 'bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-700'"
               @click="activeStatus = activeStatus === s ? undefined : s"
-            >{{ statusLabels[s] }}</button>
+            >{{ STAGE_CATEGORY_META[s].label }}</button>
           </div>
         </div>
 
@@ -766,10 +744,10 @@ async function handleApplicationDeleted() {
               <td v-if="visibleColumns.status" class="px-4 py-3">
                 <span
                   class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium capitalize whitespace-nowrap"
-                  :class="statusBadgeClasses[app.status] ?? 'bg-surface-100 text-surface-600'"
+                  :class="stageColorClasses(app.statusColor).badge"
                 >
-                  <span class="size-1.5 rounded-full" :class="statusDotClasses[app.status] ?? 'bg-surface-400'" />
-                  {{ statusLabels[app.status as Status] ?? app.status }}
+                  <span class="size-1.5 rounded-full" :class="stageColorClasses(app.statusColor).dot" />
+                  {{ app.statusName }}
                 </span>
               </td>
               <td v-if="visibleColumns.score" class="px-4 py-3 text-center hidden sm:table-cell">

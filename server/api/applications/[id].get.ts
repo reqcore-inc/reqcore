@@ -42,6 +42,10 @@ export default defineEventHandler(async (event) => {
       job: {
         columns: { id: true, title: true, status: true, slug: true },
       },
+      // Current pipeline stage — the UI renders its name/colour.
+      stage: {
+        columns: { id: true, name: true, color: true, category: true, displayOrder: true, isEntry: true },
+      },
       responses: {
         with: {
           question: {

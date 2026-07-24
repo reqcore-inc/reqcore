@@ -11,7 +11,8 @@ export function useApplications(options?: {
   limit?: Ref<number | undefined> | number
   jobId?: Ref<string | undefined> | string
   candidateId?: Ref<string | undefined> | string
-  status?: Ref<string | undefined> | string
+  /** Filter by stage category role (applied / in_progress / hired / rejected). */
+  statusCategory?: Ref<string | undefined> | string
   propertyFilters?: Ref<PropertyFilter[] | undefined> | PropertyFilter[]
 }) {
   const { handlePreviewReadOnlyError } = usePreviewReadOnly()
@@ -23,7 +24,7 @@ export function useApplications(options?: {
       ...(toValue(options?.limit) && { limit: toValue(options?.limit) }),
       ...(toValue(options?.jobId) && { jobId: toValue(options?.jobId) }),
       ...(toValue(options?.candidateId) && { candidateId: toValue(options?.candidateId) }),
-      ...(toValue(options?.status) && { status: toValue(options?.status) }),
+      ...(toValue(options?.statusCategory) && { statusCategory: toValue(options?.statusCategory) }),
       ...(pf && pf.length > 0 && { propertyFilters: JSON.stringify(pf) }),
     }
   })

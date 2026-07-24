@@ -17,6 +17,8 @@
  * server that actually enforces the rules.
  */
 
+import type { StageCategory } from './pipeline'
+
 // ─── Question types (mirrors questionTypeEnum in the DB schema) ─────
 export type QuestionType =
   | 'short_text' | 'long_text' | 'single_select' | 'multi_select'
@@ -94,16 +96,12 @@ export const OPERATORS_BY_QUESTION_TYPE: Record<QuestionType, RuleOperator[]> = 
 export const ALL_OPERATORS = Object.keys(OPERATOR_META) as RuleOperator[]
 
 // ─── Actions ───────────────────────────────────────────────────────
-// Restricted to statuses reachable from `new` (see shared/status-transitions.ts)
-// so an automated jump never violates the manual transition rules.
-export const RULE_ACTIONS = ['rejected', 'screening', 'interview'] as const
-export type RuleAction = typeof RULE_ACTIONS[number]
-
-export const RULE_ACTION_LABELS: Record<RuleAction, string> = {
-  rejected: 'Reject',
-  screening: 'Move to Screening',
-  interview: 'Move to Interview',
-}
+/**
+ * A rule's action is the id of a pipeline stage belonging to the same job — the
+ * stage a matching application is moved into. Labels come from the job's stages
+ * (see shared/pipeline.ts), so there is no fixed action catalogue.
+ */
+export type RuleAction = string
 
 export type RuleMatchType = 'all' | 'any'
 
@@ -118,7 +116,8 @@ export interface RuleCondition {
 export interface ApplicationRuleInput {
   name: string
   matchType: RuleMatchType
-  action: RuleAction
+  /** Pipeline stage id to move a matching application into. */
+  targetStageId: RuleAction
   enabled: boolean
   conditions: RuleCondition[]
 }
@@ -256,15 +255,24 @@ export function evaluateRule(
   return rule.matchType === 'any' ? results.some(Boolean) : results.every(Boolean)
 }
 
-export interface EvaluatedRule extends Pick<ApplicationRuleInput, 'matchType' | 'conditions' | 'action' | 'enabled'> {
+export interface EvaluatedRule extends Pick<ApplicationRuleInput, 'matchType' | 'conditions' | 'targetStageId' | 'enabled'> {
   id: string
   name: string
+  /**
+   * Category of the target stage. Carried alongside the id so callers (e.g. the
+   * apply flow's auto-score skip) can react to the stage's ROLE without a
+   * second lookup.
+   */
+  targetStageCategory: StageCategory
 }
 
 export interface RuleMatch {
   ruleId: string
   ruleName: string
+  /** Pipeline stage id the application was moved into. */
   action: RuleAction
+  /** Category of that stage — lets callers detect a rejection generically. */
+  actionCategory: StageCategory
   /**
    * Question ids whose condition contributed to the match — for `all` every
    * condition's question, for `any` only the questions that passed. Lets the UI
@@ -296,7 +304,13 @@ export function evaluateApplicationRules(
     // For "any", only the passing conditions triggered; for "all", they all did.
     const contributing = rule.matchType === 'any' ? results.filter(r => r.ok) : results
     const matchedQuestionIds = [...new Set(contributing.map(r => r.questionId))]
-    return { ruleId: rule.id, ruleName: rule.name, action: rule.action, matchedQuestionIds }
+    return {
+      ruleId: rule.id,
+      ruleName: rule.name,
+      action: rule.targetStageId,
+      actionCategory: rule.targetStageCategory,
+      matchedQuestionIds,
+    }
   }
   return null
 }

@@ -25,6 +25,7 @@ import postgres from "postgres";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import * as schema from "../database/schema";
+import { DEFAULT_STAGES, type StageCategory } from "../../shared/pipeline";
 import { resolveDatabaseUrl } from "../utils/database-url";
 import { encrypt } from "../utils/encryption";
 
@@ -9417,6 +9418,11 @@ async function seed() {
   // 3. Create jobs
   const jobIds: string[] = [];
 
+  // Per-job map from a legacy status slug → its seeded stage id + category, so
+  // application inserts below can resolve `statusId` / `statusCategory`. Default
+  // stage names map 1:1 to the old slugs (lowercased).
+  const stageByJobStatus = new Map<string, { id: string; category: StageCategory }>();
+
   for (const jobData of JOBS_DATA) {
     const jobId = id();
     jobIds.push(jobId);
@@ -9435,6 +9441,23 @@ async function seed() {
       createdAt: daysAgo(createdDaysAgo),
       updatedAt: daysAgo(Math.floor(createdDaysAgo / 2)),
     });
+
+    // Seed the default pipeline for this job (mirrors jobs/index.post.ts).
+    for (let i = 0; i < DEFAULT_STAGES.length; i++) {
+      const stage = DEFAULT_STAGES[i]!;
+      const stageId = id();
+      await db.insert(schema.pipelineStage).values({
+        id: stageId,
+        organizationId: orgId,
+        jobId,
+        name: stage.name,
+        color: stage.color,
+        category: stage.category,
+        displayOrder: i,
+        isEntry: stage.isEntry,
+      });
+      stageByJobStatus.set(`${jobId}:${stage.name.toLowerCase()}`, { id: stageId, category: stage.category });
+    }
   }
 
   console.log(`✅ Created ${JOBS_DATA.length} jobs`);
@@ -9534,12 +9557,18 @@ async function seed() {
       applicationMap.set(`${jobIndex}-${app.candidateIndex}`, applicationId);
       const createdDaysAgo = 1 + Math.floor(Math.random() * 15);
 
+      const stage = stageByJobStatus.get(`${jobId}:${app.status}`);
+      if (!stage) {
+        throw new Error(`Missing seeded stage for job ${jobId} status ${app.status}`);
+      }
+
       await db.insert(schema.application).values({
         id: applicationId,
         organizationId: orgId,
         candidateId,
         jobId,
-        status: app.status,
+        statusId: stage.id,
+        statusCategory: stage.category,
         score: app.score ?? null,
         notes: app.notes ?? null,
         createdAt: daysAgo(createdDaysAgo),
