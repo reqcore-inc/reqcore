@@ -21,6 +21,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com). Categories: **Add
 
 ---
 
+## [1.7.0](https://github.com/reqcore-inc/reqcore/compare/v1.6.0...v1.7.0) (2026-07-28)
+
+
+### ✨ Features
+
+* Add ApplicationDetail and ApplicationsList components ([54311af](https://github.com/reqcore-inc/reqcore/commit/54311af2695229786f04196b46c4401dfe0323ee))
+* Add bulk candidate import and email forwarding infrastructure ([e8fe51a](https://github.com/reqcore-inc/reqcore/commit/e8fe51aa193432742d2ca0b995c1279748cc066a))
+* Add recruiter notification engine ([cb20514](https://github.com/reqcore-inc/reqcore/commit/cb20514be8c01fc96c51569eed9354602364da21))
+* application auto rules ([73a5516](https://github.com/reqcore-inc/reqcore/commit/73a551682980c35ac4e0059c54e2b72539c8af59))
+* job distribution ([8539161](https://github.com/reqcore-inc/reqcore/commit/853916154ca36bb777cce07594a6b3bac64fa11f))
+* Refactor email verification and onboarding survey UI ([594fb80](https://github.com/reqcore-inc/reqcore/commit/594fb8038cb562fd6d1db2dfd5fab026e40147a0))
+
+
+### 🐛 Bug Fixes
+
+* **deps:** pin brace-expansion and postcss to patched versions ([d510662](https://github.com/reqcore-inc/reqcore/commit/d510662e5358a186ce2857a9e4840f4e0f17af30))
+* resolve typecheck errors in sample job form and share copy ([a8ba401](https://github.com/reqcore-inc/reqcore/commit/a8ba4013342c4ef512f36bdf16dbcbeb8f48e355))
+
 ## [1.6.0](https://github.com/reqcore-inc/reqcore/compare/v1.5.0...v1.6.0) (2026-07-18)
 
 
