@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { platformAiConfig } from '../../database/schema'
 import { encrypt } from '../encryption'
-import { resolveOrgPlanId } from '../billing/plan'
 import { OPENROUTER_BASE_URL, type ProviderConfig } from './provider'
 
 export const PLATFORM_AI_CONFIG_ID = '__platform__'
@@ -35,8 +34,20 @@ export async function getPlatformAiOverride(orgId: string): Promise<PlatformAiOv
   }) ?? null
 }
 
-export async function canUsePlatformAi(orgId: string): Promise<boolean> {
-  return Boolean(env.OPENROUTER_API_KEY) && (await resolveOrgPlanId(orgId)) !== 'grandfathered'
+/**
+ * Whether an org may run analysis on the platform's OpenRouter key.
+ *
+ * Every tier qualifies, including `grandfathered`. Grandfathered orgs were
+ * originally excluded on the theory that they're free because they pay the LLM
+ * provider directly — but that assumed they'd bring a key, and most never did.
+ * The result was that a grandfathered org with no `ai_config` could not run AI
+ * analysis at all: the one feature the product exists for, silently unavailable
+ * to the orgs we meant to reward. Spend stays bounded by the per-org monthly
+ * budget and the global daily cap in budget.ts, so letting them through costs
+ * cents, not dollars.
+ */
+export async function canUsePlatformAi(_orgId: string): Promise<boolean> {
+  return Boolean(env.OPENROUTER_API_KEY)
 }
 
 // The platform ("company") AI is server-managed: its model, display name and

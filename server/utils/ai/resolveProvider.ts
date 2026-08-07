@@ -11,7 +11,6 @@
  * key never sits in a plaintext field on the config object.
  */
 import { encrypt } from '../encryption'
-import { resolveOrgPlanId } from '../billing/plan'
 import { loadAiConfig } from './loadConfig'
 import { OPENROUTER_BASE_URL, type ProviderConfig } from './provider'
 import {
@@ -70,11 +69,11 @@ export async function resolveAnalysisProvider(
     }
   }
   catch (err) {
-    // Grandfathered hosted orgs are free because they pay the LLM provider
-    // directly. If their BYOK config is missing, do not spend the platform key.
-    if (await resolveOrgPlanId(orgId) === 'grandfathered') throw err
-
     // 2: no org config — fall back to the platform key if one is configured.
+    // This applies to grandfathered orgs too: they used to be excluded here,
+    // which left any grandfathered org without its own key unable to run
+    // analysis at all. Platform spend is capped per-org and globally in
+    // budget.ts, so the fallback is money-safe for every tier.
     const platformKey = env.OPENROUTER_API_KEY
     if (!platformKey) throw err
     const platformOverride = await getPlatformAiOverride(orgId)

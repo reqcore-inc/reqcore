@@ -22,13 +22,13 @@ vi.mock('../../server/utils/ai/platformConfig', () => ({
   resolvePlatformAiProviderConfig: vi.fn(async () => ({
     providerConfig: {
       provider: 'openrouter',
-      model: state.platformOverride?.model ?? 'openai/gpt-5.4-mini',
+      model: state.platformOverride?.model ?? 'google/gemini-3.5-flash-lite',
       apiKeyEncrypted: 'encrypted-platform-key',
       baseUrl: 'https://openrouter.ai/api/v1',
       maxTokens: 4096,
     },
     provider: 'openrouter',
-    model: state.platformOverride?.model ?? 'openai/gpt-5.4-mini',
+    model: state.platformOverride?.model ?? 'google/gemini-3.5-flash-lite',
   })),
 }))
 
@@ -40,15 +40,22 @@ describe('resolveAnalysisProvider grandfathered tier', () => {
     state.platformOverride = null
     vi.stubGlobal('env', {
       OPENROUTER_API_KEY: 'sk-platform-test',
-      OPENROUTER_MODEL: 'openai/gpt-5.4-mini',
+      OPENROUTER_MODEL: 'google/gemini-3.5-flash-lite',
       BETTER_AUTH_SECRET: 'test-secret-that-is-long-enough',
     })
   })
 
   afterEach(() => vi.unstubAllGlobals())
 
-  it('does not fall back to the platform key for grandfathered orgs', async () => {
-    await expect(resolveAnalysisProvider('org_1')).rejects.toThrow('No AI config')
+  // Regression: grandfathered orgs used to be excluded from the platform-key
+  // fallback, which left any of them without their own ai_config unable to run
+  // analysis at all. Spend stays bounded by the budget gate, not by this branch.
+  it('falls back to the platform key for grandfathered orgs', async () => {
+    await expect(resolveAnalysisProvider('org_1')).resolves.toMatchObject({
+      billingMode: 'platform',
+      provider: 'openrouter',
+      model: 'google/gemini-3.5-flash-lite',
+    })
   })
 
   it('still falls back to the platform key for normal free orgs', async () => {
@@ -56,13 +63,13 @@ describe('resolveAnalysisProvider grandfathered tier', () => {
     await expect(resolveAnalysisProvider('org_1')).resolves.toMatchObject({
       billingMode: 'platform',
       provider: 'openrouter',
-      model: 'openai/gpt-5.4-mini',
+      model: 'google/gemini-3.5-flash-lite',
     })
   })
 
   it('does not resurrect the platform fallback after it has been removed', async () => {
     state.plan = 'free'
-    state.platformOverride = { isEnabled: false, isDefaultAnalysis: false, model: 'openai/gpt-5.4-mini' }
+    state.platformOverride = { isEnabled: false, isDefaultAnalysis: false, model: 'google/gemini-3.5-flash-lite' }
 
     await expect(resolveAnalysisProvider('org_1')).rejects.toThrow('No AI config')
   })
