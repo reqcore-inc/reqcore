@@ -29,6 +29,12 @@ import { FREE_PLAN_ANALYSIS_LIMIT } from '../../../shared/billing'
  */
 export const MONTHLY_BUDGET_USD: Record<string, number> = {
   default: 2,
+  // Grandfathered orgs pay nothing, so they get the smallest real budget rather
+  // than a Team-sized one. Listed explicitly rather than left to `default`: this
+  // tier's platform access is a deliberate decision (see canUsePlatformAi), and
+  // at ~$0.003 per run $2/month is several hundred shortlists — far more than
+  // any grandfathered org has ever used.
+  grandfathered: 2,
   solo: 20,
   team: 60,
   scale: 200,
